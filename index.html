@@ -1,0 +1,2098 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoGestor Peças</title>
+  <!-- Google Fonts: Poppins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Font Awesome 6.4.0 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- Sidebar Retrátil -->
+  <aside class="sidebar" id="mainSidebar">
+    <div class="logo">
+      <h2>AutoGestor Peças</h2>
+      <div class="subtitle">Sistema de Gestão</div>
+    </div>
+    <div class="menu">
+      <a href="#" class="menu-item active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a>
+      <a href="#" class="menu-item" data-page="pdv"><i class="fa-solid fa-cash-register"></i><span>PDV</span></a>
+      <a href="#" class="menu-item" data-page="os"><i class="fa-solid fa-screwdriver-wrench"></i><span>Ordem de Serviço</span></a>
+      <a href="#" class="menu-item" data-page="estoque"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a>
+      <a href="#" class="menu-item" data-page="nf"><i class="fa-solid fa-file-invoice"></i><span>Notas Fiscais</span></a>
+      <a href="#" class="menu-item" data-page="clientes"><i class="fa-solid fa-users"></i><span>Clientes</span></a>
+      <a href="#" class="menu-item" data-page="fornecedores"><i class="fa-solid fa-truck"></i><span>Fornecedores</span></a>
+      <a href="#" class="menu-item" data-page="receber"><i class="fa-solid fa-hand-holding-dollar"></i><span>Contas a Receber</span></a>
+      <a href="#" class="menu-item" data-page="pagar"><i class="fa-solid fa-money-bill-wave"></i><span>Contas a Pagar</span></a>
+      <a href="#" class="menu-item" data-page="relatorios"><i class="fa-solid fa-chart-line"></i><span>Relatórios</span></a>
+      <a href="#" class="menu-item" data-page="checklist"><i class="fa-solid fa-clipboard-check"></i><span>Checklist</span></a>
+      <a href="#" class="menu-item" data-page="config"><i class="fa-solid fa-gear"></i><span>Configurações</span></a>
+      <div class="menu-divider"></div>
+      <a href="#" class="menu-item" data-page="logout"><i class="fa-solid fa-right-from-bracket"></i><span>Sair</span></a>
+    </div>
+  </aside>
+  <div id="mobileOverlay" class="overlay"></div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header Superior -->
+    <header class="top-header">
+      <div class="header-left">
+        <button id="sidebarToggle" class="toggle-btn"><i class="fa-solid fa-bars"></i></button>
+        <h1 class="company-name">Nome da Empresa</h1>
+      </div>
+      <div class="header-right">
+        <div id="datetime" class="datetime">--</div>
+        <i class="fa-solid fa-circle-user header-icon"></i>
+        <i class="fa-solid fa-gear header-icon"></i>
+      </div>
+    </header>
+
+    <!-- Cards Financeiros Topo -->
+    <section class="finance-cards">
+      <!-- Card 1 - Vendas no Ano (Azul) -->
+      <div class="card finance card-blue">
+        <div class="card-body">
+          <div class="left">
+            <div class="icon-badge badge-blue"><i class="fa-solid fa-calendar-days"></i></div>
+            <div class="text">
+              <div class="title">Vendas no Ano</div>
+              <div class="value">R$ 132.553,50</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="trend up">↑ +12.5%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 2 - Vendas no Mês (Verde) -->
+      <div class="card finance card-green">
+        <div class="card-body">
+          <div class="left">
+            <div class="icon-badge badge-green"><i class="fa-solid fa-cart-shopping"></i></div>
+            <div class="text">
+              <div class="title">Vendas no Mês</div>
+              <div class="value">R$ 5.553,50</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="trend up">↑ +8.3%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 3 - Margem Bruta (Amarelo) -->
+      <div class="card finance card-yellow">
+        <div class="card-body">
+          <div class="left">
+            <div class="icon-badge badge-yellow"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="text">
+              <div class="title">Margem Bruta no Mês</div>
+              <div class="value">R$ 1.553,49</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="trend down">↓ -4.4%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card 4 - Despesas (Vermelho) -->
+      <div class="card finance card-red">
+        <div class="card-body">
+          <div class="left">
+            <div class="icon-badge badge-red"><i class="fa-solid fa-money-bill-wave"></i></div>
+            <div class="text">
+              <div class="title">Despesas no Mês</div>
+              <div class="value">R$ -80,00</div>
+            </div>
+          </div>
+          <div class="right">
+            <div class="trend down">↓ -1.2%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Atalhos Rápidos -->
+    <section class="quick-section">
+      <h2 class="section-title">Atalhos Rápidos</h2>
+      <div class="quick-grid">
+        <div class="quick-card" data-module="Ordem de Serviço">
+          <div class="quick-icon bg-blue"><i class="fa-solid fa-tools"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">Ordem de Serviço</div>
+            <div class="quick-desc">Criar nova O.S.</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="Venda (PDV)">
+          <div class="quick-icon bg-green"><i class="fa-solid fa-cash-register"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">Venda (PDV)</div>
+            <div class="quick-desc">Ponto de venda</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="Estoque">
+          <div class="quick-icon bg-yellow"><i class="fa-solid fa-boxes-stacked"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">Estoque</div>
+            <div class="quick-desc">Gerenciar peças</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="Notas Fiscais">
+          <div class="quick-icon bg-blue"><i class="fa-solid fa-file-invoice"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">Notas Fiscais</div>
+            <div class="quick-desc">Emitir NF-e/NFC-e</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="Clientes">
+          <div class="quick-icon bg-green"><i class="fa-solid fa-users"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">Clientes</div>
+            <div class="quick-desc">Cadastro e histórico</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="A Receber">
+          <div class="quick-icon bg-red"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">A Receber</div>
+            <div class="quick-desc">Contas a receber</div>
+          </div>
+        </div>
+        <div class="quick-card" data-module="A Pagar">
+          <div class="quick-icon bg-red"><i class="fa-solid fa-money-bill-wave"></i></div>
+          <div class="quick-text">
+            <div class="quick-title">A Pagar</div>
+            <div class="quick-desc">Contas a pagar</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PDV Page -->
+    <section class="pdv-section hidden" id="pdvSection">
+      <div class="pdv-header">
+        <h2>Ponto de Venda (PDV)</h2>
+        <div class="pdv-header-actions">
+          <button class="btn btn-primary" id="btnScanBarcode"><i class="fa-solid fa-barcode"></i> Ler Código</button>
+          <button class="btn btn-warning" id="btnClearCart"><i class="fa-solid fa-trash"></i> Limpar Carrinho</button>
+        </div>
+      </div>
+
+      <div class="pdv-grid">
+        <!-- Produtos -->
+        <div class="pdv-left">
+          <div class="search-box">
+  <input type="text" id="productSearch" class="product-search" placeholder="Buscar produto por código, nome ou descrição...">
+  <i class="fa-solid fa-search search-icon"></i>
+  <button class="barcode-scanner-btn" id="barcodeScannerBtn">
+    <i class="fa-solid fa-barcode"></i>
+  </button>
+</div>
+
+          <div class="categories" id="categories">
+            <button class="category active" data-cat="Todos">Todos</button>
+            <button class="category" data-cat="Motores">Motores</button>
+            <button class="category" data-cat="Freios">Freios</button>
+            <button class="category" data-cat="Suspensão">Suspensão</button>
+            <button class="category" data-cat="Elétrica">Elétrica</button>
+            <button class="category" data-cat="Filtros">Filtros</button>
+            <button class="category" data-cat="Óleos">Óleos</button>
+          </div>
+
+          <div class="products-grid" id="productsGrid"></div>
+        </div>
+
+        <!-- Carrinho -->
+        <div class="pdv-right">
+          <div class="cart-panel">
+            <h3>Carrinho</h3>
+            <div id="cartItems" class="cart-items"></div>
+
+            <div class="cart-summary">
+              <div class="summary-line"><span>Subtotal</span><span id="subtotalAmount">R$ 0,00</span></div>
+              <div class="summary-line"><span>Desconto</span><span id="discountAmount">R$ 0,00</span></div>
+              <div class="summary-total"><span>Total</span><span id="totalAmount">R$ 0,00</span></div>
+            </div>
+
+            <div class="payment-methods">
+              <div class="pay-title">Formas de Pagamento</div>
+              <div class="pay-options" id="payOptions">
+                <button class="pay-option" data-method="Dinheiro"><i class="fa-solid fa-money-bill-wave"></i> Dinheiro</button>
+                <button class="pay-option" data-method="Cartão"><i class="fa-solid fa-credit-card"></i> Cartão</button>
+                <button class="pay-option" data-method="PIX"><i class="fa-solid fa-qrcode"></i> PIX</button>
+                <button class="pay-option" data-method="Débito"><i class="fa-solid fa-credit-card"></i> Débito</button>
+              </div>
+            </div>
+
+            <button class="btn btn-success finalize-btn" id="finalizeSaleBtn"><i class="fa-solid fa-check"></i> Finalizar Venda</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ordem de Serviço (OS) -->
+    <section class="os-section hidden" id="osSection">
+      <div class="os-header">
+        <h2>Ordem de Serviço</h2>
+        <div class="os-header-actions">
+          <button class="btn btn-primary" id="osListBtn"><i class="fa-solid fa-list"></i> Lista de OS</button>
+          <button class="btn btn-success" id="osNewBtn"><i class="fa-solid fa-plus"></i> Nova OS</button>
+        </div>
+      </div>
+
+      <div class="os-mode os-mode-form" id="osModeForm">
+        <div class="os-grid">
+          <!-- Formulário -->
+          <div class="os-left">
+            <div class="os-card">
+              <h3>Dados do Cliente</h3>
+              <div class="os-form-grid">
+                <div class="os-form-group">
+                  <label for="clientName">Nome</label>
+                  <input type="text" id="clientName" placeholder="Nome completo" />
+                </div>
+                <div class="os-form-group">
+                  <label for="clientDocument">Documento</label>
+                  <input type="text" id="clientDocument" placeholder="CPF/CNPJ" />
+                </div>
+                <div class="os-form-group">
+                  <label for="clientPhone">Telefone</label>
+                  <input type="text" id="clientPhone" placeholder="(00) 00000-0000" />
+                </div>
+                <div class="os-form-group">
+                  <label for="clientEmail">E-mail</label>
+                  <input type="email" id="clientEmail" placeholder="email@exemplo.com" />
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card">
+              <h3>Dados do Veículo</h3>
+              <div class="os-form-grid">
+                <div class="os-form-group">
+                  <label for="vehiclePlate">Placa</label>
+                  <input type="text" id="vehiclePlate" placeholder="ABC-1D23" />
+                </div>
+                <div class="os-form-group">
+                  <label for="vehicleModel">Modelo</label>
+                  <input type="text" id="vehicleModel" placeholder="Modelo do veículo" />
+                </div>
+                <div class="os-form-group">
+                  <label for="vehicleYear">Ano</label>
+                  <input type="number" id="vehicleYear" placeholder="2020" />
+                </div>
+                <div class="os-form-group">
+                  <label for="vehicleColor">Cor</label>
+                  <input type="text" id="vehicleColor" placeholder="Cor" />
+                </div>
+                <div class="os-form-group">
+                  <label for="vehicleKm">KM</label>
+                  <input type="number" id="vehicleKm" placeholder="0" />
+                </div>
+                <div class="os-form-group">
+                  <label for="vehicleChassis">Chassi</label>
+                  <input type="text" id="vehicleChassis" placeholder="Chassi" />
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card">
+              <h3>Serviços</h3>
+              <div class="search-box">
+                <input type="text" id="serviceSearch" class="product-search" placeholder="Buscar serviço por nome ou categoria..." />
+                <i class="fa-solid fa-search search-icon"></i>
+              </div>
+              <div class="os-results" id="serviceResults"></div>
+              <div class="os-items" id="osServices"></div>
+            </div>
+
+            <div class="os-card">
+              <h3>Peças</h3>
+              <div class="search-box">
+                <input type="text" id="partSearch" class="product-search" placeholder="Buscar peça por nome, descrição ou código..." />
+                <i class="fa-solid fa-search search-icon"></i>
+              </div>
+              <div class="os-results" id="partResults"></div>
+              <div class="os-items" id="osParts"></div>
+            </div>
+
+            <div class="os-card">
+              <h3>Observações</h3>
+              <textarea id="osObservations" rows="4" placeholder="Escreva observações da OS..."></textarea>
+            </div>
+
+            <div class="os-actions">
+              <button class="btn btn-primary" id="saveOSBtn"><i class="fa-solid fa-save"></i> Salvar OS</button>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div class="os-right">
+            <div class="os-preview">
+              <h3>Preview</h3>
+              <div class="preview-section">
+                <div class="preview-title">Cliente</div>
+                <div id="previewClient"></div>
+              </div>
+              <div class="preview-section">
+                <div class="preview-title">Veículo</div>
+                <div id="previewVehicle"></div>
+              </div>
+              <div class="preview-section">
+                <div class="preview-title">Serviços</div>
+                <div id="previewServices"></div>
+              </div>
+              <div class="preview-section">
+                <div class="preview-title">Peças</div>
+                <div id="previewParts"></div>
+              </div>
+              <div class="preview-section">
+                <div class="preview-title">Totais</div>
+                <div id="previewTotals"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="os-mode os-mode-list hidden" id="osModeList">
+        <div class="os-list-card">
+          <h3>Lista de Ordens de Serviço</h3>
+          <table class="os-table" id="osTable">
+            <thead>
+              <tr>
+                <th>OS</th>
+                <th>Cliente</th>
+                <th>Placa</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estoque -->
+    <section class="inventory-section hidden" id="inventorySection">
+      <div class="inventory-header">
+        <h2>Gestão de Estoque</h2>
+        <div class="inv-header-actions">
+          <button class="btn btn-primary" id="invExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <label class="btn btn-secondary" for="invImportFile" id="invImportBtn"><i class="fa-solid fa-file-import"></i> Importar</label>
+          <input type="file" id="invImportFile" accept=".csv" hidden />
+        </div>
+      </div>
+
+      <div class="inventory-grid">
+        <div class="inv-left">
+          <div class="inv-card">
+            <h3>Cadastro de Produto</h3>
+            <div class="form-group">
+              <label for="invBarcode">Código de Barras</label>
+              <div class="barcode-row">
+                <input type="text" id="invBarcode" placeholder="EAN/UPC" />
+                <button class="barcode-scanner-btn" id="invScanBtn"><i class="fa-solid fa-barcode"></i></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="invName">Nome</label>
+              <input type="text" id="invName" placeholder="Nome do produto" />
+            </div>
+            <div class="form-group">
+              <label for="invDescription">Descrição</label>
+              <textarea id="invDescription" rows="2" placeholder="Descrição"></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="invCategory">Categoria</label>
+                <input type="text" id="invCategory" placeholder="Categoria" />
+              </div>
+              <div class="form-group">
+                <label for="invSupplier">Fornecedor</label>
+                <input type="text" id="invSupplier" placeholder="Fornecedor" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="invPrice">Preço (R$)</label>
+                <input type="number" step="0.01" id="invPrice" placeholder="0,00" />
+              </div>
+              <div class="form-group">
+                <label for="invStock">Estoque</label>
+                <input type="number" id="invStock" placeholder="0" />
+              </div>
+              <div class="form-group">
+                <label for="invMinStock">Min.</label>
+                <input type="number" id="invMinStock" placeholder="0" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-success" id="invSaveBtn"><i class="fa-solid fa-save"></i> Salvar</button>
+              <button class="btn btn-warning" id="invResetBtn"><i class="fa-solid fa-rotate-left"></i> Limpar</button>
+              <button class="btn btn-danger" id="invDeleteBtn"><i class="fa-solid fa-trash"></i> Excluir</button>
+            </div>
+          </div>
+
+          <div class="inv-card">
+            <h3>Movimentação de Estoque</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="invMovementType">Tipo</label>
+                <select id="invMovementType">
+                  <option value="in">Entrada</option>
+                  <option value="out">Saída</option>
+                  <option value="adjust">Ajuste</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="invMovementQty">Quantidade</label>
+                <input type="number" id="invMovementQty" placeholder="0" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="invMovementReason">Motivo</label>
+              <input type="text" id="invMovementReason" placeholder="Ex.: compra, perda, ajuste" />
+            </div>
+            <button class="btn btn-primary" id="invApplyMovementBtn"><i class="fa-solid fa-right-left"></i> Aplicar</button>
+          </div>
+        </div>
+
+        <div class="inv-right">
+          <div class="inv-card">
+            <h3>Produtos</h3>
+            <div class="search-box">
+              <input type="text" id="invSearch" class="product-search" placeholder="Buscar por código, nome ou descrição..." />
+              <i class="fa-solid fa-search search-icon"></i>
+            </div>
+            <div class="inv-filters">
+              <select id="invFilterCategory"><option value="">Todas as categorias</option></select>
+              <select id="invFilterSupplier"><option value="">Todos os fornecedores</option></select>
+              <select id="invFilterStock"><option value="">Todos</option><option value="low">Baixo estoque</option><option value="zero">Zerado</option></select>
+            </div>
+            <div class="products-grid" id="invProductsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Clientes -->
+    <section class="clients-section hidden" id="clientsSection">
+      <div class="clients-header">
+        <h2>Gestão de Clientes</h2>
+        <div class="clients-header-actions">
+          <button class="btn btn-primary" id="clientsExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <label class="btn btn-secondary" for="clientsImportFile" id="clientsImportBtn"><i class="fa-solid fa-file-import"></i> Importar</label>
+          <input type="file" id="clientsImportFile" accept=".csv" hidden />
+        </div>
+      </div>
+
+      <div class="clients-grid">
+        <div class="clients-left">
+          <div class="clients-card">
+            <div class="type-toggle">
+              <div class="type-option active" data-type="pf">Pessoa Física</div>
+              <div class="type-option" data-type="pj">Pessoa Jurídica</div>
+            </div>
+            <form id="clientForm">
+              <div class="form-group">
+                <label for="clientName">Nome/Razão Social</label>
+                <input type="text" id="clientName" placeholder="Nome do cliente" required />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="clientDocument">CPF/CNPJ</label>
+                  <input type="text" id="clientDocument" placeholder="000.000.000-00 ou 00.000.000/0000-00" required />
+                </div>
+                <div class="form-group">
+                  <label for="clientPhone">Telefone</label>
+                  <input type="text" id="clientPhone" placeholder="(00) 00000-0000" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="clientEmail">E-mail</label>
+                  <input type="email" id="clientEmail" placeholder="email@exemplo.com" />
+                </div>
+                <div class="form-group">
+                  <label for="clientCEP">CEP</label>
+                  <input type="text" id="clientCEP" placeholder="00000-000" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="clientState">UF</label>
+                  <input type="text" id="clientState" placeholder="SP" />
+                </div>
+                <div class="form-group">
+                  <label for="clientCity">Cidade</label>
+                  <input type="text" id="clientCity" placeholder="São Paulo" />
+                </div>
+                <div class="form-group">
+                  <label for="clientAddress">Endereço</label>
+                  <input type="text" id="clientAddress" placeholder="Rua, número, bairro" />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-success" id="clientSaveBtn" type="submit"><i class="fa-solid fa-save"></i> Salvar</button>
+                <button class="btn btn-warning" id="clientResetBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Limpar</button>
+                <button class="btn btn-danger" id="clientDeleteBtn" type="button"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button class="btn btn-secondary" id="clientWhatsBtn" type="button"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="clients-card">
+            <h3>Veículos do Cliente</h3>
+            <div id="clientVehiclesList"></div>
+            <button class="btn btn-primary" id="openVehicleModalBtn"><i class="fa-solid fa-car"></i> Adicionar Veículo</button>
+          </div>
+        </div>
+
+        <div class="clients-right">
+          <div class="clients-card">
+            <h3>Clientes</h3>
+            <div class="search-box">
+              <input type="text" id="clientSearch" class="product-search" placeholder="Buscar por nome, documento, telefone ou e-mail..." />
+              <i class="fa-solid fa-search search-icon"></i>
+            </div>
+            <div class="clients-cards-grid" id="clientsGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal: Veículos -->
+    <div class="app-modal" id="vehicleModal">
+      <div class="modal-content">
+        <h3>Cadastro de Veículo</h3>
+        <div class="form-row">
+          <div class="form-group"><label for="vehPlate">Placa</label><input type="text" id="vehPlate" placeholder="ABC1D23" /></div>
+          <div class="form-group"><label for="vehModel">Modelo</label><input type="text" id="vehModel" placeholder="Onix 1.0" /></div>
+          <div class="form-group"><label for="vehYear">Ano</label><input type="number" id="vehYear" placeholder="2020" /></div>
+          <div class="form-group"><label for="vehColor">Cor</label><input type="text" id="vehColor" placeholder="Prata" /></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-success" id="saveVehicleBtn"><i class="fa-solid fa-save"></i> Salvar</button>
+          <button class="btn btn-secondary" id="closeVehicleModalBtn"><i class="fa-solid fa-times"></i> Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: WhatsApp -->
+    <div class="app-modal" id="whatsModal">
+      <div class="modal-content">
+        <h3>Enviar WhatsApp</h3>
+        <div class="form-group">
+          <label for="whatsTemplate">Template</label>
+          <select id="whatsTemplate">
+            <option value="">Personalizado</option>
+            <option value="lembranca">Lembrete de manutenção</option>
+            <option value="orcamento">Orçamento disponível</option>
+            <option value="promocao">Promoção de peças/serviços</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="whatsMessage">Mensagem</label>
+          <textarea id="whatsMessage" rows="4" placeholder="Digite sua mensagem..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-success" id="sendWhatsBtn"><i class="fa-brands fa-whatsapp"></i> Enviar</button>
+          <button class="btn btn-secondary" id="closeWhatsModalBtn"><i class="fa-solid fa-times"></i> Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fornecedores -->
+    <section class="suppliers-section hidden" id="suppliersSection">
+      <div class="suppliers-header">
+        <h2>Gestão de Fornecedores</h2>
+        <div class="sup-header-actions">
+          <button class="btn btn-primary" id="supExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <label class="btn btn-secondary" for="supImportFile" id="supImportBtn"><i class="fa-solid fa-file-import"></i> Importar</label>
+          <input type="file" id="supImportFile" accept=".csv" hidden />
+        </div>
+      </div>
+      <div class="suppliers-grid">
+        <div class="sup-left">
+          <div class="sup-card">
+            <h3>Dados Empresariais</h3>
+            <form id="supplierForm">
+              <div class="form-group">
+                <label for="supplierName">Razão Social</label>
+                <input type="text" id="supplierName" placeholder="Razão Social" required />
+              </div>
+              <div class="form-group">
+                <label for="supplierTradeName">Nome Fantasia</label>
+                <input type="text" id="supplierTradeName" placeholder="Nome Fantasia" required />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="supplierCNPJ">CNPJ</label>
+                  <input type="text" id="supplierCNPJ" placeholder="00.000.000/0000-00" required />
+                </div>
+                <div class="form-group">
+                  <label for="supplierIE">Inscrição Estadual</label>
+                  <input type="text" id="supplierIE" placeholder="IE" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="supplierPhone">Telefone</label>
+                  <input type="text" id="supplierPhone" placeholder="(00) 00000-0000" required />
+                </div>
+                <div class="form-group">
+                  <label for="supplierEmail">E-mail</label>
+                  <input type="email" id="supplierEmail" placeholder="email@fornecedor.com" />
+                </div>
+              </div>
+              <h3>Endereço</h3>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="supplierCEP">CEP</label>
+                  <input type="text" id="supplierCEP" placeholder="00000-000" />
+                </div>
+                <div class="form-group">
+                  <label for="supplierState">UF</label>
+                  <input type="text" id="supplierState" placeholder="SP" />
+                </div>
+                <div class="form-group">
+                  <label for="supplierCity">Cidade</label>
+                  <input type="text" id="supplierCity" placeholder="São Paulo" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="supplierAddress">Endereço</label>
+                <input type="text" id="supplierAddress" placeholder="Rua, número, bairro" />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="supplierStatus">Status</label>
+                  <select id="supplierStatus">
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                    <option value="pending">Pendente</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="supplierRating">Rating</label>
+                  <input type="number" step="0.1" min="1" max="5" id="supplierRating" placeholder="4.0" />
+                </div>
+              </div>
+
+              <h3>Contatos</h3>
+              <div class="form-actions">
+                <button type="button" class="btn btn-primary" id="openContactModalBtn"><i class="fa-solid fa-user-plus"></i> Adicionar Contato</button>
+              </div>
+              <div id="supplierContactsList"></div>
+
+              <h3>Produtos</h3>
+              <div class="form-actions">
+                <button type="button" class="btn btn-primary" id="openProductModalBtn"><i class="fa-solid fa-box-open"></i> Adicionar Produto</button>
+              </div>
+              <div id="supplierProductsList"></div>
+
+              <div class="form-actions">
+                <button class="btn btn-success" id="supplierSaveBtn"><i class="fa-solid fa-save"></i> Salvar</button>
+                <button class="btn btn-warning" id="supplierResetBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Resetar</button>
+                <button class="btn btn-danger" id="supplierDeleteBtn" type="button"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button class="btn btn-success" id="supplierWhatsBtn" type="button"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="sup-right">
+          <div class="sup-card">
+            <h3>Fornecedores</h3>
+            <div class="search-box">
+              <input type="text" id="supplierSearch" class="product-search" placeholder="Buscar por nome, CNPJ, telefone, e-mail ou cidade..." />
+              <i class="fa-solid fa-search search-icon"></i>
+            </div>
+            <div class="suppliers-cards-grid" id="suppliersGrid"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal: Contato -->
+    <div class="app-modal" id="contactModal">
+      <div class="modal-content">
+        <div class="modal-header"><h3>Novo Contato</h3></div>
+        <div class="form-row">
+          <div class="form-group"><label for="contactName">Nome</label><input type="text" id="contactName" placeholder="Nome do contato" /></div>
+          <div class="form-group"><label for="contactRole">Cargo</label><input type="text" id="contactRole" placeholder="Cargo" /></div>
+          <div class="form-group"><label for="contactDept">Departamento</label><input type="text" id="contactDept" placeholder="Departamento" /></div>
+          <div class="form-group"><label for="contactPhone">Telefone</label><input type="text" id="contactPhone" placeholder="(00) 00000-0000" /></div>
+        </div>
+        <div class="form-group"><label for="contactEmail">E-mail</label><input type="email" id="contactEmail" placeholder="email@empresa.com" /></div>
+        <div class="modal-actions"><button class="btn btn-success" id="saveContactBtn"><i class="fa-solid fa-save"></i> Salvar</button><button class="btn btn-secondary" id="closeContactModalBtn"><i class="fa-solid fa-times"></i> Fechar</button></div>
+      </div>
+    </div>
+
+    <!-- Modal: Produto -->
+    <div class="app-modal" id="productModal">
+      <div class="modal-content">
+        <div class="modal-header"><h3>Novo Produto</h3></div>
+        <div class="form-row">
+          <div class="form-group"><label for="productName">Nome</label><input type="text" id="productName" placeholder="Nome do produto" /></div>
+          <div class="form-group"><label for="productCategory">Categoria</label><input type="text" id="productCategory" placeholder="Categoria" /></div>
+          <div class="form-group"><label for="productCode">Código do fornecedor</label><input type="text" id="productCode" placeholder="Código" /></div>
+        </div>
+        <div class="form-group"><label for="productNotes">Observações</label><textarea id="productNotes" rows="3" placeholder="Observações..."></textarea></div>
+        <div class="modal-actions"><button class="btn btn-success" id="saveProductBtn"><i class="fa-solid fa-save"></i> Salvar</button><button class="btn btn-secondary" id="closeProductModalBtn"><i class="fa-solid fa-times"></i> Fechar</button></div>
+      </div>
+    </div>
+
+    <!-- Modal: WhatsApp Fornecedor -->
+    <div class="app-modal" id="supplierWhatsModal">
+      <div class="modal-content">
+        <h3>Enviar WhatsApp</h3>
+        <div class="form-group">
+          <label for="supplierWhatsRecipient">Destinatário</label>
+          <select id="supplierWhatsRecipient"></select>
+        </div>
+        <div class="form-group">
+          <label for="supplierWhatsTemplate">Template</label>
+          <select id="supplierWhatsTemplate">
+            <option value="">Personalizado</option>
+            <option value="cotacao">Cotação</option>
+            <option value="pedido">Pedido</option>
+            <option value="cobranca">Cobrança</option>
+            <option value="followup">Follow-up</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="supplierWhatsMessage">Mensagem</label>
+          <textarea id="supplierWhatsMessage" rows="4" placeholder="Digite sua mensagem..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-success" id="sendSupplierWhatsBtn"><i class="fa-brands fa-whatsapp"></i> Enviar</button>
+          <button class="btn btn-secondary" id="closeSupplierWhatsModalBtn"><i class="fa-solid fa-times"></i> Fechar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal do Leitor -->
+    <div class="barcode-scanner-modal" id="barcodeScannerModal">
+      <div class="scanner-container">
+        <div id="barcode-scanner-viewport"></div>
+        <div class="scanner-overlay"></div>
+        <button class="btn-close-scanner"><i class="fa-solid fa-times"></i> Fechar</button>
+      </div>
+    </div>
+
+    <!-- Contas a Receber -->
+    <section class="receivables-section hidden" id="receivablesSection">
+      <div class="ar-header">
+        <h2>Contas a Receber</h2>
+        <div class="ar-header-actions">
+          <button class="btn btn-primary" id="arExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <button class="btn btn-success" id="arNewReceiptBtn"><i class="fa-solid fa-plus"></i> Novo Recebimento</button>
+        </div>
+      </div>
+
+      <div class="finance-cards ar-summary">
+        <div class="card card-blue">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-blue"><i class="fa-solid fa-clock"></i></div>
+              <div class="text">
+                <div class="title">Pendentes</div>
+                <div class="value" id="arSumPending">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-red">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-red"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div class="text">
+                <div class="title">Vencidas</div>
+                <div class="value" id="arSumOverdue">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-green">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-green"><i class="fa-solid fa-check-circle"></i></div>
+              <div class="text">
+                <div class="title">Recebidas</div>
+                <div class="value" id="arSumReceived">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-yellow"><i class="fa-solid fa-calendar-week"></i></div>
+              <div class="text">
+                <div class="title">Vencem Esta Semana</div>
+                <div class="value" id="arSumWeekDue">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ar-grid">
+        <div class="ar-left">
+          <div class="ar-card">
+            <h3>Listagem de Contas</h3>
+            <div class="ar-filters">
+              <div class="form-group"><input type="text" id="arSearch" class="product-search" placeholder="Buscar por cliente, descrição ou documento..." /></div>
+              <div class="form-group">
+                <select id="arFilterStatus">
+                  <option value="">Todos</option>
+                  <option value="pending">Pendentes</option>
+                  <option value="overdue">Vencidas</option>
+                  <option value="partial">Parcial</option>
+                  <option value="paid">Recebidas</option>
+                </select>
+              </div>
+              <div class="form-group"><input type="date" id="arFilterStart" /></div>
+              <div class="form-group"><input type="date" id="arFilterEnd" /></div>
+            </div>
+            <table class="ar-table" id="arTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Cliente</th>
+                  <th>Descrição</th>
+                  <th>Original</th>
+                  <th>Recebido</th>
+                    <th>Restante</th>
+                    <th>Vencimento</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+              </thead>
+              <tbody id="arTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="ar-right">
+          <div class="ar-card">
+            <h3>Nova/Editar Conta</h3>
+            <form id="arForm">
+              <div class="form-group">
+                <label for="arClientName">Cliente</label>
+                <input type="text" id="arClientName" placeholder="Nome do cliente" required />
+                <input type="hidden" id="arClientId" />
+              </div>
+              <div class="form-group">
+                <label for="arDescription">Descrição</label>
+                <input type="text" id="arDescription" placeholder="Ex.: Venda de peças" required />
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="arOriginalValue">Valor Original</label>
+                  <input type="number" step="0.01" id="arOriginalValue" placeholder="0,00" required />
+                </div>
+                <div class="form-group">
+                  <label for="arReceivedValue">Recebido</label>
+                  <input type="number" step="0.01" id="arReceivedValue" placeholder="0,00" />
+                </div>
+                <div class="form-group">
+                  <label for="arDueDate">Vencimento</label>
+                  <input type="date" id="arDueDate" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="arIssueDate">Emissão</label>
+                  <input type="date" id="arIssueDate" />
+                </div>
+                <div class="form-group">
+                  <label for="arDocNumber">Documento</label>
+                  <input type="text" id="arDocNumber" placeholder="Nº documento" />
+                </div>
+                <div class="form-group">
+                  <label for="arCategory">Categoria</label>
+                  <select id="arCategory">
+                    <option value="venda">Venda</option>
+                    <option value="servico">Serviço</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="arStatus">Status</label>
+                  <select id="arStatus">
+                    <option value="pending">Pendente</option>
+                    <option value="partial">Parcial</option>
+                    <option value="paid">Recebida</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="arObservations">Observações</label>
+                  <textarea id="arObservations" rows="3" placeholder="Observações complementares"></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-success" id="arSaveBtn"><i class="fa-solid fa-save"></i> Salvar</button>
+                <button class="btn btn-warning" id="arResetBtn" type="button"><i class="fa-solid fa-rotate-left"></i> Resetar</button>
+                <button class="btn btn-danger" id="arDeleteBtn" type="button"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button class="btn btn-success" id="arWhatsBtn" type="button"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-modal" id="receiptModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Registrar Recebimento</h3>
+            <button class="btn btn-secondary" id="closeReceiptModal"><i class="fa-solid fa-times"></i> Fechar</button>
+          </div>
+          <div class="form-group">
+            <label for="rcpAccountSelect">Conta</label>
+            <select id="rcpAccountSelect"></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="rcpValue">Valor</label>
+              <input type="number" step="0.01" id="rcpValue" placeholder="0,00" required />
+            </div>
+            <div class="form-group">
+              <label for="rcpDate">Data</label>
+              <input type="date" id="rcpDate" required />
+            </div>
+            <div class="form-group">
+              <label for="rcpMethod">Forma de Pagamento</label>
+              <select id="rcpMethod">
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao">Cartão</option>
+                <option value="pix">PIX</option>
+                <option value="boleto">Boleto</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="rcpObs">Observações</label>
+            <textarea id="rcpObs" rows="3"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-success" id="saveReceiptBtn"><i class="fa-solid fa-check"></i> Salvar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Contas a Pagar -->
+    <section class="payables-section hidden" id="payablesSection">
+      <div class="ap-header">
+        <h2>Contas a Pagar</h2>
+        <div class="ap-header-actions">
+          <button class="btn btn-primary" id="apExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <button class="btn btn-success" id="apNewPaymentBtn"><i class="fa-solid fa-plus"></i> Novo Pagamento</button>
+        </div>
+      </div>
+
+      <div class="finance-cards ap-summary">
+        <div class="card card-blue">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-blue"><i class="fa-solid fa-clock"></i></div>
+              <div class="text">
+                <div class="title">Pendentes</div>
+                <div class="value" id="apSumPending">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-red">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-red"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div class="text">
+                <div class="title">Vencidas</div>
+                <div class="value" id="apSumOverdue">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-green">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-green"><i class="fa-solid fa-check-circle"></i></div>
+              <div class="text">
+                <div class="title">Pagas</div>
+                <div class="value" id="apSumPaid">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-yellow"><i class="fa-solid fa-calendar-week"></i></div>
+              <div class="text">
+                <div class="title">Vencem Esta Semana</div>
+                <div class="value" id="apSumWeekDue">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ap-grid">
+        <div class="ap-left">
+          <div class="ap-card">
+            <h3>Listagem de Contas</h3>
+            <div class="ap-filters">
+              <div class="form-group"><input type="text" id="apSearch" class="product-search" placeholder="Buscar por fornecedor, descrição ou documento..." /></div>
+              <div class="form-group">
+                <select id="apFilterStatus">
+                  <option value="">Todos</option>
+                  <option value="pending">Pendentes</option>
+                  <option value="overdue">Vencidas</option>
+                  <option value="partial">Parcial</option>
+                  <option value="paid">Pagas</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <select id="apFilterPriority">
+                  <option value="">Todas Prioridades</option>
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+              <div class="form-group"><input type="date" id="apFilterStart" /></div>
+              <div class="form-group"><input type="date" id="apFilterEnd" /></div>
+            </div>
+            <table class="ap-table" id="apTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fornecedor</th>
+                  <th>Descrição</th>
+                  <th>Original</th>
+                  <th>Pago</th>
+                  <th>Restante</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="apTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="ap-right">
+          <div class="ap-card">
+            <h3>Cadastro / Edição</h3>
+            <form id="apForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="apSupplierName">Fornecedor</label>
+                  <input type="text" id="apSupplierName" placeholder="Nome do fornecedor" required />
+                  <input type="hidden" id="apSupplierId" />
+                </div>
+                <div class="form-group">
+                  <label for="apDescription">Descrição</label>
+                  <input type="text" id="apDescription" placeholder="Ex: Compra de filtros" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="apOriginalValue">Valor Original</label>
+                  <input type="number" step="0.01" id="apOriginalValue" placeholder="0,00" required />
+                </div>
+                <div class="form-group">
+                  <label for="apPaidValue">Valor Pago</label>
+                  <input type="number" step="0.01" id="apPaidValue" placeholder="0,00" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="apDueDate">Vencimento</label>
+                  <input type="date" id="apDueDate" required />
+                </div>
+                <div class="form-group">
+                  <label for="apIssueDate">Emissão</label>
+                  <input type="date" id="apIssueDate" required />
+                </div>
+                <div class="form-group">
+                  <label for="apDocNumber">Nº Documento</label>
+                  <input type="text" id="apDocNumber" placeholder="NF, Boleto..." />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="apCategory">Categoria</label>
+                  <select id="apCategory">
+                    <option value="compra">Compra</option>
+                    <option value="servico">Serviço</option>
+                    <option value="despesa">Despesa</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="apPriority">Prioridade</label>
+                  <select id="apPriority">
+                    <option value="low">Baixa</option>
+                    <option value="medium" selected>Média</option>
+                    <option value="high">Alta</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="apStatus">Status</label>
+                  <select id="apStatus">
+                    <option value="pending" selected>Pendente</option>
+                    <option value="overdue">Vencida</option>
+                    <option value="partial">Parcial</option>
+                    <option value="paid">Paga</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="apObservations">Observações</label>
+                <textarea id="apObservations" rows="3" placeholder="Observações gerais"></textarea>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-success" id="apSaveBtn"><i class="fa-solid fa-check"></i> Salvar</button>
+                <button type="reset" class="btn btn-secondary" id="apResetBtn"><i class="fa-solid fa-rotate"></i> Limpar</button>
+                <button type="button" class="btn btn-danger" id="apDeleteBtn"><i class="fa-solid fa-trash"></i> Excluir</button>
+                <button type="button" class="btn btn-secondary" id="apWhatsBtn"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-modal" id="paymentModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Registrar Pagamento</h3>
+            <button class="btn btn-secondary" id="closePaymentModal"><i class="fa-solid fa-times"></i> Fechar</button>
+          </div>
+          <div class="form-group">
+            <label for="payAccountSelect">Conta</label>
+            <select id="payAccountSelect"></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="payValue">Valor</label>
+              <input type="number" step="0.01" id="payValue" placeholder="0,00" required />
+            </div>
+            <div class="form-group">
+              <label for="payDate">Data</label>
+              <input type="date" id="payDate" required />
+            </div>
+            <div class="form-group">
+              <label for="payMethod">Forma de Pagamento</label>
+              <select id="payMethod">
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao">Cartão</option>
+                <option value="pix">PIX</option>
+                <option value="boleto">Boleto</option>
+                <option value="transferencia">Transferência</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="payReceiptNumber">Nº Recibo</label>
+            <input type="text" id="payReceiptNumber" placeholder="Opcional" />
+          </div>
+          <div class="form-group">
+            <label for="payObs">Observações</label>
+            <textarea id="payObs" rows="3"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-success" id="savePaymentBtn"><i class="fa-solid fa-check"></i> Salvar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- Relatórios -->
+    <section class="reports-section hidden" id="reportsSection">
+      <div class="rep-header">
+        <h2>Relatórios</h2>
+        <div class="rep-header-actions">
+          <div class="form-group">
+            <label for="repStart">Período</label>
+            <div style="display:flex; gap:10px; align-items:center;">
+              <input type="date" id="repStart" />
+              <input type="date" id="repEnd" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="repExportFlowBtn"><i class="fa-solid fa-file-export"></i> Exportar Fluxo</button>
+          <button class="btn btn-secondary" id="repExportDetailsBtn"><i class="fa-solid fa-list"></i> Exportar Detalhes</button>
+        </div>
+      </div>
+
+      <div class="finance-cards rep-summary">
+        <div class="card card-green">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-green"><i class="fa-solid fa-scale-balanced"></i></div>
+              <div class="text">
+                <div class="title">Saldo do Período</div>
+                <div class="value" id="repSumBalance">R$ 0,00</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-blue">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-blue"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+              <div class="text">
+                <div class="title">Receber (Pendente)</div>
+                <div class="value" id="repSumArPending">R$ 0,00</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-yellow"><i class="fa-solid fa-money-bill-wave"></i></div>
+              <div class="text">
+                <div class="title">Pagar (Pendente)</div>
+                <div class="value" id="repSumApPending">R$ 0,00</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-red">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-red"><i class="fa-solid fa-circle-exclamation"></i></div>
+              <div class="text">
+                <div class="title">Vencidos (AR/AP)</div>
+                <div class="value" id="repSumOverdue">0 / 0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rep-grid">
+        <div class="rep-left">
+          <div class="rep-card">
+            <h3>Projeção de Fluxo de Caixa (por vencimento)</h3>
+            <canvas id="repCashProjectionChart" class="rep-chart"></canvas>
+          </div>
+          <div class="rep-card">
+            <h3>Fluxo de Caixa (Diário)</h3>
+            <table class="rep-table" id="repCashFlowTable">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Recebimentos</th>
+                  <th>Pagamentos</th>
+                  <th>Saldo Diário</th>
+                </tr>
+              </thead>
+              <tbody id="repCashFlowBody"></tbody>
+            </table>
+          </div>
+
+          <div class="rep-card">
+            <h3>Recebimentos por Método</h3>
+            <table class="rep-table" id="repMethodsReceiptsTable">
+              <thead>
+                <tr>
+                  <th>Método</th>
+                  <th>Valor</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody id="repMethodsReceiptsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="rep-card">
+            <h3>Pagamentos por Método</h3>
+            <table class="rep-table" id="repMethodsPaymentsTable">
+              <thead>
+                <tr>
+                  <th>Método</th>
+                  <th>Valor</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody id="repMethodsPaymentsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="rep-card">
+            <h3>Top Clientes (por valor recebido)</h3>
+            <table class="rep-table" id="repTopClientsTable">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="repTopClientsBody"></tbody>
+            </table>
+          </div>
+
+          <div class="rep-card">
+            <h3>Receita por Cliente</h3>
+            <canvas id="repRevenueByClientChart" class="rep-chart"></canvas>
+            <div id="repRevenueClientDetails" class="rep-drill"></div>
+          </div>
+
+          <div class="rep-card">
+            <h3>Top Fornecedores (por valor pago)</h3>
+            <table class="rep-table" id="repTopSuppliersTable">
+              <thead>
+                <tr>
+                  <th>Fornecedor</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody id="repTopSuppliersBody"></tbody>
+            </table>
+          </div>
+
+          <div class="rep-card">
+            <h3>Categorias de Despesa</h3>
+            <table class="rep-table" id="repExpenseCategoriesTable">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>%</th>
+                </tr>
+              </thead>
+              <tbody id="repCategoriesBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="rep-right">
+          <div class="rep-card">
+            <h3>Contas a Receber (Pendentes)</h3>
+            <table class="rep-table" id="repARPendingTable">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Descrição</th>
+                  <th>Restante</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="repArPendingBody"></tbody>
+            </table>
+          </div>
+          <div class="rep-card">
+            <h3>Contas a Pagar (Pendentes)</h3>
+            <table class="rep-table" id="repAPPendingTable">
+              <thead>
+                <tr>
+                  <th>Fornecedor</th>
+                  <th>Descrição</th>
+                  <th>Restante</th>
+                  <th>Vencimento</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="repApPendingBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notas Fiscais -->
+    <section class="nf-section hidden" id="nfSection">
+      <div class="nf-header">
+        <h2>Notas Fiscais (NF-e)</h2>
+        <div class="nf-header-actions">
+          <button class="btn btn-primary" id="nfNewBtn"><i class="fa-solid fa-file-circle-plus"></i> Nova Nota</button>
+          <label class="btn btn-secondary" for="nfImportFile" id="nfImportBtn"><i class="fa-solid fa-file-import"></i> Importar XML</label>
+          <input type="file" id="nfImportFile" accept=".xml" hidden />
+          <button class="btn btn-warning" id="nfExportBtn"><i class="fa-solid fa-file-export"></i> Exportar CSV</button>
+        </div>
+      </div>
+
+      <div class="nf-summary">
+        <div class="card card-blue">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-blue"><i class="fa-solid fa-file-invoice"></i></div>
+              <div class="text"><div class="title">Notas no Período</div><div class="value" id="nfSumCount">0</div></div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-green">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-green"><i class="fa-solid fa-money-bill"></i></div>
+              <div class="text"><div class="title">Valor Total</div><div class="value" id="nfSumTotal">R$ 0,00</div></div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-red">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-red"><i class="fa-solid fa-ban"></i></div>
+              <div class="text"><div class="title">Canceladas</div><div class="value" id="nfSumCancelled">0</div></div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-yellow"><i class="fa-solid fa-check-circle"></i></div>
+              <div class="text"><div class="title">Autorizadas</div><div class="value" id="nfSumAuthorized">0</div></div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nf-grid">
+        <div class="nf-left">
+          <div class="nf-card">
+            <h3>Filtros</h3>
+            <div class="nf-filters">
+              <div class="form-group"><input type="text" id="nfSearch" class="product-search" placeholder="Buscar por número, chave, cliente/fornecedor..." /></div>
+              <div class="form-group">
+                <select id="nfFilterType">
+                  <option value="">Todos os tipos</option>
+                  <option value="saida">Saída</option>
+                  <option value="entrada">Entrada</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <select id="nfFilterStatus">
+                  <option value="">Todos os status</option>
+                  <option value="autorizada">Autorizada</option>
+                  <option value="emitida">Emitida</option>
+                  <option value="cancelada">Cancelada</option>
+                  <option value="denegada">Denegada</option>
+                </select>
+              </div>
+              <div class="form-group"><input type="date" id="nfFilterStart" /></div>
+              <div class="form-group"><input type="date" id="nfFilterEnd" /></div>
+            </div>
+          </div>
+
+          <div class="nf-card">
+            <h3>Listagem de Notas</h3>
+            <table class="nf-table" id="nfTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Número/Série</th>
+                  <th>Tipo</th>
+                  <th>Cliente/Fornecedor</th>
+                  <th>Chave</th>
+                  <th>Emissão</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="nfTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="nf-right">
+          <div class="nf-card">
+            <h3>Detalhes da Nota</h3>
+            <div id="nfDetails">
+              <div class="nf-details-row"><span>NF:</span> <span id="nfDetNumber">—</span></div>
+              <div class="nf-details-row"><span>Série:</span> <span id="nfDetSeries">—</span></div>
+              <div class="nf-details-row"><span>Tipo:</span> <span id="nfDetType">—</span></div>
+              <div class="nf-details-row"><span>Emitente:</span> <span id="nfDetEmit">—</span></div>
+              <div class="nf-details-row"><span>Destinatário:</span> <span id="nfDetDest">—</span></div>
+              <div class="nf-details-row"><span>Chave:</span> <span id="nfDetKey">—</span></div>
+              <div class="nf-details-row"><span>Emissão:</span> <span id="nfDetIssue">—</span></div>
+              <div class="nf-details-row"><span>Valor:</span> <span id="nfDetTotal">—</span></div>
+              <div class="nf-actions">
+                <button class="btn btn-secondary" id="nfDownloadXMLBtn"><i class="fa-solid fa-download"></i> Baixar XML</button>
+                <button class="btn btn-secondary" id="nfPrintDanfeBtn"><i class="fa-solid fa-print"></i> Imprimir DANFE</button>
+              </div>
+              <div class="nf-items">
+                <h4>Itens</h4>
+                <table class="nf-table" id="nfItemsTable">
+                  <thead><tr><th>Código</th><th>Descrição</th><th>Qtd</th><th>Unitário</th><th>Total</th></tr></thead>
+                  <tbody id="nfItemsBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Config JS (Supabase) -->
+    <script src="./config.js"></script>
+    <!-- Supabase JS (browser CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js (graphs) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- QuaggaJS (Barcode Scanner) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <!-- App JS -->
+    <script src="./script.js"></script>
+    <!-- Suppliers JS -->
+    <script src="./suppliers.js"></script>
+    <!-- Clients JS -->
+    <script src="./clients.js"></script>
+    <!-- Receivables JS -->
+    <script src="./receivables.js"></script>
+    <!-- Reports JS -->
+    <script src="./reports.js"></script>
+    <!-- Checklist JS -->
+    <script src="./checklist.js"></script>
+    <!-- Checklist -->
+    <section class="checklist-section hidden" id="checklistSection">
+      <div class="os-header">
+        <h2><i class="fa-solid fa-clipboard-check"></i> Checklist de Veículo</h2>
+      </div>
+      <div class="os-grid">
+        <div class="os-left">
+          <div class="os-card">
+            <h3>Dados do Veículo</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="chkVehicleType">Tipo de Veículo</label>
+                <select id="chkVehicleType">
+                  <option value="carro">Carro</option>
+                  <option value="moto">Moto</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="chkPlate">Placa</label>
+                <input type="text" id="chkPlate" placeholder="ABC-1234" />
+              </div>
+              <div class="form-group">
+                <label for="chkModel">Modelo</label>
+                <input type="text" id="chkModel" placeholder="Ex.: Gol 1.6, CG 160" />
+              </div>
+              <div class="form-group">
+                <label for="chkColor">Cor</label>
+                <input type="text" id="chkColor" placeholder="Ex.: Prata" />
+              </div>
+            </div>
+          </div>
+
+          <div class="os-card">
+            <h3>Itens de Verificação</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Avarias nas Luzes</label>
+                <label class="toggle-switch"><input type="checkbox" id="chkLightsIssue"><span class="toggle-slider"></span></label>
+                <input type="text" id="chkLightsNotes" placeholder="Descreva lâmpadas queimadas ou problema" />
+              </div>
+              <div class="form-group">
+                <label>Luz de Anomalia (Painel)</label>
+                <label class="toggle-switch"><input type="checkbox" id="chkPanelWarn"><span class="toggle-slider"></span></label>
+                <input type="text" id="chkPanelNotes" placeholder="Descreva alertas/anomalias do painel" />
+              </div>
+              <div class="form-group">
+                <label>Avarias na Lataria</label>
+                <label class="toggle-switch"><input type="checkbox" id="chkBodyDamage"><span class="toggle-slider"></span></label>
+                <input type="text" id="chkBodyNotes" placeholder="Descreva riscos, amassados, etc." />
+              </div>
+            </div>
+          </div>
+
+          <div class="os-card">
+            <h3>Fotos de Avarias</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="btn btn-secondary" for="chkPhotoInput"><i class="fa-solid fa-camera"></i> Tirar/Enviar Foto</label>
+                <input type="file" id="chkPhotoInput" accept="image/*" capture="environment" multiple hidden />
+                <div style="margin-top:8px; color:#6b7280;">Use a câmera do celular para registrar avarias.</div>
+              </div>
+            </div>
+            <div class="photo-grid" id="chkPhotoGrid"></div>
+          </div>
+
+          <div class="os-card">
+            <h3>Observações</h3>
+            <textarea id="chkNotes" rows="3" placeholder="Observações gerais"></textarea>
+            <div class="form-actions">
+              <button class="btn btn-primary" id="chkSaveBtn"><i class="fa-solid fa-save"></i> Salvar Checklist</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="os-right">
+          <div class="os-card">
+            <h3>Checklists Salvos</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="chkFilterType">Tipo</label>
+                <select id="chkFilterType">
+                  <option value="">Todos</option>
+                  <option value="carro">Carro</option>
+                  <option value="moto">Moto</option>
+                </select>
+              </div>
+            </div>
+            <div class="list" id="chkList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Configurações -->
+    <section class="config-section hidden" id="configSection">
+      <div class="cfg-header">
+        <h2><i class="fa-solid fa-gear"></i> Configurações</h2>
+        <div class="cfg-actions">
+          <button class="btn btn-outline" id="cfgExportBtn"><i class="fa-solid fa-file-export"></i> Exportar Configurações</button>
+          <button class="btn btn-primary" id="cfgSaveAllBtn"><i class="fa-solid fa-floppy-disk"></i> Salvar Todas as Configurações</button>
+          <label class="btn btn-secondary" for="cfgImportFile" id="cfgImportBtn"><i class="fa-solid fa-file-import"></i> Importar</label>
+          <input type="file" id="cfgImportFile" accept=".json" hidden />
+        </div>
+      </div>
+
+      <div class="cfg-grid">
+        <aside class="cfg-nav">
+          <div class="cfg-nav-title">Geral</div>
+          <div class="cfg-nav-item active" data-cfg-tab="company"><i class="fa-solid fa-building"></i> Dados da Empresa</div>
+          <div class="cfg-nav-item" data-cfg-tab="users"><i class="fa-solid fa-user"></i> Usuários e Permissões</div>
+          <div class="cfg-nav-item" data-cfg-tab="notifications"><i class="fa-solid fa-bell"></i> Notificações</div>
+
+          <div class="cfg-nav-title">Vendas</div>
+          <div class="cfg-nav-item" data-cfg-tab="pdv"><i class="fa-solid fa-cash-register"></i> Configurações PDV</div>
+          <div class="cfg-nav-item" data-cfg-tab="fiscal"><i class="fa-solid fa-file-invoice-dollar"></i> Configurações Fiscais</div>
+
+          <div class="cfg-nav-title">Estoque</div>
+          <div class="cfg-nav-item" data-cfg-tab="stock"><i class="fa-solid fa-boxes"></i> Configurações de Estoque</div>
+          <div class="cfg-nav-item" data-cfg-tab="categories"><i class="fa-solid fa-tags"></i> Categorias e Marcas</div>
+
+          <div class="cfg-nav-title">Sistema</div>
+          <div class="cfg-nav-item" data-cfg-tab="backup"><i class="fa-solid fa-database"></i> Backup e Restauração</div>
+          <div class="cfg-nav-item" data-cfg-tab="integrations"><i class="fa-solid fa-plug"></i> Integrações</div>
+          <div class="cfg-nav-item" data-cfg-tab="security"><i class="fa-solid fa-shield"></i> Segurança</div>
+        </aside>
+
+        <section class="cfg-content">
+          <!-- Dados da Empresa -->
+          <div class="cfg-card" data-tab="company">
+            <h3>Dados da Empresa</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgCompanyLegalName">Razão Social</label>
+                <input id="cfgCompanyLegalName" type="text" placeholder="Digite a Razão Social" required />
+              </div>
+              <div class="form-group">
+                <label for="cfgCompanyTradeName">Nome Fantasia</label>
+                <input id="cfgCompanyTradeName" type="text" placeholder="Digite o Nome Fantasia" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgCompanyCNPJ">CNPJ</label>
+                <input id="cfgCompanyCNPJ" type="text" placeholder="00.000.000/0000-00" required />
+              </div>
+              <div class="form-group">
+                <label for="cfgCompanyIE">Inscrição Estadual</label>
+                <input id="cfgCompanyIE" type="text" placeholder="Opcional" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgCompanyAddress">Endereço</label>
+                <input id="cfgCompanyAddress" type="text" placeholder="Rua, número" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgCompanyCity">Cidade</label>
+                <input id="cfgCompanyCity" type="text" required />
+              </div>
+              <div class="form-group">
+                <label for="cfgCompanyState">Estado</label>
+                <select id="cfgCompanyState" required>
+                  <option value="">Selecione</option>
+                  <option>SP</option><option>RJ</option><option>MG</option><option>RS</option><option>PR</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgCompanyPhone">Telefone</label>
+                <input id="cfgCompanyPhone" type="text" placeholder="(00) 0000-0000" required />
+              </div>
+              <div class="form-group">
+                <label for="cfgCompanyEmail">E-mail</label>
+                <input id="cfgCompanyEmail" type="email" placeholder="contato@empresa.com" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn" id="cfgCompanyCancelBtn">Cancelar</button>
+              <button class="btn btn-primary" id="cfgCompanySaveBtn">Salvar</button>
+            </div>
+          </div>
+
+          <!-- Usuários e Permissões -->
+          <div class="cfg-card hidden" data-tab="users">
+            <h3>Usuários e Permissões</h3>
+            <div class="cards-grid">
+              <div class="config-card">
+                <div class="card-icon icon-primary"><i class="fas fa-user-shield"></i></div>
+                <div class="card-title">Administrador</div>
+                <div class="card-description">Acesso total ao sistema e configurações.</div>
+                <div class="form-actions"><button class="btn" id="cfgAdminManageBtn">Gerenciar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-success"><i class="fas fa-user-tie"></i></div>
+                <div class="card-title">Gerente</div>
+                <div class="card-description">Gerencia vendas, estoque e relatórios.</div>
+                <div class="form-actions"><button class="btn" id="cfgManagerManageBtn">Gerenciar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-warning"><i class="fas fa-user"></i></div>
+                <div class="card-title">Vendedor</div>
+                <div class="card-description">Acesso ao PDV e clientes.</div>
+                <div class="form-actions"><button class="btn" id="cfgSellerManageBtn">Gerenciar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-danger"><i class="fas fa-user-plus"></i></div>
+                <div class="card-title">Novo Usuário</div>
+                <div class="card-description">Criar novo usuário com permissões.</div>
+                <div class="form-actions"><button class="btn btn-primary" id="cfgNewUserCreateBtn">Criar Usuário</button></div>
+              </div>
+            </div>
+            <div class="list" id="cfgUsersList"></div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgUsersSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Notificações -->
+          <div class="cfg-card hidden" data-tab="notifications">
+            <h3>Notificações</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgNotifEmail"><span class="toggle-slider"></span></label>
+                <span>Notificações por E-mail</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgNotifLowStock"><span class="toggle-slider"></span></label>
+                <span>Alertas de Estoque Baixo</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgNotifDue"><span class="toggle-slider"></span></label>
+                <span>Notificações de Vencimento</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgNotifAutoReports"><span class="toggle-slider"></span></label>
+                <span>Relatórios Automáticos</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label for="cfgNotifEmails">E-mails de notificação</label>
+                <textarea id="cfgNotifEmails" rows="3" placeholder="email1@dominio.com, email2@dominio.com"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgNotifSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Configurações PDV -->
+          <div class="cfg-card hidden" data-tab="pdv">
+            <h3>Configurações PDV</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgPDVAutoPrint"><span class="toggle-slider"></span></label>
+                <span>Impressão Automática</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgPDVPriceLookup"><span class="toggle-slider"></span></label>
+                <span>Consulta de Preços</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgPDVMaxDiscountToggle"><span class="toggle-slider"></span></label>
+                <span>Desconto Máximo</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgPDVMaxDiscount">Desconto Máximo Permitido (%)</label>
+                <input id="cfgPDVMaxDiscount" type="number" min="0" max="100" step="1" />
+              </div>
+              <div class="form-group" style="flex:1">
+                <label for="cfgPDVCouponMessage">Mensagem do Cupom</label>
+                <textarea id="cfgPDVCouponMessage" rows="3"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgPDVSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Configurações Fiscais -->
+          <div class="cfg-card hidden" data-tab="fiscal">
+            <h3>Configurações Fiscais</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgFiscalEnv">Ambiente</label>
+                <select id="cfgFiscalEnv"><option value="producao">Produção</option><option value="homologacao">Homologação</option></select>
+              </div>
+              <div class="form-group">
+                <label for="cfgFiscalCertFile">Certificado Digital</label>
+                <input id="cfgFiscalCertFile" type="file" accept=".pfx,.pem" />
+              </div>
+              <div class="form-group">
+                <label for="cfgFiscalCertPass">Senha do Certificado</label>
+                <input id="cfgFiscalCertPass" type="password" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgFiscalSerie">Série NFC-e</label>
+                <input id="cfgFiscalSerie" type="text" />
+              </div>
+              <div class="form-group">
+                <label for="cfgFiscalNumero">Número NFC-e</label>
+                <input id="cfgFiscalNumero" type="text" />
+              </div>
+              <div class="form-group" style="flex:1">
+                <label for="cfgFiscalCSC">Token CSC</label>
+                <input id="cfgFiscalCSC" type="text" />
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgFiscalSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Configurações de Estoque -->
+          <div class="cfg-card hidden" data-tab="stock">
+            <h3>Configurações de Estoque</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgStockControl"><span class="toggle-slider"></span></label>
+                <span>Controle de Estoque</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgStockAllowNoStock"><span class="toggle-slider"></span></label>
+                <span>Permitir Venda sem Estoque</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgStockMinDefault">Estoque Mínimo Padrão</label>
+                <input id="cfgStockMinDefault" type="number" min="0" step="1" />
+              </div>
+              <div class="form-group">
+                <label for="cfgStockMaxDefault">Estoque Máximo Padrão</label>
+                <input id="cfgStockMaxDefault" type="number" min="0" step="1" />
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgStockSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Categorias e Marcas -->
+          <div class="cfg-card hidden" data-tab="categories">
+            <h3>Categorias e Marcas</h3>
+            <div class="form-row">
+              <div class="form-group" style="flex:1">
+                <label for="cfgCategoriesList">Categorias de Produtos</label>
+                <textarea id="cfgCategoriesList" rows="6" placeholder="Uma por linha"></textarea>
+              </div>
+              <div class="form-group" style="flex:1">
+                <label for="cfgBrandsList">Marcas de Produtos</label>
+                <textarea id="cfgBrandsList" rows="6" placeholder="Uma por linha"></textarea>
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgCategoriesSaveBtn">Salvar</button></div>
+          </div>
+
+          <!-- Backup e Restauração -->
+          <div class="cfg-card hidden" data-tab="backup">
+            <h3>Backup e Restauração</h3>
+            <div class="cards-grid">
+              <div class="config-card">
+                <div class="card-icon icon-primary"><i class="fas fa-database"></i></div>
+                <div class="card-title">Backup Manual</div>
+                <div class="card-description">Gerar arquivo de backup agora.</div>
+                <div class="form-actions"><button class="btn" id="cfgBackupManualBtn">Backup</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-warning"><i class="fas fa-upload"></i></div>
+                <div class="card-title">Restaurar Backup</div>
+                <div class="card-description">Restaurar dados a partir de um arquivo.</div>
+                <div class="form-actions"><button class="btn" id="cfgBackupRestoreBtn">Restaurar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-success"><i class="fas fa-clock"></i></div>
+                <div class="card-title">Backup Automático</div>
+                <div class="card-description">Agendar backups automáticos.</div>
+                <div class="form-actions"><label class="toggle-switch"><input type="checkbox" id="cfgBackupAutoToggle"><span class="toggle-slider"></span></label></div>
+              </div>
+            </div>
+            <div class="list" id="cfgBackupHistory"></div>
+          </div>
+
+          <!-- Integrações -->
+          <div class="cfg-card hidden" data-tab="integrations">
+            <h3>Integrações</h3>
+            <div class="cards-grid">
+              <div class="config-card">
+                <div class="card-icon icon-primary"><i class="fas fa-file-invoice"></i></div>
+                <div class="card-title">Nota Fiscal Eletrônica</div>
+                <div class="card-description">Configurar integração com emissor de NF.</div>
+                <div class="form-actions"><button class="btn" id="cfgIntegrNFSeBtn">Configurar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-success"><i class="fas fa-credit-card"></i></div>
+                <div class="card-title">Máquina de Cartão</div>
+                <div class="card-description">Integração com adquirente.</div>
+                <div class="form-actions"><button class="btn" id="cfgIntegrCardMachineBtn">Configurar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-warning"><i class="fas fa-truck"></i></div>
+                <div class="card-title">Transportadoras</div>
+                <div class="card-description">Cotação e rastreio.</div>
+                <div class="form-actions"><button class="btn" id="cfgIntegrCarriersBtn">Configurar</button></div>
+              </div>
+              <div class="config-card">
+                <div class="card-icon icon-danger"><i class="fas fa-chart-line"></i></div>
+                <div class="card-title">Análise de Dados</div>
+                <div class="card-description">Relatórios e BI.</div>
+                <div class="form-actions"><button class="btn" id="cfgIntegrAnalyticsBtn">Configurar</button></div>
+              </div>
+              <!-- Supabase -->
+              <div class="config-card">
+                <div class="card-icon icon-info"><i class="fas fa-database"></i></div>
+                <div class="card-title">Supabase</div>
+                <div class="card-description">Conectar ao banco Supabase.</div>
+                <div class="form-row">
+                  <div class="form-group" style="flex:1">
+                    <label for="cfgSupabaseUrl">URL do Supabase</label>
+                    <input id="cfgSupabaseUrl" type="text" placeholder="https://xxxx.supabase.co" />
+                  </div>
+                  <div class="form-group" style="flex:1">
+                    <label for="cfgSupabaseAnonKey">Anon Key</label>
+                    <input id="cfgSupabaseAnonKey" type="password" placeholder="Chave Anônima" />
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button class="btn btn-outline" id="cfgSupabaseTestBtn">Testar Conexão</button>
+                  <button class="btn btn-primary" id="cfgSupabaseSaveBtn">Salvar</button>
+                </div>
+                <div id="cfgSupabaseStatus" style="margin-top:8px;font-size:12px;color:#6b7280;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Segurança -->
+          <div class="cfg-card hidden" data-tab="security">
+            <h3>Segurança</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgSecTwoFactor"><span class="toggle-slider"></span></label>
+                <span>Login com Dois Fatores</span>
+              </div>
+              <div class="form-group">
+                <label class="toggle-switch"><input type="checkbox" id="cfgSecLockAfterAttempts"><span class="toggle-slider"></span></label>
+                <span>Bloquear após Tentativas</span>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cfgSecLoginAttempts">Tentativas de Login Permitidas</label>
+                <input id="cfgSecLoginAttempts" type="number" min="1" step="1" />
+              </div>
+              <div class="form-group">
+                <label for="cfgSecLockTime">Tempo de Bloqueio (minutos)</label>
+                <input id="cfgSecLockTime" type="number" min="1" step="1" />
+              </div>
+              <div class="form-group">
+                <label for="cfgSecSessionTime">Tempo de Sessão (minutos)</label>
+                <input id="cfgSecSessionTime" type="number" min="1" step="1" />
+              </div>
+            </div>
+            <div class="form-actions"><button class="btn btn-primary" id="cfgSecSaveBtn">Salvar</button></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- Modais da Aba Configurações -->
+    <div class="app-modal" id="cfgUserModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="section-title">Novo Usuário</h3>
+          <button class="btn btn-secondary" id="userModalCloseX">Fechar</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="newUserFullName">Nome Completo</label><input id="newUserFullName" type="text" required></div>
+          <div class="form-group"><label for="newUserEmail">E-mail</label><input id="newUserEmail" type="email" required></div>
+          <div class="form-group"><label for="newUserUsername">Nome de Usuário</label><input id="newUserUsername" type="text" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="newUserPassword">Senha</label><input id="newUserPassword" type="password" required></div>
+          <div class="form-group"><label for="newUserRole">Perfil de Acesso</label>
+            <select id="newUserRole"><option value="admin">Administrador</option><option value="manager">Gerente</option><option value="seller">Vendedor</option></select>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" id="userModalCancel">Cancelar</button>
+          <button class="btn btn-primary" id="userModalAdd">Adicionar Usuário</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-modal" id="cfgRestoreModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="section-title">Restaurar Backup</h3>
+          <button class="btn btn-secondary" id="restoreModalCloseX">Fechar</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label for="cfgRestoreFile">Arquivo de Backup</label><input id="cfgRestoreFile" type="file" accept=".json" required></div>
+          <div class="form-group"><label for="cfgRestoreType">Tipo de Restauração</label>
+            <select id="cfgRestoreType"><option value="completo">Completo</option><option value="parcial">Parcial</option></select>
+          </div>
+          <div class="form-group"><label class="toggle-switch"><input type="checkbox" id="cfgRestorePreBackup"><span class="toggle-slider"></span></label><span>Fazer Backup Antes</span></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn" id="restoreModalCancel">Cancelar</button>
+          <button class="btn btn-primary" id="restoreModalConfirm">Restaurar Backup</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Invoices JS -->
+    <script src="./invoices.js"></script>
+    <!-- Settings JS -->
+    <script src="./settings.js"></script>
+  </body>
+</html>

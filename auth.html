@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoGestor Peças • Autenticação</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="auth.css" />
+</head>
+<body>
+  <div class="container">
+    <!-- LEFT SIDE - BRANDING -->
+    <div class="branding-side">
+      <div class="branding-overlay" aria-hidden="true"></div>
+      <div class="branding-content">
+        <div class="logo"><i class="fa-solid fa-screwdriver-wrench"></i><span>AutoGestor</span></div>
+        <h1 class="branding-title">Gestão Inteligente para Sua Oficina</h1>
+        <p class="branding-subtitle">Controle de estoque, PDV, checklist e OS em uma plataforma integrada e fácil de usar.</p>
+        <div class="features">
+          <div class="feature"><i class="fa-solid fa-boxes"></i><span>Controle de Estoque</span></div>
+          <div class="feature"><i class="fa-solid fa-cash-register"></i><span>PDV Completo</span></div>
+          <div class="feature"><i class="fa-solid fa-clipboard-check"></i><span>Checklist Digital</span></div>
+        </div>
+      </div>
+      <div class="car-animation" aria-hidden="true"><i class="fa-solid fa-car-side"></i></div>
+    </div>
+
+    <!-- RIGHT SIDE - FORMS -->
+    <div class="form-side">
+      <div class="form-container">
+        <h2 class="form-title">Bem-vindo de volta</h2>
+        <div class="form-toggle" role="tablist" aria-label="Alternar entre login e cadastro">
+          <button class="toggle-btn active" data-target="loginForm" role="tab" aria-selected="true">Entrar</button>
+          <button class="toggle-btn" data-target="registerForm" role="tab" aria-selected="false">Cadastrar</button>
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="form active" novalidate>
+          <div class="form-group">
+            <label for="loginEmail">E-mail</label>
+            <input type="email" id="loginEmail" name="email" placeholder="seuemail@exemplo.com" required />
+            <small class="error" id="loginEmailErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Senha</label>
+            <div class="password-field">
+              <input type="password" id="loginPassword" name="password" placeholder="••••••••" required minlength="6" />
+              <button type="button" class="toggle-pass" data-target="loginPassword" aria-label="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="error" id="loginPasswordErr" aria-live="polite"></small>
+          </div>
+          <div class="form-row">
+            <label class="checkbox">
+              <input type="checkbox" id="rememberMe" />
+              <span>Lembrar-me</span>
+            </label>
+            <a href="#" id="forgotPassLink">Esqueceu a senha?</a>
+          </div>
+          <button type="submit" class="btn primary" id="loginBtn">
+            <i class="fa-solid fa-sign-in-alt"></i>
+            <span class="btn-text">Entrar</span>
+            <span class="btn-loader" aria-hidden="true"></span>
+          </button>
+          <div class="divider"><span>Ou entre com</span></div>
+          <div class="social-login">
+            <button type="button" class="btn oauth google" id="oauthGoogle"><i class="fa-brands fa-google"></i><span>Google</span></button>
+            <button type="button" class="btn oauth facebook" id="oauthFacebook"><i class="fa-brands fa-facebook-f"></i><span>Facebook</span></button>
+          </div>
+          <p class="alt-link">Não tem uma conta? <a href="#" data-target="registerForm" class="switch-link">Cadastre-se</a></p>
+          <div class="feedback" id="loginFeedback" aria-live="polite"></div>
+        </form>
+
+        <!-- Register Form -->
+        <form id="registerForm" class="form" novalidate>
+          <div class="form-group">
+            <label for="suName">Nome completo</label>
+            <input type="text" id="suName" name="name" placeholder="Seu nome" required />
+            <small class="error" id="suNameErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="suEmail">E-mail</label>
+            <input type="email" id="suEmail" name="email" placeholder="seuemail@exemplo.com" required />
+            <small class="error" id="suEmailErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="suPhone">Telefone</label>
+            <input type="tel" id="suPhone" name="phone" placeholder="(xx) xxxxx-xxxx" required />
+            <small class="error" id="suPhoneErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="suCompany">Empresa</label>
+            <input type="text" id="suCompany" name="company" placeholder="Nome da empresa" required />
+            <small class="error" id="suCompanyErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="suPassword">Senha</label>
+            <div class="password-field">
+              <input type="password" id="suPassword" name="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+              <button type="button" class="toggle-pass" data-target="suPassword" aria-label="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="error" id="suPasswordErr" aria-live="polite"></small>
+          </div>
+          <div class="form-group">
+            <label for="suConfirm">Confirmar senha</label>
+            <div class="password-field">
+              <input type="password" id="suConfirm" name="confirm" placeholder="Repita a senha" required minlength="6" />
+              <button type="button" class="toggle-pass" data-target="suConfirm" aria-label="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <small class="error" id="suConfirmErr" aria-live="polite"></small>
+          </div>
+          <label class="checkbox terms">
+            <input type="checkbox" id="suTerms" required />
+            <span>Li e aceito os <a href="#" target="_blank">termos de uso</a></span>
+          </label>
+          <button type="submit" class="btn primary" id="signupBtn">
+            <i class="fa-solid fa-user-plus"></i>
+            <span class="btn-text">Criar conta</span>
+            <span class="btn-loader" aria-hidden="true"></span>
+          </button>
+          <div class="divider"><span>Ou cadastre-se com</span></div>
+          <div class="social-login">
+            <button type="button" class="btn oauth google" id="oauthGoogle2"><i class="fa-brands fa-google"></i><span>Google</span></button>
+            <button type="button" class="btn oauth facebook" id="oauthFacebook2"><i class="fa-brands fa-facebook-f"></i><span>Facebook</span></button>
+          </div>
+          <p class="alt-link">Já tem conta? <a href="#" data-target="loginForm" class="switch-link">Entrar</a></p>
+          <div class="feedback" id="signupFeedback" aria-live="polite"></div>
+        </form>
+
+        <!-- Recovery (exibido quando volta com token de recuperação) -->
+        <form id="recoveryForm" class="form" hidden novalidate>
+          <p>Defina uma nova senha para sua conta.</p>
+          <div class="form-group">
+            <label for="rePassword">Nova senha</label>
+            <div class="password-field">
+              <input type="password" id="rePassword" name="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+              <button type="button" class="toggle-pass" data-target="rePassword" aria-label="Mostrar/ocultar senha"><i class="fa-solid fa-eye"></i></button>
+            </div>
+          </div>
+          <button type="submit" class="btn primary" id="recoveryBtn">
+            <span class="btn-text">Atualizar senha</span>
+            <span class="btn-loader" aria-hidden="true"></span>
+          </button>
+          <div class="feedback" id="recoveryFeedback" aria-live="polite"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>
