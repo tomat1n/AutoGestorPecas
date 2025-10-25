@@ -237,6 +237,13 @@ async function navigateTo(page) {
   const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
   sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
 
+  // Exibir "Atalhos Rápidos" somente no Dashboard
+  const quickSection = document.querySelector('.quick-section');
+  if (quickSection) {
+    if (page === 'dashboard') quickSection.classList.remove('hidden');
+    else quickSection.classList.add('hidden');
+  }
+
   switch (page) {
     case 'dashboard':
       // Dashboard: manter demais módulos ocultos
@@ -1064,14 +1071,18 @@ function initInventoryOnce() {
   INV_INITIALIZED = true;
 
   window.INV_STATE = {
-    products: initDemoInventoryData(),
+    products: [],
     selectedProductId: null,
     stockMovements: []
   };
 
-  renderInventoryFilters();
-  renderInventoryList();
-  setupInventoryEvents();
+  (async () => {
+    const loaded = await loadInventoryFromSupabase();
+    window.INV_STATE.products = Array.isArray(loaded) && loaded.length ? loaded : initDemoInventoryData();
+    renderInventoryFilters();
+    renderInventoryList();
+    setupInventoryEvents();
+  })();
 }
 
 function initDemoInventoryData() {
@@ -1083,6 +1094,130 @@ function initDemoInventoryData() {
     { id:'P-1005', name:'Aditivo Radiador Long Life', description:'1L concentrado, proteção longa', barcode:'78910001005', category:'Fluidos', supplier:'Texaco', price:29.9, stock:18, minStock:4 },
     { id:'P-1006', name:'Filtro de Ar Motor', description:'HB20 1.0/1.6 — substituição OEM', barcode:'78910001006', category:'Filtros', supplier:'Mahle', price:69.9, stock:10, minStock:3 }
   ];
+}
+
+async function loadInventoryFromSupabase() {
+  const supabase = window.supabaseClient;
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1000);
+    if (error) throw error;
+    return (data || []).map(mapDbToAppProduct);
+  } catch (e) {
+    console.warn('Falha ao carregar estoque do Supabase:', e);
+    return null;
+  }
+}
+
+function mapDbToAppProduct(row) {
+  return {
+    id: row.id || row.product_id || row.barcode || `P-${Math.floor(1000 + Math.random()*9000)}`,
+    name: row.name || '',
+    description: row.description || '',
+    barcode: row.barcode || '',
+    category: row.category || '',
+    supplier: row.supplier || '',
+    price: Number(row.price || 0),
+    stock: Number(row.stock || 0),
+    minStock: Number(row.min_stock ?? row.minStock ?? 0)
+  };
+}
+
+function mapAppToDbProduct(p) {
+  return {
+    id: p.id || null,
+    name: p.name || null,
+    description: p.description || null,
+    barcode: p.barcode || null,
+    category: p.category || null,
+    supplier: p.supplier || null,
+    price: Number(p.price || 0),
+    stock: Number(p.stock || 0),
+    min_stock: Number(p.minStock || 0),
+    is_active: true,
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function saveProductSupabase(data) {
+  const supabase = window.supabaseClient;
+  if (!supabase) return null;
+  const payload = mapAppToDbProduct(data);
+  try {
+    const { data: existingArr, error: selErr } = await supabase
+      .from('products')
+      .select('id')
+      .eq('barcode', payload.barcode)
+      .limit(1);
+    if (selErr) console.warn('Verificação de produto falhou:', selErr);
+    if (existingArr && existingArr.length > 0) {
+      const id = existingArr[0].id;
+      const { data: updData, error } = await supabase
+        .from('products')
+        .update(payload)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return mapDbToAppProduct(updData);
+    } else {
+      payload.created_at = new Date().toISOString();
+      const { data: insData, error } = await supabase
+        .from('products')
+        .insert(payload)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return mapDbToAppProduct(insData);
+    }
+  } catch (e) {
+    alert('Falha ao salvar no Supabase: ' + (e.message || e));
+    return null;
+  }
+}
+
+async function deleteProductSupabase(identifier) {
+  const supabase = window.supabaseClient;
+  if (!supabase) return false;
+  try {
+    let q = supabase
+      .from('products')
+      .update({ is_active: false, updated_at: new Date().toISOString() });
+    if (identifier?.id) q = q.eq('id', identifier.id);
+    else if (identifier?.barcode) q = q.eq('barcode', identifier.barcode);
+    else if (typeof identifier === 'string') q = q.eq('id', identifier);
+    const { error } = await q;
+    if (error) throw error;
+    return true;
+  } catch (e) {
+    alert('Falha ao excluir no Supabase: ' + (e.message || e));
+    return false;
+  }
+}
+
+function backupInventoryIfEnabled() {
+  try {
+    const cfg = JSON.parse(localStorage.getItem('cfg') || '{}');
+    if (!cfg?.cfgBackupAutoToggle) return;
+    createInventoryBackup();
+  } catch {}
+}
+
+function createInventoryBackup() {
+  try {
+    const s = window.INV_STATE || { products: [], stockMovements: [] };
+    const snap = { at: new Date().toISOString(), products: s.products, stockMovements: s.stockMovements };
+    const hist = JSON.parse(localStorage.getItem('inv.backups') || '[]');
+    hist.unshift({ name: 'inv-' + new Date().toISOString(), createdAt: snap.at, count: s.products.length });
+    localStorage.setItem('inv.backups', JSON.stringify(hist.slice(0, 50)));
+    localStorage.setItem('inv.lastBackup', JSON.stringify(snap));
+  } catch (e) {
+    console.warn('Falha ao criar backup de estoque:', e);
+  }
 }
 
 function renderInventoryFilters() {
@@ -1213,22 +1348,28 @@ function setupInventoryEvents() {
   });
 
   const saveBtn = document.getElementById('invSaveBtn');
-  if (saveBtn) saveBtn.addEventListener('click', () => {
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
     const data = getInventoryFormValues();
     if (!data.name) { alert('Informe o nome do produto.'); return; }
     const s = window.INV_STATE;
+    backupInventoryIfEnabled();
     let existing = null;
     if (data.id) existing = s.products.find(p => p.id === data.id);
     if (!existing && data.barcode) existing = s.products.find(p => (p.barcode||'') === data.barcode);
+    let saved = null;
+    if (window.supabaseClient) {
+      const payload = existing ? { ...existing, ...data, id: existing.id } : data;
+      saved = await saveProductSupabase(payload);
+    }
     if (existing) {
-      Object.assign(existing, { ...existing, ...data, id: existing.id });
-      alert('Produto atualizado.');
+      const updated = saved || { ...existing, ...data, id: existing.id };
+      Object.assign(existing, updated);
+      alert(saved ? 'Produto atualizado no Supabase.' : 'Produto atualizado localmente.');
     } else {
-      const newId = `P-${Math.floor(1000 + Math.random()*9000)}`;
-      const newProd = { ...data, id: newId };
-      s.products.push(newProd);
-      window.INV_STATE.selectedProductId = newId;
-      alert('Produto criado.');
+      const created = saved || { ...data, id: `P-${Math.floor(1000 + Math.random()*9000)}` };
+      s.products.push(created);
+      window.INV_STATE.selectedProductId = created.id;
+      alert(saved ? 'Produto criado no Supabase.' : 'Produto criado localmente (Supabase indisponível).');
     }
     renderInventoryFilters();
     renderInventoryList();
@@ -1240,19 +1381,25 @@ function setupInventoryEvents() {
   });
 
   const deleteBtn = document.getElementById('invDeleteBtn');
-  if (deleteBtn) deleteBtn.addEventListener('click', () => {
+  if (deleteBtn) deleteBtn.addEventListener('click', async () => {
     const s = window.INV_STATE;
     const id = s.selectedProductId;
     if (!id) { alert('Selecione um produto antes de excluir.'); return; }
+    const product = s.products.find(p => p.id === id);
+    backupInventoryIfEnabled();
+    let ok = true;
+    if (window.supabaseClient) {
+      ok = await deleteProductSupabase(product);
+    }
     s.products = s.products.filter(p => p.id !== id);
     clearInventoryForm();
     renderInventoryFilters();
     renderInventoryList();
-    alert('Produto excluído.');
+    alert(ok ? 'Produto excluído.' : 'Produto excluído localmente (Supabase falhou).');
   });
 
   const applyBtn = document.getElementById('invApplyMovementBtn');
-  if (applyBtn) applyBtn.addEventListener('click', () => {
+  if (applyBtn) applyBtn.addEventListener('click', async () => {
     const s = window.INV_STATE;
     const id = s.selectedProductId;
     if (!id) { alert('Selecione um produto para movimentar.'); return; }
@@ -1264,6 +1411,20 @@ function setupInventoryEvents() {
     if (type === 'in') product.stock = Number(product.stock||0) + qty;
     else if (type === 'out') product.stock = Math.max(0, Number(product.stock||0) - qty);
     else product.stock = qty;
+    backupInventoryIfEnabled();
+    if (window.supabaseClient) {
+      await saveProductSupabase(product);
+      try {
+        const supabase = window.supabaseClient;
+        await supabase.from('stock_movements').insert({
+          product_id: product.id,
+          type,
+          quantity: qty,
+          reason,
+          at: new Date().toISOString()
+        });
+      } catch (e) { /* tabela pode não existir; ignora */ }
+    }
     s.stockMovements.push({ product_id:id, type, qty, reason, at: new Date().toISOString() });
     setInventoryFormValues(product);
     renderInventoryList();
