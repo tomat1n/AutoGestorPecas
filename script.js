@@ -1,3 +1,115 @@
+document.addEventListener('DOMContentLoaded', async () => {
+  // Inicializa Supabase
+  try { initSupabase?.(); } catch {}
+
+  // Gate de autenticação mínimo
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+      // Sem cliente, levar para login
+      try { window.location.replace('auth.html'); return; } catch {}
+    } else {
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) {
+        try { window.location.replace('auth.html'); return; } catch {}
+      }
+    }
+  } catch (e) { console.warn('Falha ao verificar autenticação:', e); }
+
+  // Ativa menu e navegação
+  setupMenuActiveState();
+  // Abre Dashboard como padrão
+  navigateTo('dashboard');
+});
+
+function setupMenuActiveState() {
+  const items = document.querySelectorAll('.menu-item');
+  items.forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = item.getAttribute('data-page');
+      items.forEach((i) => i.classList.remove('active'));
+      item.classList.add('active');
+      navigateTo(page);
+    });
+  });
+}
+
+async function navigateTo(page) {
+  const pdvSection = document.getElementById('pdvSection');
+  const osSection = document.getElementById('osSection');
+  const inventorySection = document.getElementById('inventorySection');
+  const receivablesSection = document.getElementById('receivablesSection');
+  const payablesSection = document.getElementById('payablesSection');
+  const reportsSection = document.getElementById('reportsSection');
+  const clientsSection = document.getElementById('clientsSection');
+  const suppliersSection = document.getElementById('suppliersSection');
+  const nfSection = document.getElementById('nfSection');
+  const settingsSection = document.getElementById('configSection') || document.getElementById('config-section');
+  const checklistSection = document.getElementById('checklistSection');
+
+  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
+  sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
+
+  const quickSection = document.querySelector('.quick-section');
+  if (quickSection) {
+    if (page === 'dashboard') quickSection.classList.remove('hidden');
+    else quickSection.classList.add('hidden');
+  }
+
+  switch (page) {
+    case 'dashboard':
+      break;
+    case 'pdv':
+      if (pdvSection) pdvSection.classList.remove('hidden');
+      try { initPDVOnce?.(); } catch {}
+      break;
+    case 'os':
+      if (osSection) osSection.classList.remove('hidden');
+      try { initOSOnce?.(); } catch {}
+      break;
+    case 'estoque':
+      if (inventorySection) inventorySection.classList.remove('hidden');
+      try { initInventoryOnce?.(); } catch {}
+      break;
+    case 'receber':
+      if (receivablesSection) receivablesSection.classList.remove('hidden');
+      try { initReceivablesOnce?.(); } catch {}
+      break;
+    case 'pagar':
+      if (payablesSection) payablesSection.classList.remove('hidden');
+      try { initPayablesOnce?.(); } catch {}
+      break;
+    case 'relatorios':
+      if (reportsSection) reportsSection.classList.remove('hidden');
+      try { initReportsOnce?.(); } catch {}
+      break;
+    case 'checklist':
+      if (checklistSection) checklistSection.classList.remove('hidden');
+      try { initChecklistOnce?.(); } catch {}
+      break;
+    case 'clientes':
+      if (clientsSection) clientsSection.classList.remove('hidden');
+      try { initClientsOnce?.(); } catch {}
+      break;
+    case 'fornecedores':
+      if (suppliersSection) suppliersSection.classList.remove('hidden');
+      try { initSuppliersOnce?.(); } catch {}
+      break;
+    case 'nf':
+      if (nfSection) nfSection.classList.remove('hidden');
+      try { initInvoicesOnce?.(); } catch {}
+      break;
+    case 'config':
+      if (settingsSection) settingsSection.classList.remove('hidden');
+      try { initSettingsOnce?.(); } catch {}
+      break;
+    default:
+      if (pdvSection) pdvSection.classList.remove('hidden');
+      try { initPDVOnce?.(); } catch {}
+  }
+}
+
 // PDV init único e carrinho
 let PDV_INITIALIZED = false;
 function initPDVOnce() {
