@@ -778,6 +778,7 @@ function initInventoryOnce() {
     renderInventoryFilters();
     renderInventoryList();
     setupInventoryEvents();
+    try { renderPDVProducts?.(); } catch (_) {}
   })();
 }
 
