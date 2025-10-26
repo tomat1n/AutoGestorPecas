@@ -1243,6 +1243,10 @@ function mapAppToDbProduct(p) {
     is_active: true,
     updated_at: new Date().toISOString()
   };
+  const fields = window.INV_DB_FIELDS || {};
+  if (fields.image_url) payload.image_url = p.image_url || null;
+  if (fields.cost_price) payload.cost_price = Number(p.costPrice || 0);
+  if (fields.markup_percent) payload.markup_percent = Number(p.markupPercent || 0);
   // Inclui id apenas quando existir; em inserts omitimos para usar o default do banco
   if (p.id) payload.id = p.id;
   return payload;
