@@ -733,6 +733,7 @@ async function finalizeSale() {
   };
 
   try {
+    // 1) Registrar a venda
     const { data: sale, error: saleError } = await supabase
       .from('sales')
       .insert(saleData)
@@ -740,6 +741,7 @@ async function finalizeSale() {
       .single();
     if (saleError) throw saleError;
 
+    // 2) Registrar os itens da venda
     const itemsPayload = cart.items.map(item => ({
       sale_id: sale.id,
       product_id: item.id,
@@ -753,6 +755,36 @@ async function finalizeSale() {
 
     const { error: itemsError } = await supabase.from('sale_items').insert(itemsPayload);
     if (itemsError) throw itemsError;
+
+    // 3) Baixar estoque dos produtos e registrar movimentos
+    const productIds = cart.items.map(i => i.id);
+    const { data: stocksData, error: stocksErr } = await supabase
+      .from('products')
+      .select('id, stock')
+      .in('id', productIds);
+    if (stocksErr) throw stocksErr;
+
+    const stockMap = new Map((stocksData || []).map(r => [r.id, Number(r.stock || 0)]));
+    for (const item of cart.items) {
+      const current = stockMap.has(item.id) ? Number(stockMap.get(item.id)) : 0;
+      const newStock = Math.max(0, current - Number(item.quantity || 0));
+      // Atualiza o estoque
+      const { error: updErr } = await supabase
+        .from('products')
+        .update({ stock: newStock, updated_at: new Date().toISOString() })
+        .eq('id', item.id);
+      if (updErr) throw updErr;
+      // Registra movimento de saída
+      try {
+        await supabase.from('stock_movements').insert({
+          product_id: item.id,
+          type: 'out',
+          quantity: Number(item.quantity || 0),
+          reason: 'Venda PDV',
+          at: new Date().toISOString()
+        });
+      } catch (_) { /* tabela pode não existir; ignora */ }
+    }
 
     alert('Venda finalizada com sucesso!');
     cart.clear();
