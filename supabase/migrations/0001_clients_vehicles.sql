@@ -93,6 +93,17 @@ do $$ begin
 end $$;
 
 -- RLS e Policies (idempotente)
+-- Garantir colunas necessárias quando as tabelas já existem
+alter table public.clients add column if not exists is_active boolean not null default true;
+alter table public.clients add column if not exists updated_at timestamptz not null default now();
+alter table public.clients add column if not exists created_at timestamptz not null default now();
+-- Padronização: coluna de documento
+alter table public.clients add column if not exists doc text;
+
+alter table public.client_vehicles add column if not exists is_active boolean not null default true;
+alter table public.client_vehicles add column if not exists updated_at timestamptz not null default now();
+alter table public.client_vehicles add column if not exists created_at timestamptz not null default now();
+
 alter table public.clients enable row level security;
 alter table public.client_vehicles enable row level security;
 
