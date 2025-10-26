@@ -44,6 +44,6 @@
     function openVehicleModal(){ vehicleModal?.classList.add('active'); }
     function closeVehicleModal(){ vehicleModal?.classList.remove('active'); }
     async function saveVehicle(){ const plate=(vehPlate?.value||'').trim().toUpperCase(); const model=(vehModel?.value||'').trim(); const year=vehYear?.value?Number(vehYear.value):null; const color=(vehColor?.value||'').trim(); if(!plate||!model){ alert('Informe Placa e Modelo.'); return; } if(!curId){ await save(); } const s=window.CLIENTS_STATE; const idx=s.clients.findIndex(c=>c.id===curId); if(idx<0){ alert('Salve o cliente antes de adicionar veículo.'); return; } const cli=s.clients[idx]; cli.vehicles=cli.vehicles||[]; const existing=cli.vehicles.find(v=>String(v.plate||'').toUpperCase()===plate); if(existing){ Object.assign(existing,{ model, year, color }); } else { cli.vehicles.push({ id:'V-'+Math.floor(100000+Math.random()*900000), plate, model, year, color }); } try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{} renderVehicles(); closeVehicleModal(); if(vehPlate) vehPlate.value=''; if(vehModel) vehModel.value=''; if(vehYear) vehYear.value=''; if(vehColor) vehColor.value=''; alert('Veículo salvo.'); }
-    function remove(){ if(!curId){ alert('Selecione um cliente para excluir.'); return; } s.clients=s.clients.filter(c=>c.id!==curId); store(); if(supa){ supa.from('clients').update({is_active:false}).eq('id',curId).catch(()=>{}); } clear(); render(); alert('Cliente excluído.'); }
+
   };
 })();
