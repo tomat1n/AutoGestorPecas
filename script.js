@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMenuActiveState();
   // Ações de header e atualização de data/hora
   setupHeaderActions();
+  setupSidebarToggle();
   setupDateTimeUpdater();
   // Atalhos rápidos
   setupQuickShortcuts();
@@ -1346,5 +1347,22 @@ function setupInventoryEvents() {
   const fsk = document.getElementById('invFilterStock');
   [fc, fs, fsk].forEach(sel => {
     if (sel) sel.addEventListener('change', renderInventoryList);
+  });
+}
+
+function setupSidebarToggle() {
+  const btn = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('mainSidebar');
+  const overlay = document.getElementById('mobileOverlay');
+  if (!btn || !sidebar) return;
+  btn.addEventListener('click', () => {
+    const collapsed = sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed', collapsed);
+    if (overlay) overlay.classList.toggle('active', !collapsed);
+  });
+  overlay?.addEventListener('click', () => {
+    sidebar.classList.add('collapsed');
+    document.body.classList.add('sidebar-collapsed');
+    overlay.classList.remove('active');
   });
 }
