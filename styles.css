@@ -266,7 +266,8 @@ body.overlay-active .overlay { display: block; }
 .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
 .product-card { background: #fff; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border: 2px solid transparent; padding: 12px; transition: all 0.3s; text-align: center; display: flex; flex-direction: column; gap: 10px; }
 .product-card:hover { transform: translateY(-3px); border-color: #007BFF; }
-.product-image { width: 100%; aspect-ratio: 1/1; background: #f7f7f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 24px; }
+.product-image { width: 100%; aspect-ratio: 1/1; background: #f7f7f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 24px; overflow: hidden; }
+.product-image img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
 .product-name { font-weight: 600; font-size: 14px; color: #343a40; }
 .product-price { font-weight: 600; color: #343a40; }
 .product-add { margin-top: auto; }
