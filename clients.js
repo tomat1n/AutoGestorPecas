@@ -38,8 +38,58 @@
     function set(c){ curId=c.id; type=c.type||'pf'; if(e.typeToggle){ e.typeToggle.querySelectorAll('.type-option').forEach(t=>t.classList.toggle('active',(t.dataset.type||'pf')===type)); } if(e.name) e.name.value=c.name||''; if(e.doc) e.doc.value=c.document||''; if(e.phone) e.phone.value=c.phone||''; if(e.email) e.email.value=c.email||''; if(e.cep) e.cep.value=c.cep||''; if(e.uf) e.uf.value=c.state||''; if(e.city) e.city.value=c.city||''; if(e.addr) e.addr.value=c.address||''; renderVehicles(); }
     function clear(){ curId=null; ['name','doc','phone','email','cep','uf','city','addr'].forEach(k=>{ const m={name:e.name,doc:e.doc,phone:e.phone,email:e.email,cep:e.cep,uf:e.uf,city:e.city,addr:e.addr}[k]; if(m) m.value=''; }); e.vehiclesList && (e.vehiclesList.innerHTML=''); }
     function store(){ try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{} }
-    function render(){ if(!e.grid) return; const term=(e.search?.value||'').trim().toLowerCase(); const list=s.clients.filter(c=>!term||[c.name,c.document,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(term))); e.grid.innerHTML=list.length?'':'<div class="empty">Nenhum cliente</div>'; list.forEach(c=>{ const d=document.createElement('div'); d.className='client-card'; d.innerHTML=`<div class="client-title">${c.name||'—'}</div><div class="client-sub">${c.document||''} • ${c.phone||''}</div><div class="client-sub">${c.email||''}</div>`; d.addEventListener('click',()=>set(c)); e.grid.appendChild(d); }); }
-
+    function render(){
+      if(!e.grid) return;
+      const term=(e.search?.value||'').trim().toLowerCase();
+      const list=s.clients.filter(c=>!term||[c.name,c.document,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(term)));
+      if(list.length===0){
+        e.grid.innerHTML='<div class="empty">Nenhum cliente</div>';
+        return;
+      }
+      e.grid.innerHTML = `
+        <table class="ar-table" id="clientsTable">
+          <thead>
+            <tr>
+              <th>Nome/Razão Social</th>
+              <th>CPF/CNPJ</th>
+              <th>Telefone</th>
+              <th>E-mail</th>
+              <th>Veículos</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="clientsTableBody"></tbody>
+        </table>
+      `;
+      const tbody = e.grid.querySelector('#clientsTableBody');
+      const rowsHtml = list.map(c => `
+        <tr data-id="${c.id}">
+          <td>${c.name||'—'}</td>
+          <td>${c.document||''}</td>
+          <td>${c.phone||''}</td>
+          <td>${c.email||''}</td>
+          <td>${Array.isArray(c.vehicles)?c.vehicles.length:0}</td>
+          <td><button class="btn btn-secondary btn-select" data-id="${c.id}">Selecionar</button></td>
+        </tr>
+      `).join('');
+      if(tbody) tbody.innerHTML = rowsHtml;
+      tbody?.querySelectorAll('tr').forEach(row=>{
+        row.addEventListener('click', (ev)=>{
+          if(ev.target && ev.target.matches('.btn-select')) return;
+          const id=row.getAttribute('data-id');
+          const c = s.clients.find(x=>String(x.id)===String(id));
+          if(c) set(c);
+        });
+      });
+      tbody?.querySelectorAll('.btn-select').forEach(btn=>{
+        btn.addEventListener('click', (ev)=>{
+          ev.stopPropagation();
+          const id=btn.getAttribute('data-id');
+          const c = s.clients.find(x=>String(x.id)===String(id));
+          if(c) set(c);
+        });
+      });
+    }
     async function loadClientsFromSupabase(){
       try{
         const { data: clients, error: errClients } = await supa.from('clients').select('*').eq('is_active', true).order('name', { ascending: true });
