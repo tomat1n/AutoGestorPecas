@@ -1489,6 +1489,43 @@ function setupInventoryEvents() {
     alert('Exportar CSV demo: gerei dados em memória; integração pendente.');
   });
 
+  // Imagem: arquivo, URL e busca externa
+  const imgFile = document.getElementById('invImageFile');
+  if (imgFile) imgFile.addEventListener('change', () => {
+    const file = imgFile.files?.[0];
+    const prev = document.getElementById('invImagePreview');
+    if (file && prev) {
+      const reader = new FileReader();
+      reader.onload = e => { prev.src = e.target.result; prev.style.display='block'; };
+      reader.readAsDataURL(file);
+      window.INV_STATE.pendingImageFile = file;
+    }
+  });
+  const imgUrl = document.getElementById('invImageUrl');
+  if (imgUrl) imgUrl.addEventListener('input', () => {
+    const url = imgUrl.value.trim();
+    const prev = document.getElementById('invImagePreview');
+    if (prev) {
+      if (url) { prev.src = url; prev.style.display='block'; }
+      else { prev.src=''; prev.style.display='none'; }
+    }
+  });
+  const imgSearchBtn = document.getElementById('invImageSearchBtn');
+  if (imgSearchBtn) imgSearchBtn.addEventListener('click', () => {
+    const q = document.getElementById('invImageSearchQuery')?.value || document.getElementById('invName')?.value || '';
+    const url = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+    window.open(url, '_blank');
+  });
+
+  // Precificação e margem
+  ['invPriceMode','invCost','invMarkupPercent','invPrice'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', updatePricingUI);
+      el.addEventListener('change', updatePricingUI);
+    }
+  });
+
   const importFile = document.getElementById('invImportFile');
   if (importFile) importFile.addEventListener('change', () => {
     alert('Importar CSV demo: integração pendente.');
