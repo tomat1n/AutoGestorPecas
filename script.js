@@ -214,7 +214,7 @@ function renderPDVProducts() {
   const activeCat = document.querySelector('#categories .category.active')?.getAttribute('data-cat') || 'Todos';
 
   let items = (s.products || []).slice();
-  if (q) items = items.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) || (p.barcode||'').toLowerCase().includes(q));
+  if (q) items = items.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) || String(p.barcode||'').toLowerCase().includes(q));
   if (activeCat && activeCat !== 'Todos') items = items.filter(p => p.category === activeCat);
 
   grid.innerHTML = '';
