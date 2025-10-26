@@ -424,11 +424,62 @@
                 <input type="text" id="invSupplier" placeholder="Fornecedor" />
               </div>
             </div>
+
+            <!-- Imagem do Produto -->
+            <div class="form-group">
+              <label>Imagem do Produto</label>
+              <div class="form-row">
+                <div class="form-group" style="flex:1">
+                  <input type="file" id="invImageFile" accept="image/*" />
+                </div>
+                <div class="form-group" style="flex:1">
+                  <input type="text" id="invImageUrl" placeholder="URL da imagem (opcional)" />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex:1">
+                  <input type="text" id="invImageSearchQuery" placeholder="Buscar imagem (ex.: nome ou código)" />
+                </div>
+                <div class="form-group">
+                  <button class="btn btn-secondary" id="invImageSearchBtn"><i class="fa-solid fa-image"></i> Pesquisar Imagem</button>
+                </div>
+              </div>
+              <div class="product-image" style="height:120px; display:flex; align-items:center; justify-content:center; background:#f7f7f7; border:1px solid #eee; border-radius:8px;">
+                <img id="invImagePreview" alt="Prévia da imagem" style="max-height:110px; display:none;" />
+              </div>
+            </div>
+
+            <!-- Precificação e Margem -->
+            <h4 style="margin-top:10px">Precificação</h4>
             <div class="form-row">
               <div class="form-group">
-                <label for="invPrice">Preço (R$)</label>
+                <label for="invCost">Custo (R$)</label>
+                <input type="number" step="0.01" id="invCost" placeholder="0,00" />
+              </div>
+              <div class="form-group">
+                <label for="invPriceMode">Modo de preço</label>
+                <select id="invPriceMode">
+                  <option value="percent">Markup (%)</option>
+                  <option value="fixed">Preço fixo</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="invMarkupPercent">Markup (%)</label>
+                <input type="number" step="0.01" id="invMarkupPercent" placeholder="0" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="invPrice">Preço de venda (R$)</label>
                 <input type="number" step="0.01" id="invPrice" placeholder="0,00" />
               </div>
+              <div class="form-group" style="align-self:flex-end">
+                <div id="invMarginInfo" style="font-size:13px; color:#555">Margem: R$ 0,00 (0%)</div>
+              </div>
+            </div>
+
+            <!-- Estoque -->
+            <div class="form-row">
               <div class="form-group">
                 <label for="invStock">Estoque</label>
                 <input type="number" id="invStock" placeholder="0" />
