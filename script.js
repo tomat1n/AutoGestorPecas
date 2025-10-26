@@ -1437,6 +1437,46 @@ function getInventoryFormValues() {
   };
 }
 
+function updatePricingUI() {
+  const get = id => document.getElementById(id);
+  const costEl = get('invCost');
+  const priceEl = get('invPrice');
+  const modeEl = get('invPriceMode');
+  const markupEl = get('invMarkupPercent');
+  const infoEl = get('invMarginInfo');
+  if (!priceEl || !costEl || !modeEl || !markupEl || !infoEl) return;
+  const cost = Number(costEl.value || 0);
+  let price = Number(priceEl.value || 0);
+  const mode = modeEl.value;
+  const markup = Number(markupEl.value || 0);
+  if (mode === 'percent') {
+    price = Number((cost * (1 + (markup/100))).toFixed(2));
+    priceEl.value = price;
+  }
+  const profit = Number((price - cost).toFixed(2));
+  const marginPercent = price > 0 ? Number(((profit / price) * 100).toFixed(2)) : 0;
+  infoEl.textContent = `Preço: ${fmtBRL(price)} | Custo: ${fmtBRL(cost)} | Lucro: ${fmtBRL(profit)} | Margem: ${marginPercent}%`;
+}
+
+async function uploadProductImage(file, baseName = '') {
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase?.storage) throw new Error('Storage indisponível');
+    const bucket = supabase.storage.from('product-images');
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const safeBase = (baseName || 'produto').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+    const path = `${safeBase}/${Date.now()}.${ext}`;
+    const { data, error } = await bucket.upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data: pub } = bucket.getPublicUrl(path);
+    return pub?.publicUrl || null;
+  } catch (e) {
+    console.warn('Falha ao enviar imagem:', e);
+    alert('Não foi possível enviar a imagem ao Storage.');
+    return null;
+  }
+}
+
 function clearInventoryForm() {
   window.INV_STATE.selectedProductId = null;
   ['invBarcode','invName','invDescription','invCategory','invSupplier','invPrice','invStock','invMinStock']
