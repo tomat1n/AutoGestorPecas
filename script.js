@@ -1,6 +1,24 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   // Inicializa Supabase
   initSupabase();
+
+  // Gate de autenticação: exige sessão válida para acessar o app
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+      window.location.replace('auth.html');
+      return;
+    }
+    const { data } = await supabase.auth.getSession();
+    if (!data?.session) {
+      window.location.replace('auth.html');
+      return;
+    }
+  } catch (e) {
+    console.warn('Falha ao verificar autenticação:', e);
+    window.location.replace('auth.html');
+    return;
+  }
 
   // Inicializa Sidebar Retrátil
   initSidebar();
