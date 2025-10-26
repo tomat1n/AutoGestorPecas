@@ -259,7 +259,7 @@ class ShoppingCart {
     if (existing) {
       existing.quantity += quantity;
     } else {
-      this.items.push({ id, name, price, quantity, barcode });
+      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '' });
     }
     this.save();
     this.render();
@@ -307,7 +307,7 @@ class ShoppingCart {
       cartItems.innerHTML = this.items.map(item => `
         <div class="cart-item">
           <div class="item-image">
-            <i class="fas fa-box"></i>
+            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'">` : `<i class="fas fa-box"></i>`}
           </div>
           <div class="item-details">
             <div class="item-name">${item.name}</div>
