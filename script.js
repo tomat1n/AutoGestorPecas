@@ -268,6 +268,7 @@ async function navigateTo(page) {
       break;
     case 'pdv':
       if (pdvSection) pdvSection.classList.remove('hidden');
+      if (typeof initPDVOnce === 'function') initPDVOnce();
       break;
     case 'os':
       if (osSection) osSection.classList.remove('hidden');
