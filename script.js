@@ -1012,7 +1012,8 @@ async function uploadProductImage(file, baseName = '') {
     const bucket = supabase.storage.from('product-images');
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const safeBase = (baseName || 'produto').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
-    const path = `${safeBase}/${Date.now()}.${ext}`;
+    const nowName = Date.now();
+    const path = `${safeBase}/${nowName}.${ext}`;
     const ct = file.type || 'image/jpeg';
     const { data, error } = await bucket.upload(path, file, { contentType: ct });
     if (error) throw error;
@@ -1037,9 +1038,10 @@ async function uploadProductImage(file, baseName = '') {
         const bucket = supabase?.storage?.from('product-images');
         const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
         const safeBase = (baseName || 'produto').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
-        const path = `${safeBase}/${Date.now()}.${ext}`;
+        const nowName = Date.now();
+        const path = `${safeBase}/${nowName}.${ext}`;
         const ct = file.type || 'image/jpeg';
-        const reqUrl = `${baseUrl}/storage/v1/object/product-images/${encodeURIComponent(safeBase)}/${Date.now()}.${ext}`;
+        const reqUrl = `${baseUrl}/storage/v1/object/product-images/${path}`;
         const res = await fetch(reqUrl, {
           method: 'POST',
           headers: {
