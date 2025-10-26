@@ -133,6 +133,10 @@ async function navigateTo(page) {
       if (settingsSection) settingsSection.classList.remove('hidden');
       try { initSettingsOnce?.(); } catch {}
       break;
+    case 'logout':
+      try { await window.supabaseClient?.auth?.signOut?.(); } catch (e) { console.warn('Falha ao sair:', e); }
+      try { window.location.replace('auth.html'); return; } catch {}
+      return;
     default:
       if (pdvSection) pdvSection.classList.remove('hidden');
       try { initPDVOnce?.(); } catch {}
