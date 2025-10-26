@@ -38,6 +38,30 @@ function setupMenuActiveState() {
   });
 }
 
+function setupQuickShortcuts() {
+  const cards = document.querySelectorAll('.quick-card');
+  const map = {
+    'ordem de serviço':'os',
+    'venda (pdv)':'pdv',
+    'estoque':'estoque',
+    'notas fiscais':'nf',
+    'clientes':'clientes',
+    'a receber':'receber',
+    'a pagar':'pagar'
+  };
+  cards.forEach(card => {
+    const m = (card.getAttribute('data-module')||'').toLowerCase();
+    const page = map[m];
+    if (page){
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        const menuItem = document.querySelector(`.menu-item[data-page="${page}"]`);
+        if (menuItem) menuItem.click(); else navigateTo(page);
+      });
+    }
+  });
+}
+
 async function navigateTo(page) {
   const pdvSection = document.getElementById('pdvSection');
   const osSection = document.getElementById('osSection');
