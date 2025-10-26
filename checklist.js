@@ -19,6 +19,9 @@ function initChecklistOnce() {
   const saveBtn = document.getElementById('chkSaveBtn');
   if (saveBtn) saveBtn.addEventListener('click', saveChecklist);
 
+  const pdfBtn = document.getElementById('chkSavePdfBtn');
+  if (pdfBtn) pdfBtn.addEventListener('click', exportChecklistToPDF);
+
   const filterType = document.getElementById('chkFilterType');
   if (filterType) filterType.addEventListener('change', renderChecklistList);
 
@@ -147,4 +150,51 @@ if (document.readyState === 'loading') {
   });
 } else {
   if (document.getElementById('checklistSection')) initChecklistOnce();
+}
+
+function exportChecklistToPDF() {
+  try {
+    const area = document.querySelector('#checklistSection .os-left') || document.getElementById('checklistSection');
+    if (!area) { alert('Não foi possível localizar o conteúdo do checklist.'); return; }
+
+    const plate = val('chkPlate') || 'sem-placa';
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `Checklist-${plate}-${dateStr}.pdf`;
+
+    const run = async () => {
+      const canvas = await html2canvas(area, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf || {};
+      if (!jsPDF) {
+        // Fallback: abrir diálogo de impressão
+        window.print();
+        return;
+      }
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = canvas.height * imgWidth / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = margin;
+      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+      heightLeft -= (pageHeight - margin * 2);
+
+      while (heightLeft > 0) {
+        pdf.addPage();
+        position = margin - heightLeft;
+        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - margin * 2);
+      }
+
+      pdf.save(fileName);
+    };
+
+    run();
+  } catch (err) {
+    console.error('Erro ao gerar PDF do checklist:', err);
+    alert('Falha ao gerar PDF. Tente novamente. Como alternativa, use Ctrl+P e salve como PDF.');
+  }
 }
