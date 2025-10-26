@@ -43,7 +43,47 @@
     function renderVehicles(){ const list=e.vehiclesList; if(!list) return; list.innerHTML=''; const client=(window.CLIENTS_STATE?.clients||[]).find(c=>c.id===curId); const vehicles=(client?.vehicles||[]).slice(); if(vehicles.length===0){ list.innerHTML='<div class="empty">Nenhum veículo</div>'; return; } vehicles.forEach(v=>{ const row=document.createElement('div'); row.className='vehicle-row'; row.innerHTML=`<div>${v.plate||'—'} • ${v.model||'—'} ${v.year?('• '+v.year):''} ${v.color?('• '+v.color):''}</div>`; list.appendChild(row); }); }
     function openVehicleModal(){ vehicleModal?.classList.add('active'); }
     function closeVehicleModal(){ vehicleModal?.classList.remove('active'); }
-    async function saveVehicle(){ const plate=(vehPlate?.value||'').trim().toUpperCase(); const model=(vehModel?.value||'').trim(); const year=vehYear?.value?Number(vehYear.value):null; const color=(vehColor?.value||'').trim(); if(!plate||!model){ alert('Informe Placa e Modelo.'); return; } if(!curId){ await save(); } const s=window.CLIENTS_STATE; const idx=s.clients.findIndex(c=>c.id===curId); if(idx<0){ alert('Salve o cliente antes de adicionar veículo.'); return; } const cli=s.clients[idx]; cli.vehicles=cli.vehicles||[]; const existing=cli.vehicles.find(v=>String(v.plate||'').toUpperCase()===plate); if(existing){ Object.assign(existing,{ model, year, color }); } else { cli.vehicles.push({ id:'V-'+Math.floor(100000+Math.random()*900000), plate, model, year, color }); } try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{} renderVehicles(); closeVehicleModal(); if(vehPlate) vehPlate.value=''; if(vehModel) vehModel.value=''; if(vehYear) vehYear.value=''; if(vehColor) vehColor.value=''; alert('Veículo salvo.'); }
+    async function saveVehicle(){
+      const plate=(vehPlate?.value||'').trim().toUpperCase();
+      const model=(vehModel?.value||'').trim();
+      const year=vehYear?.value?Number(vehYear.value):null;
+      const color=(vehColor?.value||'').trim();
+      if(!plate||!model){ alert('Informe Placa e Modelo.'); return; }
+      if(!curId){ await save(); }
+      const s=window.CLIENTS_STATE;
+      const idx=s.clients.findIndex(c=>c.id===curId);
+      if(idx<0){ alert('Salve o cliente antes de adicionar veículo.'); return; }
+      const cli=s.clients[idx];
+      cli.vehicles=cli.vehicles||[];
+      let veh=cli.vehicles.find(v=>String(v.plate||'').toUpperCase()===plate);
+      if(veh){ Object.assign(veh,{ model, year, color }); }
+      else { veh={ id:'V-'+Math.floor(100000+Math.random()*900000), plate, model, year, color, is_active:true }; cli.vehicles.push(veh); }
+  
+      // Supabase sync silenciosa
+      try{
+        const supa = window.supabaseClient || null;
+        if(supa){
+          const payload={
+            id: veh.id && !String(veh.id).startsWith('V-') ? veh.id : undefined,
+            client_id: curId,
+            plate,
+            model,
+            year,
+            color,
+            is_active: true,
+            updated_at: new Date().toISOString()
+          };
+          const { data, error } = await supa.from('client_vehicles').upsert(payload,{ onConflict:'client_id,plate' }).select('id').single();
+          if(!error && data?.id){ veh.id = data.id; }
+        }
+      }catch(ex){ console.warn('Supabase upsert veículos:', ex); }
+  
+      try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{}
+      renderVehicles();
+      closeVehicleModal();
+      if(vehPlate) vehPlate.value=''; if(vehModel) vehModel.value=''; if(vehYear) vehYear.value=''; if(vehColor) vehColor.value='';
+      alert('Veículo salvo.');
+    }
 
   };
 })();
