@@ -1554,6 +1554,21 @@ function setupInventoryEvents() {
   if (saveBtn) saveBtn.addEventListener('click', async () => {
     const data = getInventoryFormValues();
     if (!data.name) { alert('Informe o nome do produto.'); return; }
+
+    // Upload de imagem pendente ao Storage
+    if (window.INV_STATE?.pendingImageFile && window.supabaseClient) {
+      const baseName = data.barcode || data.name || 'produto';
+      const uploadedUrl = await uploadProductImage(window.INV_STATE.pendingImageFile, baseName);
+      if (uploadedUrl) {
+        data.image_url = uploadedUrl;
+        const urlEl = document.getElementById('invImageUrl');
+        if (urlEl) urlEl.value = uploadedUrl;
+        const prev = document.getElementById('invImagePreview');
+        if (prev) { prev.src = uploadedUrl; prev.style.display='block'; }
+      }
+      window.INV_STATE.pendingImageFile = null;
+    }
+
     const s = window.INV_STATE;
     backupInventoryIfEnabled();
     let existing = null;
