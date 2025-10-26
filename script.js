@@ -1412,6 +1412,15 @@ function setInventoryFormValues(p) {
 function getInventoryFormValues() {
   const get = id => document.getElementById(id)?.value || '';
   const toNum = v => Number(v || 0);
+  const mode = get('invPriceMode');
+  const cost = toNum(get('invCost'));
+  let price = toNum(get('invPrice'));
+  const markup = toNum(get('invMarkupPercent'));
+  if (mode === 'percent') {
+    price = Number((cost * (1 + (markup/100))).toFixed(2));
+    const priceEl = document.getElementById('invPrice');
+    if (priceEl) priceEl.value = price;
+  }
   return {
     id: window.INV_STATE.selectedProductId || null,
     barcode: get('invBarcode').trim(),
@@ -1419,9 +1428,12 @@ function getInventoryFormValues() {
     description: get('invDescription').trim(),
     category: get('invCategory').trim(),
     supplier: get('invSupplier').trim(),
-    price: toNum(get('invPrice')),
+    price,
     stock: toNum(get('invStock')),
-    minStock: toNum(get('invMinStock'))
+    minStock: toNum(get('invMinStock')),
+    image_url: get('invImageUrl').trim(),
+    costPrice: cost,
+    markupPercent: markup
   };
 }
 
