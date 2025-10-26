@@ -1387,23 +1387,26 @@ function showInventoryProductDetails(p) {
 }
 
 function setInventoryFormValues(p) {
-  ['invBarcode','invName','invDescription','invCategory','invSupplier','invPrice','invStock','invMinStock']
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const keyMap = {
-        invBarcode: 'barcode',
-        invName: 'name',
-        invDescription: 'description',
-        invCategory: 'category',
-        invSupplier: 'supplier',
-        invPrice: 'price',
-        invStock: 'stock',
-        invMinStock: 'minStock'
-      };
-      const k = keyMap[id];
-      el.value = p[k] ?? '';
-    });
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val ?? ''); };
+  set('invBarcode', p.barcode);
+  set('invName', p.name);
+  set('invDescription', p.description);
+  set('invCategory', p.category);
+  set('invSupplier', p.supplier);
+  set('invPrice', Number(p.price||0));
+  set('invStock', Number(p.stock||0));
+  set('invMinStock', Number(p.minStock||0));
+  set('invImageUrl', p.image_url || '');
+  set('invCost', Number(p.costPrice||0));
+  set('invMarkupPercent', Number(p.markupPercent||0));
+  const modeEl = document.getElementById('invPriceMode');
+  if (modeEl) modeEl.value = (Number(p.markupPercent||0) > 0 ? 'percent' : 'fixed');
+  const preview = document.getElementById('invImagePreview');
+  if (preview) {
+    if (p.image_url) { preview.src = p.image_url; preview.style.display = 'block'; }
+    else { preview.src = ''; preview.style.display = 'none'; }
+  }
+  updatePricingUI();
 }
 
 function getInventoryFormValues() {
