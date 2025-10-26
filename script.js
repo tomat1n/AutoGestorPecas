@@ -549,14 +549,42 @@ class BarcodeScanner {
             <div class="product-image">${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" style="max-width:100%; max-height:100%; border-radius:8px;"/>` : '<i class="fa-solid fa-box"></i>'}</div>
             <div class="product-name">${p.name}</div>
             <div class="product-price">${new Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' }).format(Number(p.price||0))}</div>
-            <div class="product-add"><button class="btn btn-primary">Adicionar</button></div>
+            <div class="product-stock">Em estoque: ${Number(p.stock ?? 0)}</div>
+            <div class="product-actions" style="display:flex; align-items:center; gap:8px;">
+              <button class="btn qty-minus">-</button>
+              <span class="qty-label">0</span>
+              <button class="btn btn-primary qty-plus">+</button>
+            </div>
           `;
-          const btn = card.querySelector('.btn');
-          if (btn) btn.addEventListener('click', () => {
-            if (typeof window.addToCart === 'function') {
-              window.addToCart(p, 1);
+          const plus = card.querySelector('.qty-plus');
+          const minus = card.querySelector('.qty-minus');
+          const label = card.querySelector('.qty-label');
+          const id = String(p.id || p.barcode || p.name);
+          const getQty = () => {
+            const item = window.cart?.items?.find(i => i.id === id);
+            return item ? item.quantity : 0;
+          };
+          const updateLabelAndState = () => {
+            const current = getQty();
+            label.textContent = String(current);
+            const stock = Number(p.stock ?? Infinity);
+            if (current >= stock) {
+              if (plus) { plus.disabled = true; plus.classList.add('disabled'); }
             } else {
-              alert(`Produto adicionável: ${p.name} (${p.barcode || 'sem código'})`);
+              if (plus) { plus.disabled = false; plus.classList.remove('disabled'); }
+            }
+            if (minus) minus.disabled = current <= 0;
+          };
+          updateLabelAndState();
+          plus?.addEventListener('click', () => {
+            window.addToCart(p, 1);
+            updateLabelAndState();
+          });
+          minus?.addEventListener('click', () => {
+            if (getQty() > 0) {
+              window.cart.updateQuantity(id, -1);
+              window.cart.render();
+              updateLabelAndState();
             }
           });
           grid.appendChild(card);
