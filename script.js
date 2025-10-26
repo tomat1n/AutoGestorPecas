@@ -155,6 +155,8 @@ function initPDVOnce() {
   PDV_INITIALIZED = true;
   initShoppingCart();
   setupPDVEvents();
+  // Render inicial do grid do PDV
+  try { renderPDVProducts?.(); } catch (_) {}
 }
 
 function setupPDVEvents() {
@@ -175,6 +177,63 @@ function setupPDVEvents() {
 
   const finalizeBtn = document.getElementById('finalizeSaleBtn');
   if (finalizeBtn) finalizeBtn.addEventListener('click', finalizeSale);
+
+  // Busca do PDV
+  const searchInput = document.getElementById('productSearch');
+  if (searchInput) {
+    const doRender = () => { try { renderPDVProducts?.(); } catch (_) {} };
+    searchInput.addEventListener('input', debounce(doRender, 300));
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const term = (searchInput.value || '').trim();
+        const s = window.INV_STATE;
+        const prod = s?.products?.find(p => String(p.barcode || '') === term);
+        if (prod) { window.addToCart(prod, 1); searchInput.select(); }
+        else doRender();
+      }
+    });
+  }
+
+  // Categorias
+  const catBtns = document.querySelectorAll('#categories .category');
+  catBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      catBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      try { renderPDVProducts?.(); } catch (_) {}
+    });
+  });
+}
+
+// Renderização dos produtos do PDV
+function renderPDVProducts() {
+  const s = window.INV_STATE;
+  const grid = document.getElementById('productsGrid');
+  if (!s || !grid) return;
+  const q = (document.getElementById('productSearch')?.value || '').trim().toLowerCase();
+  const activeCat = document.querySelector('#categories .category.active')?.getAttribute('data-cat') || 'Todos';
+
+  let items = (s.products || []).slice();
+  if (q) items = items.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) || (p.barcode||'').toLowerCase().includes(q));
+  if (activeCat && activeCat !== 'Todos') items = items.filter(p => p.category === activeCat);
+
+  grid.innerHTML = '';
+  items.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-image">
+        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<i class="fa-solid fa-box"></i>`}
+      </div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${fmtBRL(p.price||0)}</div>
+      <div class="product-add"><button class="btn btn-primary">Adicionar</button></div>
+    `;
+    const btn = card.querySelector('.btn');
+    if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); window.addToCart(p, 1); });
+    card.addEventListener('click', () => window.addToCart(p, 1));
+    grid.appendChild(card);
+  });
 }
 
 class ShoppingCart {
