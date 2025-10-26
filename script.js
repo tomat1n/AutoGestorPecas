@@ -1196,6 +1196,16 @@ async function loadInventoryFromSupabase() {
       .eq('is_active', true)
       .limit(1000);
     if (error) throw error;
+    if (Array.isArray(data) && data.length > 0) {
+      const sample = data[0];
+      window.INV_DB_FIELDS = {
+        image_url: Object.prototype.hasOwnProperty.call(sample, 'image_url'),
+        cost_price: Object.prototype.hasOwnProperty.call(sample, 'cost_price'),
+        markup_percent: Object.prototype.hasOwnProperty.call(sample, 'markup_percent'),
+      };
+    } else {
+      window.INV_DB_FIELDS = window.INV_DB_FIELDS || { image_url: false, cost_price: false, markup_percent: false };
+    }
     return (data || []).map(mapDbToAppProduct);
   } catch (e) {
     console.warn('Falha ao carregar estoque do Supabase:', e);
