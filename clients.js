@@ -16,6 +16,9 @@
     const saveVehBtn=document.getElementById('saveVehicleBtn');
     const closeVehBtn=document.getElementById('closeVehicleModalBtn');
 
+    // Helper: identifica se o id já é do banco (evita ids locais C-xxxxx)
+    function isDbId(v){ return !!v && !String(v).startsWith('C-'); }
+
     if(e.form) e.form.addEventListener('submit',ev=>{ev.preventDefault(); save();});
     if(e.save) e.save.addEventListener('click',ev=>{ev.preventDefault(); save();});
     if(e.reset) e.reset.addEventListener('click',clear);
@@ -66,21 +69,53 @@
       }catch(err){ console.warn('Falha ao carregar clientes do Supabase:', err); }
     }
 
-    async function save(){ const c=get(); if(!c.name||!c.document||!c.phone){ alert('Preencha Nome, Documento e Telefone.'); return; } if(!c.id){ c.id='C-'+Math.floor(100000+Math.random()*900000); curId=c.id; } let id=c.id; if(supa){
-      // Mapear para colunas existentes no Supabase (doc em vez de document)
-      const payload={ id: c.id, name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at:new Date().toISOString() };
-      let upData=null, upErr=null;
-      try{ const res = await supa.from('clients').upsert(payload,{onConflict:'id'}).select('id').single(); upData=res?.data||null; upErr=res?.error||null; }catch(ex){ upErr=ex; }
-      if(upErr){
-        console.warn('Supabase upsert clientes:', upErr);
-        // Fallback: tentar insert sem id (para esquemas com id uuid default)
+    async function save(){
+      const c=get();
+      if(!c.name||!c.document||!c.phone){ alert('Preencha Nome, Documento e Telefone.'); return; }
+      const supa = window.supabaseClient || null;
+      // Fluxo DB-first quando Supabase está disponível
+      if(supa){
         try{
-          const insPayload={ name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at:new Date().toISOString() };
-          const { data: d2, error: e2 } = await supa.from('clients').insert(insPayload).select('id').single();
-          if(!e2 && d2?.id){ id=d2.id; c.id=d2.id; curId=d2.id; }
-        }catch(e){ console.warn('Supabase insert clientes (fallback):', e); }
-      } else if(upData?.id){ id=upData.id; c.id=upData.id; curId=upData.id; }
-    } const i=s.clients.findIndex(x=>x.id===id); if(i>=0) s.clients[i]={...s.clients[i],...c}; else s.clients.push({...c, vehicles:[]}); store(); render(); set(c); alert('Cliente salvo com sucesso!'); }
+          const now = new Date().toISOString();
+          const payload = { name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at: now };
+          let dbId = curId;
+          if(isDbId(curId)){
+            // Atualiza registro existente
+            const { data, error } = await supa.from('clients').update(payload).eq('id', curId).select('id').single();
+            if(error) throw error;
+            dbId = data?.id || curId;
+          } else {
+            // Insere novo registro, id gerado pelo banco (uuid)
+            const { data, error } = await supa.from('clients').insert(payload).select('id').single();
+            if(error) throw error;
+            dbId = data?.id;
+          }
+          if(!dbId){ throw new Error('Falha ao obter id do cliente no Supabase.'); }
+          c.id = dbId; curId = dbId;
+          // Atualiza estado local e recarrega da base para refletir somente o que está no Supabase
+          const i=s.clients.findIndex(x=>x.id===dbId);
+          if(i>=0) s.clients[i] = { ...s.clients[i], ...c };
+          else s.clients.push({ ...c, vehicles: s.clients.find(x=>x.id===dbId)?.vehicles || [] });
+          try{ store(); }catch{}
+          await (typeof loadClientsFromSupabase==='function' ? loadClientsFromSupabase() : Promise.resolve());
+          const saved = (window.CLIENTS_STATE?.clients||[]).find(x=>x.id===dbId) || c;
+          render(); set(saved);
+          alert('Cliente salvo com sucesso!');
+          return;
+        } catch(ex){
+          console.warn('Erro ao salvar cliente no Supabase:', ex);
+          alert('Falha ao salvar cliente no Supabase: ' + (ex?.message||ex));
+          return;
+        }
+      }
+      // Fallback local quando Supabase indisponível
+      if(!c.id){ c.id='C-'+Math.floor(100000+Math.random()*900000); curId=c.id; }
+      const id=c.id;
+      const i=s.clients.findIndex(x=>x.id===id);
+      if(i>=0) s.clients[i]={...s.clients[i],...c}; else s.clients.push({...c, vehicles:[]});
+      store(); render(); set(c);
+      alert('Cliente salvo localmente. Conecte ao Supabase para sincronizar.');
+    }
     function remove(){ if(!curId){ alert('Selecione um cliente para excluir.'); return; } s.clients=s.clients.filter(c=>c.id!==curId); store(); if(supa){ supa.from('clients').update({is_active:false}).eq('id',curId).catch(()=>{}); } clear(); render(); alert('Cliente excluído.'); }
     // Bind vehicle modal actions
     e.openVeh?.addEventListener('click', openVehicleModal);
@@ -95,22 +130,24 @@
       const year=vehYear?.value?Number(vehYear.value):null;
       const color=(vehColor?.value||'').trim();
       if(!plate||!model){ alert('Informe Placa e Modelo.'); return; }
-      if(!curId){ await save(); }
-      const s=window.CLIENTS_STATE;
+      const supa = window.supabaseClient || null;
+      if(!isDbId(curId)){
+        // Garante que o cliente tenha um id do banco antes de salvar veículo
+        await save();
+        if(!isDbId(curId)){ alert('Falha ao obter ID do cliente no banco.'); return; }
+      }
       const idx=s.clients.findIndex(c=>c.id===curId);
-      if(idx<0){ alert('Salve o cliente antes de adicionar veículo.'); return; }
+      if(idx<0){ alert('Selecione/salve o cliente antes de adicionar veículo.'); return; }
       const cli=s.clients[idx];
       cli.vehicles=cli.vehicles||[];
       let veh=cli.vehicles.find(v=>String(v.plate||'').toUpperCase()===plate);
       if(veh){ Object.assign(veh,{ model, year, color }); }
       else { veh={ id:'V-'+Math.floor(100000+Math.random()*900000), plate, model, year, color, is_active:true }; cli.vehicles.push(veh); }
-  
-      // Supabase sync silenciosa
-      try{
-        const supa = window.supabaseClient || null;
-        if(supa){
+
+      // Supabase sync (obrigatória para refletir no Table Editor)
+      if(supa){
+        try{
           const payload={
-            id: veh.id && !String(veh.id).startsWith('V-') ? veh.id : undefined,
             client_id: curId,
             plate,
             model,
@@ -120,15 +157,28 @@
             updated_at: new Date().toISOString()
           };
           const { data, error } = await supa.from('client_vehicles').upsert(payload,{ onConflict:'client_id,plate' }).select('id').single();
-          if(!error && data?.id){ veh.id = data.id; }
+          if(error) throw error;
+          if(data?.id){ veh.id = data.id; }
+          try{ store(); }catch{}
+          await (typeof loadClientsFromSupabase==='function' ? loadClientsFromSupabase() : Promise.resolve());
+          renderVehicles();
+          closeVehicleModal();
+          if(vehPlate) vehPlate.value=''; if(vehModel) vehModel.value=''; if(vehYear) vehYear.value=''; if(vehColor) vehColor.value='';
+          alert('Veículo salvo com sucesso!');
+          return;
+        }catch(ex){
+          console.warn('Erro ao salvar veículo no Supabase:', ex);
+          alert('Falha ao salvar veículo no Supabase: ' + (ex?.message||ex));
+          return;
         }
-      }catch(ex){ console.warn('Supabase upsert veículos:', ex); }
-  
+      }
+
+      // Fallback local
       try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{}
       renderVehicles();
       closeVehicleModal();
       if(vehPlate) vehPlate.value=''; if(vehModel) vehModel.value=''; if(vehYear) vehYear.value=''; if(vehColor) vehColor.value='';
-      alert('Veículo salvo.');
+      alert('Veículo salvo localmente. Conecte ao Supabase para sincronizar.');
     }
 
   };
