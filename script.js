@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Ações de header e atualização de data/hora
   setupHeaderActions();
   setupDateTimeUpdater();
+  // Atalhos rápidos
+  setupQuickShortcuts();
   // Abre Dashboard como padrão
   navigateTo('dashboard');
 });
