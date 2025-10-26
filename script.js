@@ -1466,13 +1466,19 @@ async function uploadProductImage(file, baseName = '') {
     const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
     const safeBase = (baseName || 'produto').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
     const path = `${safeBase}/${Date.now()}.${ext}`;
-    const { data, error } = await bucket.upload(path, file, { upsert: true, contentType: file.type });
+    const ct = file.type || 'image/jpeg';
+    const { data, error } = await bucket.upload(path, file, { contentType: ct });
     if (error) throw error;
     const { data: pub } = bucket.getPublicUrl(path);
     return pub?.publicUrl || null;
   } catch (e) {
     console.warn('Falha ao enviar imagem:', e);
-    alert('Não foi possível enviar a imagem ao Storage.');
+    const msg = (e && (e.message || e.error?.message)) ? (e.message || e.error?.message) : String(e);
+    let hint = '';
+    if (/not found|bucket/i.test(msg)) hint = 'Bucket product-images não existe ou não está público.';
+    else if (/policy|row-level|security|permission|RLS/i.test(msg)) hint = 'RLS não permite INSERT. Crie políticas para o bucket.';
+    else if (/content[- ]?type/i.test(msg)) hint = 'Content-Type inválido. Tente imagem JPEG/PNG.';
+    alert(`Não foi possível enviar a imagem ao Storage.\nMotivo: ${msg}\nDica: ${hint || 'Verifique URL/Anon Key, bucket e políticas.'}`);
     return null;
   }
 }
