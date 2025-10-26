@@ -1178,8 +1178,7 @@ function mapDbToAppProduct(row) {
 }
 
 function mapAppToDbProduct(p) {
-  return {
-    id: p.id || null,
+  const payload = {
     name: p.name || null,
     description: p.description || null,
     barcode: p.barcode || null,
@@ -1191,6 +1190,9 @@ function mapAppToDbProduct(p) {
     is_active: true,
     updated_at: new Date().toISOString()
   };
+  // Inclui id apenas quando existir; em inserts omitimos para usar o default do banco
+  if (p.id) payload.id = p.id;
+  return payload;
 }
 
 async function saveProductSupabase(data) {
