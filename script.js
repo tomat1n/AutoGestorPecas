@@ -1223,7 +1223,10 @@ function mapDbToAppProduct(row) {
     supplier: row.supplier || '',
     price: Number(row.price || 0),
     stock: Number(row.stock || 0),
-    minStock: Number(row.min_stock ?? row.minStock ?? 0)
+    minStock: Number(row.min_stock ?? row.minStock ?? 0),
+    image_url: row.image_url || '',
+    costPrice: Number(row.cost_price || 0),
+    markupPercent: Number(row.markup_percent || 0)
   };
 }
 
