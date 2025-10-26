@@ -5,8 +5,9 @@
     try{initSupabase?.();}catch{}
     const supa=window.supabaseClient||null;
     const s=window.CLIENTS_STATE=window.CLIENTS_STATE||{clients:[]};
-    const q=(id)=>document.getElementById(id);
-    const e={form:q('clientForm'), save:q('clientSaveBtn'), reset:q('clientResetBtn'), del:q('clientDeleteBtn'), whats:q('clientWhatsBtn'), name:q('clientName'), doc:q('clientDocument'), phone:q('clientPhone'), email:q('clientEmail'), cep:q('clientCEP'), uf:q('clientState'), city:q('clientCity'), addr:q('clientAddress'), search:q('clientSearch'), grid:q('clientsGrid'), typeToggle:document.querySelector('.type-toggle')};
+    const section=document.getElementById('clientsSection');
+    const q=(id)=> section ? section.querySelector('#'+id) : document.getElementById(id);
+    const e={form:q('clientForm'), save:q('clientSaveBtn'), reset:q('clientResetBtn'), del:q('clientDeleteBtn'), whats:q('clientWhatsBtn'), name:q('clientName'), doc:q('clientDocument'), phone:q('clientPhone'), email:q('clientEmail'), cep:q('clientCEP'), uf:q('clientState'), city:q('clientCity'), addr:q('clientAddress'), search:q('clientSearch'), grid:q('clientsGrid'), typeToggle:section?.querySelector('.type-toggle')};
 
     if(e.form) e.form.addEventListener('submit',ev=>{ev.preventDefault(); save();});
     if(e.save) e.save.addEventListener('click',ev=>{ev.preventDefault(); save();});
