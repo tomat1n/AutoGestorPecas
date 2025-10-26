@@ -1364,7 +1364,9 @@ function renderInventoryList() {
     card.className = 'product-card';
     const stockLabel = Number(p.stock||0) === 0 ? '<span style="color:#dc3545;font-weight:600;">Zerado</span>' : Number(p.stock||0) <= Number(p.minStock||0) ? '<span style="color:#fd7e14;font-weight:600;">Baixo</span>' : '<span style="color:#28a745;font-weight:600;">OK</span>';
     card.innerHTML = `
-      <div class="product-image"><i class="fa-solid fa-box"></i></div>
+      <div class="product-image">
+        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<i class="fa-solid fa-box"></i>`}
+      </div>
       <div class="product-name">${p.name}</div>
       <div class="product-price">${fmtBRL(p.price||0)}</div>
       <div class="product-add">
