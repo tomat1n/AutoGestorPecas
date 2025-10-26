@@ -390,6 +390,8 @@ function initSupabase() {
   const keyCandidate = cfgLS?.cfgSupabaseAnonKey;
   const url = (isValidUrl(urlCandidate) ? urlCandidate : (cfgGlobal.supabaseUrl || '')).trim();
   const key = (isValidKey(keyCandidate) ? keyCandidate : (cfgGlobal.supabaseAnonKey || '')).trim();
+  // Guarda cfg atual para diagnósticos/fallbacks
+  window.SUPA_CFG = { url, key };
   if (url && key && window.supabase) {
     window.supabaseClient = window.supabase.createClient(url, key);
   } else {
@@ -1017,13 +1019,57 @@ async function uploadProductImage(file, baseName = '') {
     const { data: pub } = bucket.getPublicUrl(path);
     return pub?.publicUrl || null;
   } catch (e) {
+    // Diagnósticos detalhados
     console.warn('Falha ao enviar imagem:', e);
+    const status = e?.statusCode || e?.status || null;
+    const code = e?.code || e?.error?.code || null;
     const msg = (e && (e.message || e.error?.message)) ? (e.message || e.error?.message) : String(e);
     let hint = '';
     if (/not found|bucket/i.test(msg)) hint = 'Bucket product-images não existe ou não está público.';
     else if (/policy|row-level|security|permission|RLS/i.test(msg)) hint = 'RLS não permite INSERT. Crie políticas para o bucket.';
     else if (/content[- ]?type/i.test(msg)) hint = 'Content-Type inválido. Tente imagem JPEG/PNG.';
-    alert(`Não foi possível enviar a imagem ao Storage.\nMotivo: ${msg}\nDica: ${hint || 'Verifique URL/Anon Key, bucket e políticas.'}`);
+    // Fallback via fetch para investigar o 400
+    try {
+      const baseUrl = window.SUPA_CFG?.url;
+      const anonKey = window.SUPA_CFG?.key;
+      if (baseUrl && anonKey && file) {
+        const supabase = window.supabaseClient;
+        const bucket = supabase?.storage?.from('product-images');
+        const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+        const safeBase = (baseName || 'produto').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+        const path = `${safeBase}/${Date.now()}.${ext}`;
+        const ct = file.type || 'image/jpeg';
+        const reqUrl = `${baseUrl}/storage/v1/object/product-images/${encodeURIComponent(safeBase)}/${Date.now()}.${ext}`;
+        const res = await fetch(reqUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${anonKey}`,
+            'Content-Type': ct,
+            'x-upsert': 'false'
+          },
+          body: file
+        });
+        let json = null;
+        try { json = await res.clone().json(); } catch {}
+        console.warn('Fallback upload resposta:', res.status, json);
+        if (res.ok) {
+          const { data: pub2 } = bucket?.getPublicUrl(path) || { data: null };
+          return pub2?.publicUrl || null;
+        } else {
+          const errMsg = json?.message || `HTTP ${res.status}`;
+          const errCode = json?.code || null;
+          alert(`Falha no upload (fallback) — Storage.
+Status: ${res.status}${errCode ? `\nCode: ${errCode}` : ''}
+Mensagem: ${errMsg}`);
+        }
+      }
+    } catch (fe) {
+      console.warn('Fallback upload também falhou:', fe);
+    }
+    alert(`Não foi possível enviar a imagem ao Storage.
+Status: ${status ?? 'desconhecido'}${code ? `\nCode: ${code}` : ''}
+Mensagem: ${msg}
+Dica: ${hint || 'Verifique URL/Anon Key, bucket e políticas.'}`);
     return null;
   }
 }
