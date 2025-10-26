@@ -69,7 +69,17 @@
     async function save(){ const c=get(); if(!c.name||!c.document||!c.phone){ alert('Preencha Nome, Documento e Telefone.'); return; } if(!c.id){ c.id='C-'+Math.floor(100000+Math.random()*900000); curId=c.id; } let id=c.id; if(supa){
       // Mapear para colunas existentes no Supabase (doc em vez de document)
       const payload={ id: c.id, name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at:new Date().toISOString() };
-      try{ const { data, error }=await supa.from('clients').upsert(payload,{onConflict:'id'}).select('id').single(); if(!error && data?.id){ id=data.id; c.id=data.id; curId=data.id; } }catch(ex){ console.warn('Supabase upsert clientes:', ex); }
+      let upData=null, upErr=null;
+      try{ const res = await supa.from('clients').upsert(payload,{onConflict:'id'}).select('id').single(); upData=res?.data||null; upErr=res?.error||null; }catch(ex){ upErr=ex; }
+      if(upErr){
+        console.warn('Supabase upsert clientes:', upErr);
+        // Fallback: tentar insert sem id (para esquemas com id uuid default)
+        try{
+          const insPayload={ name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at:new Date().toISOString() };
+          const { data: d2, error: e2 } = await supa.from('clients').insert(insPayload).select('id').single();
+          if(!e2 && d2?.id){ id=d2.id; c.id=d2.id; curId=d2.id; }
+        }catch(e){ console.warn('Supabase insert clientes (fallback):', e); }
+      } else if(upData?.id){ id=upData.id; c.id=upData.id; curId=upData.id; }
     } const i=s.clients.findIndex(x=>x.id===id); if(i>=0) s.clients[i]={...s.clients[i],...c}; else s.clients.push({...c, vehicles:[]}); store(); render(); set(c); alert('Cliente salvo com sucesso!'); }
     function remove(){ if(!curId){ alert('Selecione um cliente para excluir.'); return; } s.clients=s.clients.filter(c=>c.id!==curId); store(); if(supa){ supa.from('clients').update({is_active:false}).eq('id',curId).catch(()=>{}); } clear(); render(); alert('Cliente excluído.'); }
     // Bind vehicle modal actions
