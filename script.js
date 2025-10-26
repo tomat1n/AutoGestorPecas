@@ -701,7 +701,18 @@ class ShoppingCart {
 
 function initShoppingCart() {
   window.cart = new ShoppingCart();
-  window.addToCart = (product, quantity = 1) => window.cart.add(product, quantity);
+  window.addToCart = (product, quantity = 1) => {
+    const id = String(product.id || product.barcode || product.name);
+    const existing = window.cart?.items?.find(i => i.id === id);
+    const existingQty = existing ? existing.quantity : 0;
+    const stock = Number(product.stock ?? Infinity);
+    const allowed = Math.min(quantity, Math.max(0, stock - existingQty));
+    if (allowed <= 0) {
+      alert('Estoque insuficiente para adicionar mais unidades.');
+      return;
+    }
+    window.cart.add(product, allowed);
+  };
   window.cart.render();
 }
 
