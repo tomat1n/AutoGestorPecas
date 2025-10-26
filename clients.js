@@ -26,14 +26,46 @@
     if(e.search) e.search.addEventListener('input',render);
     if(e.typeToggle) e.typeToggle.querySelectorAll('.type-option').forEach(o=>o.addEventListener('click',()=>{ e.typeToggle.querySelectorAll('.type-option').forEach(t=>t.classList.remove('active')); o.classList.add('active'); type=o.dataset.type||'pf'; }));
 
-    try{ const raw=localStorage.getItem('clients'); if(raw){ s.clients=JSON.parse(raw)||[]; } }catch{}
+    // Carregar apenas do Supabase quando disponível; fallback para localStorage caso indisponível
     render();
+    if(supa){ loadClientsFromSupabase().catch(err=>console.warn('Falha ao carregar clientes do Supabase:', err)); }
+    else { try{ const raw=localStorage.getItem('clients'); if(raw){ s.clients=JSON.parse(raw)||[]; render(); } }catch{} }
 
     function get(){ return { id:curId, type, name:(e.name?.value||'').trim(), document:(e.doc?.value||'').trim(), phone:(e.phone?.value||'').trim(), email:(e.email?.value||'').trim(), cep:(e.cep?.value||'').trim(), state:(e.uf?.value||'').trim(), city:(e.city?.value||'').trim(), address:(e.addr?.value||'').trim(), is_active:true }; }
     function set(c){ curId=c.id; type=c.type||'pf'; if(e.typeToggle){ e.typeToggle.querySelectorAll('.type-option').forEach(t=>t.classList.toggle('active',(t.dataset.type||'pf')===type)); } if(e.name) e.name.value=c.name||''; if(e.doc) e.doc.value=c.document||''; if(e.phone) e.phone.value=c.phone||''; if(e.email) e.email.value=c.email||''; if(e.cep) e.cep.value=c.cep||''; if(e.uf) e.uf.value=c.state||''; if(e.city) e.city.value=c.city||''; if(e.addr) e.addr.value=c.address||''; renderVehicles(); }
     function clear(){ curId=null; ['name','doc','phone','email','cep','uf','city','addr'].forEach(k=>{ const m={name:e.name,doc:e.doc,phone:e.phone,email:e.email,cep:e.cep,uf:e.uf,city:e.city,addr:e.addr}[k]; if(m) m.value=''; }); e.vehiclesList && (e.vehiclesList.innerHTML=''); }
     function store(){ try{ localStorage.setItem('clients', JSON.stringify(s.clients)); }catch{} }
     function render(){ if(!e.grid) return; const term=(e.search?.value||'').trim().toLowerCase(); const list=s.clients.filter(c=>!term||[c.name,c.document,c.phone,c.email].some(v=>String(v||'').toLowerCase().includes(term))); e.grid.innerHTML=list.length?'':'<div class="empty">Nenhum cliente</div>'; list.forEach(c=>{ const d=document.createElement('div'); d.className='client-card'; d.innerHTML=`<div class="client-title">${c.name||'—'}</div><div class="client-sub">${c.document||''} • ${c.phone||''}</div><div class="client-sub">${c.email||''}</div>`; d.addEventListener('click',()=>set(c)); e.grid.appendChild(d); }); }
+
+    async function loadClientsFromSupabase(){
+      try{
+        const { data: clients, error: errClients } = await supa.from('clients').select('*').eq('is_active', true).order('name', { ascending: true });
+        if(errClients) throw errClients;
+        let vehiclesByClient = {};
+        try{
+          const { data: vehicles, error: errVeh } = await supa.from('client_vehicles').select('*').eq('is_active', true);
+          if(errVeh) throw errVeh;
+          vehiclesByClient = (vehicles||[]).reduce((acc,v)=>{ const cid=v.client_id; (acc[cid]=acc[cid]||[]).push({ id:v.id, plate:v.plate, model:v.model, year:v.year, color:v.color, is_active: v.is_active!==false }); return acc; },{});
+        }catch(e){ vehiclesByClient = {}; }
+        s.clients = (clients||[]).map(row=>({
+          id: row.id,
+          type: row.type||'pf',
+          name: row.name||'',
+          document: row.doc || row.document || '',
+          phone: row.phone||'',
+          email: row.email||'',
+          cep: row.cep||'',
+          state: row.state||'',
+          city: row.city||'',
+          address: row.address||'',
+          is_active: row.is_active!==false,
+          vehicles: vehiclesByClient[row.id]||[]
+        }));
+        try{ store(); }catch{}
+        render();
+      }catch(err){ console.warn('Falha ao carregar clientes do Supabase:', err); }
+    }
+
     async function save(){ const c=get(); if(!c.name||!c.document||!c.phone){ alert('Preencha Nome, Documento e Telefone.'); return; } if(!c.id){ c.id='C-'+Math.floor(100000+Math.random()*900000); curId=c.id; } let id=c.id; if(supa){
       // Mapear para colunas existentes no Supabase (doc em vez de document)
       const payload={ id: c.id, name: c.name, type: c.type||type, doc: c.document, phone: c.phone, email: c.email, is_active: true, updated_at:new Date().toISOString() };
