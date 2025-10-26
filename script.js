@@ -18,6 +18,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Ativa menu e navegação
   setupMenuActiveState();
+  // Ações de header e atualização de data/hora
+  setupHeaderActions();
+  setupDateTimeUpdater();
   // Abre Dashboard como padrão
   navigateTo('dashboard');
 });
@@ -108,6 +111,41 @@ async function navigateTo(page) {
       if (pdvSection) pdvSection.classList.remove('hidden');
       try { initPDVOnce?.(); } catch {}
   }
+}
+
+// Add header actions: gear icon opens Configurações
+function setupHeaderActions(){
+  try{
+    const gear = document.querySelector('.header-right .fa-gear.header-icon');
+    if (gear){
+      gear.style.cursor = 'pointer';
+      gear.addEventListener('click', () => {
+        const cfgItem = document.querySelector('.menu-item[data-page="config"]');
+        if (cfgItem) cfgItem.click(); else navigateTo('config');
+      });
+    }
+  }catch(e){ console.warn('Falha ao configurar ações de header:', e); }
+}
+
+// Date/Time updater for #datetime
+function setupDateTimeUpdater(){
+  const el = document.getElementById('datetime');
+  if (!el) return;
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const pad = (n) => String(n).padStart(2,'0');
+  const render = () => {
+    const now = new Date();
+    const day = now.getDate();
+    const monthName = months[now.getMonth()];
+    const year = now.getFullYear();
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    el.textContent = `${day} de ${monthName} de ${year}, ${hours}:${minutes}`;
+  };
+  render();
+  const now = new Date();
+  const msToNextMinute = (60 - now.getSeconds())*1000 - now.getMilliseconds();
+  setTimeout(() => { render(); setInterval(render, 60000); }, Math.max(msToNextMinute, 0));
 }
 
 // PDV init único e carrinho
