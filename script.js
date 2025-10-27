@@ -236,13 +236,15 @@ async function finalizeSale() {
   }
 
   const activeMethodEl = document.querySelector('#payOptions .pay-option.active');
-  const paymentMethod = activeMethodEl ? activeMethodEl.getAttribute('data-method') : 'Dinheiro';
+  const paymentMethod = activeMethodEl ? activeMethodEl.getAttribute('data-method') : (window.PDV_STATE?.paymentMethod || 'Dinheiro');
 
   const subtotalValue = cart.items.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
-  const totalValue = subtotalValue; // ajuste se aplicar descontos/juros
+  const discountValue = Math.max(0, Number(window.PDV_STATE?.discount || 0));
+  const totalValue = Math.max(0, subtotalValue - discountValue);
+
   const saleData = {
     subtotal: subtotalValue,
-    discount: 0,
+    discount: discountValue,
     total: totalValue,
     payment_method: paymentMethod,
     created_at: new Date().toISOString(),
@@ -308,7 +310,41 @@ async function finalizeSale() {
       }
     }
 
-    alert('Venda finalizada com sucesso!');
+    // 4) Gerar recibo PDF, subir no Storage e salvar URL
+    let pdfUrl = '';
+    try {
+      const pdfBlob = generateSalePdf({
+        saleId: sale.id,
+        createdAt: sale.created_at,
+        paymentMethod,
+        subtotal: subtotalValue,
+        discount: discountValue,
+        total: totalValue,
+        amountPaid: Number(window.PDV_STATE?.amountPaid || 0),
+        change: Math.max(0, Number(window.PDV_STATE?.amountPaid || 0) - totalValue),
+        items: cart.items
+      });
+      pdfUrl = await uploadReceiptPdfToSupabase(pdfBlob, sale.id);
+      if (pdfUrl) {
+        await supabase.from('sales').update({ pdf_doc_url: pdfUrl }).eq('id', sale.id);
+      }
+    } catch (e) {
+      console.warn('Falha ao gerar/enviar recibo PDF:', e);
+    }
+
+    // 5) Mostrar troco e link de compartilhamento
+    const changeValue = Math.max(0, Number(window.PDV_STATE?.amountPaid || 0) - totalValue);
+    let msg = `Venda finalizada com sucesso!\nTotal: R$ ${totalValue.toFixed(2)}`;
+    if (changeValue > 0) msg += `\nTroco: R$ ${changeValue.toFixed(2)}`;
+    if (pdfUrl) msg += `\nRecibo: ${pdfUrl}`;
+    alert(msg);
+
+    if (pdfUrl) {
+      const waText = encodeURIComponent(`Recibo da venda ${sale.id}: ${pdfUrl}`);
+      const waUrl = `https://wa.me/?text=${waText}`;
+      try { window.open(waUrl, '_blank'); } catch (_) {}
+    }
+
     cart.clear();
   } catch (e) {
     console.error('Erro ao finalizar venda:', e);
