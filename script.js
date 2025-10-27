@@ -397,12 +397,12 @@ async function finalizeSale() {
   const activeMethodEl = document.querySelector('#payOptions .pay-option.active');
   const paymentMethod = activeMethodEl ? activeMethodEl.getAttribute('data-method') : 'Dinheiro';
 
-  const subtotalValue = cart.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalValue = subtotalValue;
+  const subtotalValue = cart.items.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+  const totalValue = subtotalValue; // ajuste se aplicar descontos/juros
   const saleData = {
-    total_amount: totalValue,
-    subtotal_amount: subtotalValue,
-    discount_amount: 0,
+    subtotal: subtotalValue,
+    discount: 0,
+    total: totalValue,
     payment_method: paymentMethod,
     created_at: new Date().toISOString(),
   };
@@ -416,15 +416,17 @@ async function finalizeSale() {
       .single();
     if (saleError) throw saleError;
 
-    // 2) Registrar os itens da venda
+    // 2) Registrar os itens da venda (produtos e serviços)
     const itemsPayload = cart.items.map(item => ({
       sale_id: sale.id,
-      product_id: item.id,
-      quantity: item.quantity,
-      unit_price: item.price,
-      total_price: item.price * item.quantity,
-      barcode: item.barcode || null,
-      name: item.name,
+      item_type: item.type === 'service' ? 'service' : 'product',
+      product_id: item.type === 'service' ? null : String(item.id || ''),
+      service_id: item.type === 'service' ? String(item.id || '') : null,
+      name: String(item.name || ''),
+      description: String(item.description || ''),
+      quantity: Number(item.quantity || 1),
+      unit_price: Number(item.price || 0),
+      line_total: Number(item.price || 0) * Number(item.quantity || 1),
       created_at: new Date().toISOString(),
     }));
 
@@ -432,33 +434,37 @@ async function finalizeSale() {
     if (itemsError) throw itemsError;
 
     // 3) Baixar estoque dos produtos e registrar movimentos
-    const productIds = cart.items.map(i => i.id);
-    const { data: stocksData, error: stocksErr } = await supabase
-      .from('products')
-      .select('id, stock')
-      .in('id', productIds);
-    if (stocksErr) throw stocksErr;
-
-    const stockMap = new Map((stocksData || []).map(r => [r.id, Number(r.stock || 0)]));
-    for (const item of cart.items) {
-      const current = stockMap.has(item.id) ? Number(stockMap.get(item.id)) : 0;
-      const newStock = Math.max(0, current - Number(item.quantity || 0));
-      // Atualiza o estoque
-      const { error: updErr } = await supabase
+    const productItems = cart.items.filter(i => i.type !== 'service');
+    const productIds = productItems.map(i => i.id).filter(Boolean);
+    if (productIds.length) {
+      const { data: stocksData, error: stocksErr } = await supabase
         .from('products')
-        .update({ stock: newStock, updated_at: new Date().toISOString() })
-        .eq('id', item.id);
-      if (updErr) throw updErr;
-      // Registra movimento de saída
-      try {
-        await supabase.from('stock_movements').insert({
-          product_id: item.id,
-          type: 'out',
-          quantity: Number(item.quantity || 0),
-          reason: 'Venda PDV',
-          at: new Date().toISOString()
-        });
-      } catch (_) { /* tabela pode não existir; ignora */ }
+        .select('id, stock')
+        .in('id', productIds);
+      if (stocksErr) throw stocksErr;
+
+      const stockMap = new Map((stocksData || []).map(r => [String(r.id), Number(r.stock || 0)]));
+      for (const item of productItems) {
+        const curKey = String(item.id);
+        const current = stockMap.has(curKey) ? Number(stockMap.get(curKey)) : 0;
+        const newStock = Math.max(0, current - Number(item.quantity || 0));
+        // Atualiza o estoque
+        const { error: updErr } = await supabase
+          .from('products')
+          .update({ stock: newStock, updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+        if (updErr) throw updErr;
+        // Registra movimento de saída (venda)
+        try {
+          await supabase.from('stock_movements').insert({
+            product_id: String(item.id),
+            type: 'sale',
+            quantity: Number(item.quantity || 0),
+            notes: 'Venda PDV',
+            created_at: new Date().toISOString()
+          });
+        } catch (_) { /* tabela pode não existir; ignora */ }
+      }
     }
 
     alert('Venda finalizada com sucesso!');
