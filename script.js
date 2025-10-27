@@ -150,9 +150,11 @@ class ShoppingCart {
     const subtotal = document.getElementById('subtotalAmount');
     const discount = document.getElementById('discountAmount');
     const total = document.getElementById('totalAmount');
+    const changeEl = document.getElementById('changeAmount');
 
     const subtotalValue = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalValue = subtotalValue;
+    const discountValue = Math.max(0, Number(window.PDV_STATE?.discount || 0));
+    const totalValue = Math.max(0, subtotalValue - discountValue);
 
     if (!cartItems) return;
 
@@ -188,8 +190,11 @@ class ShoppingCart {
     }
 
     if (subtotal) subtotal.textContent = `R$ ${subtotalValue.toFixed(2)}`;
-    if (discount) discount.textContent = `R$ ${0.00.toFixed(2)}`;
+    if (discount) discount.textContent = `R$ ${discountValue.toFixed(2)}`;
     if (total) total.textContent = `R$ ${totalValue.toFixed(2)}`;
+    const amountPaid = Math.max(0, Number(window.PDV_STATE?.amountPaid || 0));
+    const change = Math.max(0, amountPaid - totalValue);
+    if (changeEl) changeEl.textContent = `R$ ${change.toFixed(2)}`;
   }
 }
 
