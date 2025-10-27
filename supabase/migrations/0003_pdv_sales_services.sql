@@ -197,33 +197,61 @@ alter table public.stock_movements enable row level security;
 
 -- Policies simples: qualquer usuário autenticado pode ler/escrever
 -- OBS: ajuste conforme sua necessidade de segurança
-create policy if not exists products_select_auth on public.products for select using (auth.uid() is not null);
-create policy if not exists products_insert_auth on public.products for insert with check (auth.uid() is not null);
-create policy if not exists products_update_auth on public.products for update using (auth.uid() is not null);
+-- Products
+drop policy if exists products_select_auth on public.products;
+drop policy if exists products_insert_auth on public.products;
+drop policy if exists products_update_auth on public.products;
+create policy products_select_auth on public.products for select using (auth.uid() is not null);
+create policy products_insert_auth on public.products for insert with check (auth.uid() is not null);
+create policy products_update_auth on public.products for update using (auth.uid() is not null);
 
-create policy if not exists services_select_auth on public.services for select using (auth.uid() is not null);
-create policy if not exists services_insert_auth on public.services for insert with check (auth.uid() is not null);
-create policy if not exists services_update_auth on public.services for update using (auth.uid() is not null);
+-- Services
+drop policy if exists services_select_auth on public.services;
+drop policy if exists services_insert_auth on public.services;
+drop policy if exists services_update_auth on public.services;
+create policy services_select_auth on public.services for select using (auth.uid() is not null);
+create policy services_insert_auth on public.services for insert with check (auth.uid() is not null);
+create policy services_update_auth on public.services for update using (auth.uid() is not null);
 
-create policy if not exists service_orders_select_auth on public.service_orders for select using (auth.uid() is not null);
-create policy if not exists service_orders_insert_auth on public.service_orders for insert with check (auth.uid() is not null);
-create policy if not exists service_orders_update_auth on public.service_orders for update using (auth.uid() is not null);
+-- Service Orders
+drop policy if exists service_orders_select_auth on public.service_orders;
+drop policy if exists service_orders_insert_auth on public.service_orders;
+drop policy if exists service_orders_update_auth on public.service_orders;
+create policy service_orders_select_auth on public.service_orders for select using (auth.uid() is not null);
+create policy service_orders_insert_auth on public.service_orders for insert with check (auth.uid() is not null);
+create policy service_orders_update_auth on public.service_orders for update using (auth.uid() is not null);
 
-create policy if not exists os_services_select_auth on public.os_services for select using (auth.uid() is not null);
-create policy if not exists os_services_insert_auth on public.os_services for insert with check (auth.uid() is not null);
-create policy if not exists os_services_update_auth on public.os_services for update using (auth.uid() is not null);
+-- OS Services
+drop policy if exists os_services_select_auth on public.os_services;
+drop policy if exists os_services_insert_auth on public.os_services;
+drop policy if exists os_services_update_auth on public.os_services;
+create policy os_services_select_auth on public.os_services for select using (auth.uid() is not null);
+create policy os_services_insert_auth on public.os_services for insert with check (auth.uid() is not null);
+create policy os_services_update_auth on public.os_services for update using (auth.uid() is not null);
 
-create policy if not exists os_parts_select_auth on public.os_parts for select using (auth.uid() is not null);
-create policy if not exists os_parts_insert_auth on public.os_parts for insert with check (auth.uid() is not null);
-create policy if not exists os_parts_update_auth on public.os_parts for update using (auth.uid() is not null);
+-- OS Parts
+drop policy if exists os_parts_select_auth on public.os_parts;
+drop policy if exists os_parts_insert_auth on public.os_parts;
+drop policy if exists os_parts_update_auth on public.os_parts;
+create policy os_parts_select_auth on public.os_parts for select using (auth.uid() is not null);
+create policy os_parts_insert_auth on public.os_parts for insert with check (auth.uid() is not null);
+create policy os_parts_update_auth on public.os_parts for update using (auth.uid() is not null);
 
-create policy if not exists sales_select_auth on public.sales for select using (auth.uid() is not null);
-create policy if not exists sales_insert_auth on public.sales for insert with check (auth.uid() is not null);
-create policy if not exists sales_update_auth on public.sales for update using (auth.uid() is not null);
+-- Sales
+drop policy if exists sales_select_auth on public.sales;
+drop policy if exists sales_insert_auth on public.sales;
+drop policy if exists sales_update_auth on public.sales;
+create policy sales_select_auth on public.sales for select using (auth.uid() is not null);
+create policy sales_insert_auth on public.sales for insert with check (auth.uid() is not null);
+create policy sales_update_auth on public.sales for update using (auth.uid() is not null);
 
-create policy if not exists sale_items_select_auth on public.sale_items for select using (auth.uid() is not null);
-create policy if not exists sale_items_insert_auth on public.sale_items for insert with check (auth.uid() is not null);
-create policy if not exists sale_items_update_auth on public.sale_items for update using (auth.uid() is not null);
+-- Sale Items
+drop policy if exists sale_items_select_auth on public.sale_items;
+drop policy if exists sale_items_insert_auth on public.sale_items;
+drop policy if exists sale_items_update_auth on public.sale_items;
+create policy sale_items_select_auth on public.sale_items for select using (auth.uid() is not null);
+create policy sale_items_insert_auth on public.sale_items for insert with check (auth.uid() is not null);
+create policy sale_items_update_auth on public.sale_items for update using (auth.uid() is not null);
 
 create policy if not exists stock_movements_select_auth on public.stock_movements for select using (auth.uid() is not null);
 create policy if not exists stock_movements_insert_auth on public.stock_movements for insert with check (auth.uid() is not null);
