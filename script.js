@@ -12,7 +12,7 @@ function initSupabase() {
   // Guarda cfg atual para diagnósticos/fallbacks
   window.SUPA_CFG = { url, key };
   if (url && key && window.supabase) {
-    window.supabaseClient = window.supabase.createClient(url, key);
+    window.supabaseClient = window.supabase.createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
   } else {
     window.supabaseClient = null;
   }
