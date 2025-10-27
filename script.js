@@ -590,6 +590,7 @@ function bindInput(id, onChange, isTextarea = false) {
 function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
 function fmtBRL(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v||0)); }
 
+// Busca serviços para OS
 async function searchServices(term) {
   const resultsEl = document.getElementById('serviceResults');
   if (!resultsEl) return;
@@ -613,6 +614,34 @@ async function searchServices(term) {
     `;
     const btn = card.querySelector('.btn');
     if (btn) btn.addEventListener('click', () => addService({ id: svc.id, name: svc.name, price: Number(svc.price||0) }, 1));
+    resultsEl.appendChild(card);
+  });
+}
+
+// Busca serviços para PDV
+async function searchServicesPdv(term) {
+  const resultsEl = document.getElementById('pdvServiceResults');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = '';
+  if (!term || term.length < 2) return;
+  const supabase = window.supabaseClient;
+  if (!supabase) return;
+  const { data } = await supabase
+    .from('services')
+    .select('*')
+    .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
+    .eq('is_active', true)
+    .limit(20);
+  (data||[]).forEach(svc => {
+    const card = document.createElement('div');
+    card.className = 'os-result-card';
+    card.innerHTML = `
+      <div class="os-result-title">${svc.name}</div>
+      <div class="os-result-price">${fmtBRL(svc.price||0)}</div>
+      <div class="os-result-add"><button class="btn btn-primary">Adicionar</button></div>
+    `;
+    const btn = card.querySelector('.btn');
+    if (btn) btn.addEventListener('click', () => window.addServiceToCart({ id: svc.id, name: svc.name, description: svc.description || '', price: Number(svc.price||0) }, 1));
     resultsEl.appendChild(card);
   });
 }
