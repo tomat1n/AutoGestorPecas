@@ -191,6 +191,20 @@ function updateCartUI() {
   if (changeEl) changeEl.textContent = fmtBRL(change);
 }
 
+function updatePaymentVisibility() {
+  const panel = document.querySelector('.payment-extra');
+  if (!panel) return;
+  const amountRow = panel.querySelector('#amountPaidInput')?.closest('.form-row');
+  const changeRow = panel.querySelector('#changeAmount')?.closest('.summary-line');
+  const method = PDV_STATE.selectedPaymentMethod || '';
+  const isCash = method === 'Dinheiro';
+  amountRow?.classList.toggle('hidden', !isCash);
+  changeRow?.classList.toggle('hidden', !isCash);
+  amountRow?.classList.toggle('cash-input', isCash);
+  changeRow?.classList.toggle('cash-change', isCash);
+  panel.classList.toggle('cash-panel', isCash);
+}
+
 async function finalizeSale() {
   if (!PDV_STATE.cart.length) { alert('Carrinho vazio.'); return; }
   const supabase = window.supabaseClient;
