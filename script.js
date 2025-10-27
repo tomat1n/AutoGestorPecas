@@ -1,3 +1,518 @@
+document.addEventListener('DOMContentLoaded', async () => {
+  // Inicializa Supabase
+  try { initSupabase?.(); } catch {}
+
+  // Gate de autenticação mínimo
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+      // Sem cliente, levar para login
+      try { window.location.replace('auth.html'); return; } catch {}
+    } else {
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) {
+        try { window.location.replace('auth.html'); return; } catch {}
+      }
+    }
+  } catch (e) { console.warn('Falha ao verificar autenticação:', e); }
+
+  // Ativa menu e navegação
+  setupMenuActiveState();
+  // Ações de header e atualização de data/hora
+  setupHeaderActions();
+  setupSidebarToggle();
+  setupDateTimeUpdater();
+  // Atalhos rápidos
+  setupQuickShortcuts();
+  
+  // Atualiza cards do dashboard com dados do Supabase
+  try {
+    if (window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
+      await window.dashboardData.updateDashboardCards();
+    }
+  } catch (error) {
+    console.warn('Erro ao atualizar dashboard:', error);
+  }
+  
+  // Abre Dashboard como padrão
+  navigateTo('dashboard');
+});
+
+function setupMenuActiveState() {
+  const items = document.querySelectorAll('.menu-item');
+  items.forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = item.getAttribute('data-page');
+      items.forEach((i) => i.classList.remove('active'));
+      item.classList.add('active');
+      navigateTo(page);
+    });
+  });
+}
+
+function setupQuickShortcuts() {
+  const cards = document.querySelectorAll('.quick-card');
+  const map = {
+    'ordem de serviço':'os',
+    'venda (pdv)':'pdv',
+    'estoque':'estoque',
+    'notas fiscais':'nf',
+    'clientes':'clientes',
+    'a receber':'receber',
+    'a pagar':'pagar'
+  };
+  cards.forEach(card => {
+    const m = (card.getAttribute('data-module')||'').toLowerCase();
+    const page = map[m];
+    if (page){
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', () => {
+        const menuItem = document.querySelector(`.menu-item[data-page="${page}"]`);
+        if (menuItem) menuItem.click(); else navigateTo(page);
+      });
+    }
+  });
+}
+
+async function navigateTo(page) {
+  const pdvSection = document.getElementById('pdvSection');
+  const osSection = document.getElementById('osSection');
+  const inventorySection = document.getElementById('inventorySection');
+  const receivablesSection = document.getElementById('receivablesSection');
+  const payablesSection = document.getElementById('payablesSection');
+  const reportsSection = document.getElementById('reportsSection');
+  const clientsSection = document.getElementById('clientsSection');
+  const suppliersSection = document.getElementById('suppliersSection');
+  const nfSection = document.getElementById('nfSection');
+  const settingsSection = document.getElementById('configSection') || document.getElementById('config-section');
+  const checklistSection = document.getElementById('checklistSection');
+
+  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
+  sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
+
+  const quickSection = document.querySelector('.quick-section');
+  if (quickSection) {
+    if (page === 'dashboard') quickSection.classList.remove('hidden');
+    else quickSection.classList.add('hidden');
+  }
+
+  switch (page) {
+    case 'dashboard':
+      break;
+    case 'pdv':
+      if (pdvSection) pdvSection.classList.remove('hidden');
+      try { initPDVOnce?.(); } catch {}
+      break;
+    case 'os':
+      if (osSection) osSection.classList.remove('hidden');
+      try { initOSOnce?.(); } catch {}
+      break;
+    case 'estoque':
+      if (inventorySection) inventorySection.classList.remove('hidden');
+      try { initInventoryOnce?.(); } catch {}
+      break;
+    case 'receber':
+      if (receivablesSection) receivablesSection.classList.remove('hidden');
+      try { initReceivablesOnce?.(); } catch {}
+      break;
+    case 'pagar':
+      if (payablesSection) payablesSection.classList.remove('hidden');
+      try { initPayablesOnce?.(); } catch {}
+      break;
+    case 'relatorios':
+      if (reportsSection) reportsSection.classList.remove('hidden');
+      try { initReportsOnce?.(); } catch {}
+      break;
+    case 'checklist':
+      if (checklistSection) checklistSection.classList.remove('hidden');
+      try { initChecklistOnce?.(); } catch {}
+      break;
+    case 'clientes':
+      if (clientsSection) clientsSection.classList.remove('hidden');
+      try { initClientsOnce?.(); } catch {}
+      break;
+    case 'fornecedores':
+      if (suppliersSection) suppliersSection.classList.remove('hidden');
+      try { initSuppliersOnce?.(); } catch {}
+      break;
+    case 'nf':
+      if (nfSection) nfSection.classList.remove('hidden');
+      try { initInvoicesOnce?.(); } catch {}
+      break;
+    case 'config':
+      if (settingsSection) settingsSection.classList.remove('hidden');
+      try { initSettingsOnce?.(); } catch {}
+      break;
+    case 'logout':
+      try { await window.supabaseClient?.auth?.signOut?.(); } catch (e) { console.warn('Falha ao sair:', e); }
+      try { window.location.replace('auth.html'); return; } catch {}
+      return;
+    default:
+      if (pdvSection) pdvSection.classList.remove('hidden');
+      try { initPDVOnce?.(); } catch {}
+  }
+}
+
+// Add header actions: gear icon opens Configurações
+function setupHeaderActions(){
+  try{
+    const gear = document.querySelector('.header-right .fa-gear.header-icon');
+    if (gear){
+      gear.style.cursor = 'pointer';
+      gear.addEventListener('click', () => {
+        const cfgItem = document.querySelector('.menu-item[data-page="config"]');
+        if (cfgItem) cfgItem.click(); else navigateTo('config');
+      });
+    }
+  }catch(e){ console.warn('Falha ao configurar ações de header:', e); }
+}
+
+// Date/Time updater for #datetime
+function setupDateTimeUpdater(){
+  const el = document.getElementById('datetime');
+  if (!el) return;
+  const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const pad = (n) => String(n).padStart(2,'0');
+  const render = () => {
+    const now = new Date();
+    const day = now.getDate();
+    const monthName = months[now.getMonth()];
+    const year = now.getFullYear();
+    const hours = pad(now.getHours());
+    const minutes = pad(now.getMinutes());
+    el.textContent = `${day} de ${monthName} de ${year}, ${hours}:${minutes}`;
+  };
+  render();
+  const now = new Date();
+  const msToNextMinute = (60 - now.getSeconds())*1000 - now.getMilliseconds();
+  setTimeout(() => { render(); setInterval(render, 60000); }, Math.max(msToNextMinute, 0));
+}
+
+// PDV init único e carrinho
+let PDV_INITIALIZED = false;
+function initPDVOnce() {
+  if (PDV_INITIALIZED) return;
+  PDV_INITIALIZED = true;
+  initShoppingCart();
+  setupPDVEvents();
+  // Render inicial do grid do PDV
+  try { renderPDVProducts?.(); } catch (_) {}
+}
+
+function setupPDVEvents() {
+  const payOptions = document.querySelectorAll('#payOptions .pay-option');
+  const cashPaymentSection = document.getElementById('cashPaymentSection');
+  const amountPaidInput = document.getElementById('amountPaidInput');
+  const changeAmount = document.getElementById('changeAmount');
+  
+  payOptions.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      payOptions.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      
+      // Mostrar/ocultar seção de pagamento em dinheiro
+      const paymentMethod = btn.getAttribute('data-method');
+      if (paymentMethod === 'Dinheiro') {
+        cashPaymentSection.style.display = 'block';
+      } else {
+        cashPaymentSection.style.display = 'none';
+        // Limpar campos quando não for dinheiro
+        amountPaidInput.value = '';
+        changeAmount.textContent = 'R$ 0,00';
+      }
+    });
+  });
+
+  // Calcular troco automaticamente
+  if (amountPaidInput) {
+    amountPaidInput.addEventListener('input', () => {
+      const amountPaid = parseFloat(amountPaidInput.value) || 0;
+      const totalElement = document.getElementById('totalAmount');
+      const totalText = totalElement ? totalElement.textContent : 'R$ 0,00';
+      const total = parseFloat(totalText.replace('R$', '').replace(',', '.').trim()) || 0;
+      
+      const change = Math.max(0, amountPaid - total);
+      changeAmount.textContent = `R$ ${change.toFixed(2).replace('.', ',')}`;
+    });
+  }
+
+  const clearBtn = document.getElementById('btnClearCart');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (window.cart && confirm('Limpar carrinho?')) window.cart.clear();
+    });
+  }
+
+  const finalizeBtn = document.getElementById('finalizeSaleBtn');
+  if (finalizeBtn) finalizeBtn.addEventListener('click', finalizeSale);
+
+  // Busca do PDV
+  const searchInput = document.getElementById('productSearch');
+  if (searchInput) {
+    const doRender = () => { try { renderPDVProducts?.(); } catch (_) {} };
+    searchInput.addEventListener('input', debounce(doRender, 300));
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const term = (searchInput.value || '').trim();
+        const s = window.INV_STATE;
+        const prod = s?.products?.find(p => String(p.barcode || '') === term);
+        if (prod) { window.addToCart(prod, 1); searchInput.select(); }
+        else doRender();
+      }
+    });
+  }
+
+  // Categorias
+  const catBtns = document.querySelectorAll('#categories .category');
+  catBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      catBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      try { renderPDVProducts?.(); } catch (_) {}
+    });
+  });
+}
+
+// Renderização dos produtos do PDV
+function renderPDVProducts() {
+  const s = window.INV_STATE;
+  const grid = document.getElementById('productsGrid');
+  if (!s || !grid) return;
+  const q = (document.getElementById('productSearch')?.value || '').trim().toLowerCase();
+  const activeCat = document.querySelector('#categories .category.active')?.getAttribute('data-cat') || 'Todos';
+
+  let items = (s.products || []).slice();
+  if (q) items = items.filter(p => (p.name||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q) || String(p.barcode||'').toLowerCase().includes(q));
+  if (activeCat && activeCat !== 'Todos') items = items.filter(p => p.category === activeCat);
+
+  grid.innerHTML = '';
+  items.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-image">
+        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<i class="fa-solid fa-box"></i>`}
+      </div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${fmtBRL(p.price||0)}</div>
+      <div class="product-add"><button class="btn btn-primary">Adicionar</button></div>
+    `;
+    const btn = card.querySelector('.btn');
+    if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); window.addToCart(p, 1); });
+    card.addEventListener('click', () => window.addToCart(p, 1));
+    grid.appendChild(card);
+  });
+}
+
+class ShoppingCart {
+  constructor() {
+    this.items = [];
+    this.load();
+  }
+  save() {
+    try { localStorage.setItem('pdv_cart', JSON.stringify(this.items)); } catch (e) {}
+  }
+  load() {
+    try {
+      const raw = localStorage.getItem('pdv_cart');
+      if (raw) this.items = JSON.parse(raw) || [];
+    } catch (e) { this.items = []; }
+  }
+  add(product, quantity = 1) {
+    const id = String(product.id || product.barcode || product.name);
+    const price = Number(product.price || 0);
+    const name = product.name || 'Produto';
+    const barcode = product.barcode || '';
+    const existing = this.items.find(i => i.id === id);
+    if (existing) {
+      existing.quantity += quantity;
+    } else {
+      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '' });
+    }
+    this.save();
+    this.render();
+  }
+  updateQuantity(id, delta) {
+    const item = this.items.find(i => i.id === id);
+    if (!item) return;
+    item.quantity = Math.max(0, item.quantity + delta);
+    if (item.quantity <= 0) {
+      this.items = this.items.filter(i => i.id !== id);
+    }
+    this.save();
+    this.render();
+  }
+  removeItem(id) {
+    this.items = this.items.filter(i => i.id !== id);
+    this.save();
+    this.render();
+  }
+  clear() {
+    this.items = [];
+    this.save();
+    this.render();
+  }
+  render() {
+    const cartItems = document.getElementById('cartItems');
+    const subtotal = document.getElementById('subtotalAmount');
+    const discount = document.getElementById('discountAmount');
+    const total = document.getElementById('totalAmount');
+
+    const subtotalValue = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalValue = subtotalValue;
+
+    if (!cartItems) return;
+
+    if (this.items.length === 0) {
+      cartItems.innerHTML = `
+        <div class="empty-cart" style="text-align: center; color: var(--gray); padding: 40px;">
+          <i class="fas fa-shopping-cart" style="font-size: 3rem; margin-bottom: 15px;"></i>
+          <p>Carrinho vazio</p>
+          <p style="font-size: 0.9rem;">Adicione produtos clicando nos itens</p>
+        </div>
+      `;
+    } else {
+      cartItems.innerHTML = this.items.map(item => `
+        <div class="cart-item">
+          <div class="item-image">
+            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'">` : `<i class="fas fa-box"></i>`}
+          </div>
+          <div class="item-details">
+            <div class="item-name">${item.name}</div>
+            <div class="item-price">R$ ${item.price.toFixed(2)}</div>
+          </div>
+          <div class="item-quantity">
+            <button class="qty-btn" onclick="cart.updateQuantity('${item.id}', -1)">-</button>
+            <input type="text" class="qty-input" value="${item.quantity}" readonly>
+            <button class="qty-btn" onclick="cart.updateQuantity('${item.id}', 1)">+</button>
+          </div>
+          <div class="item-total">R$ ${(item.price * item.quantity).toFixed(2)}</div>
+          <div class="remove-item" onclick="cart.removeItem('${item.id}')">
+            <i class="fas fa-trash"></i>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (subtotal) subtotal.textContent = `R$ ${subtotalValue.toFixed(2)}`;
+    if (discount) discount.textContent = `R$ ${0.00.toFixed(2)}`;
+    if (total) total.textContent = `R$ ${totalValue.toFixed(2)}`;
+  }
+}
+
+function initShoppingCart() {
+  window.cart = new ShoppingCart();
+  window.addToCart = (product, quantity = 1) => {
+    const id = String(product.id || product.barcode || product.name);
+    const existing = window.cart?.items?.find(i => i.id === id);
+    const existingQty = existing ? existing.quantity : 0;
+    const stock = Number(product.stock ?? Infinity);
+    const allowed = Math.min(quantity, Math.max(0, stock - existingQty));
+    if (allowed <= 0) {
+      alert('Estoque insuficiente para adicionar mais unidades.');
+      return;
+    }
+    window.cart.add(product, allowed);
+  };
+  window.cart.render();
+}
+
+async function finalizeSale() {
+  const cart = window.cart;
+  if (!cart || cart.items.length === 0) {
+    alert('Carrinho vazio.');
+    return;
+  }
+  if (!confirm('Confirmar finalização da venda?')) return;
+
+  const supabase = window.supabaseClient;
+  if (!supabase) {
+    alert('Supabase não configurado.');
+    return;
+  }
+
+  const activeMethodEl = document.querySelector('#payOptions .pay-option.active');
+  const paymentMethod = activeMethodEl ? activeMethodEl.getAttribute('data-method') : 'Dinheiro';
+
+  const subtotalValue = cart.items.reduce((sum, item) => sum + (Number(item.price) * Number(item.quantity)), 0);
+  const totalValue = subtotalValue; // ajuste se aplicar descontos/juros
+  const saleData = {
+    subtotal: subtotalValue,
+    discount: 0,
+    total: totalValue,
+    payment_method: paymentMethod,
+    created_at: new Date().toISOString(),
+  };
+
+  try {
+    // 1) Registrar a venda
+    const { data: sale, error: saleError } = await supabase
+      .from('sales')
+      .insert(saleData)
+      .select('*')
+      .single();
+    if (saleError) throw saleError;
+
+    // 2) Registrar os itens da venda (produtos e serviços)
+    const itemsPayload = cart.items.map(item => ({
+      sale_id: sale.id,
+      item_type: item.type === 'service' ? 'service' : 'product',
+      product_id: item.type === 'service' ? null : String(item.id || ''),
+      service_id: item.type === 'service' ? String(item.id || '') : null,
+      name: String(item.name || ''),
+      description: String(item.description || ''),
+      quantity: Number(item.quantity || 1),
+      unit_price: Number(item.price || 0),
+      line_total: Number(item.price || 0) * Number(item.quantity || 1),
+      created_at: new Date().toISOString(),
+    }));
+
+    const { error: itemsError } = await supabase.from('sale_items').insert(itemsPayload);
+    if (itemsError) throw itemsError;
+
+    // 3) Baixar estoque dos produtos e registrar movimentos
+    const productItems = cart.items.filter(i => i.type !== 'service');
+    const productIds = productItems.map(i => i.id).filter(Boolean);
+    if (productIds.length) {
+      const { data: stocksData, error: stocksErr } = await supabase
+        .from('products')
+        .select('id, stock')
+        .in('id', productIds);
+      if (stocksErr) throw stocksErr;
+
+      const stockMap = new Map((stocksData || []).map(r => [String(r.id), Number(r.stock || 0)]));
+      for (const item of productItems) {
+        const curKey = String(item.id);
+        const current = stockMap.has(curKey) ? Number(stockMap.get(curKey)) : 0;
+        const newStock = Math.max(0, current - Number(item.quantity || 0));
+        // Atualiza o estoque
+        const { error: updErr } = await supabase
+          .from('products')
+          .update({ stock: newStock, updated_at: new Date().toISOString() })
+          .eq('id', item.id);
+        if (updErr) throw updErr;
+        // Registra movimento de saída (venda)
+        try {
+          await supabase.from('stock_movements').insert({
+            product_id: String(item.id),
+            type: 'sale',
+            quantity: Number(item.quantity || 0),
+            notes: 'Venda PDV',
+            created_at: new Date().toISOString()
+          });
+        } catch (_) { /* tabela pode não existir; ignora */ }
+      }
+    }
+
+    alert('Venda finalizada com sucesso!');
+    cart.clear();
+  } catch (e) {
+    console.error('Erro ao finalizar venda:', e);
+    alert('Falha ao finalizar venda. Verifique a conexão com o Supabase.');
+  }
+}
+
 // Supabase
 function initSupabase() {
   const cfgGlobal = window.AUTO_GESTOR_CONFIG || {};
@@ -12,243 +527,10 @@ function initSupabase() {
   // Guarda cfg atual para diagnósticos/fallbacks
   window.SUPA_CFG = { url, key };
   if (url && key && window.supabase) {
-    window.supabaseClient = window.supabase.createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
+    window.supabaseClient = window.supabase.createClient(url, key);
   } else {
     window.supabaseClient = null;
   }
-}
-
-// =====================
-// PDV (Ponto de Venda)
-// =====================
-let PDV_INITIALIZED = false;
-const PDV_STATE = { cart: [], selectedPaymentMethod: null, currentCategory: 'Todos', searchTerm: '' };
-
-function initPDVOnce() {
-  if (PDV_INITIALIZED) return;
-  PDV_INITIALIZED = true;
-  try { initInventoryOnce?.(); } catch {}
-  setupPDVEvents();
-  renderPDVProducts();
-  updatePaymentVisibility();
-}
-
-function setupPDVEvents() {
-  const productSearch = document.getElementById('productSearch');
-  const categoriesEl = document.getElementById('categories');
-  const productsGrid = document.getElementById('productsGrid');
-  const cartItems = document.getElementById('cartItems');
-  const subtotalEl = document.getElementById('subtotalAmount');
-  const discountEl = document.getElementById('discountAmount');
-  const totalEl = document.getElementById('totalAmount');
-  const discountInput = document.getElementById('discountInput');
-  const amountPaidInput = document.getElementById('amountPaidInput');
-  const changeAmount = document.getElementById('changeAmount');
-  const payOptions = document.getElementById('payOptions');
-  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
-  const finalizeSaleBtn = document.getElementById('finalizeSaleBtn');
-  const clearCartBtn = document.getElementById('btnClearCart');
-  const barcodeBtns = [document.getElementById('btnScanBarcode'), document.getElementById('barcodeScannerBtn')].filter(Boolean);
-
-  if (productSearch) productSearch.addEventListener('input', debounce(() => {
-    PDV_STATE.searchTerm = productSearch.value || '';
-    renderPDVProducts();
-  }, 300));
-
-  if (categoriesEl) {
-    categoriesEl.querySelectorAll('.category').forEach(btn => {
-      btn.addEventListener('click', () => {
-        categoriesEl.querySelectorAll('.category').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        PDV_STATE.currentCategory = btn.dataset.cat || 'Todos';
-        renderPDVProducts();
-      });
-    });
-  }
-
-  if (payOptions) {
-    payOptions.querySelectorAll('.pay-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        payOptions.querySelectorAll('.pay-option').forEach(o => o.classList.remove('active'));
-        opt.classList.add('active');
-        PDV_STATE.selectedPaymentMethod = opt.dataset.method || null;
-        updatePaymentVisibility();
-        updateCartUI();
-      });
-    });
-  }
-
-  if (discountInput) discountInput.addEventListener('input', updateCartUI);
-  if (amountPaidInput) amountPaidInput.addEventListener('input', updateCartUI);
-
-  if (pdvServiceSearch) pdvServiceSearch.addEventListener('input', debounce(() => {
-    searchServicesPdv(pdvServiceSearch.value || '');
-  }, 300));
-
-  if (finalizeSaleBtn) finalizeSaleBtn.addEventListener('click', finalizeSale);
-  if (clearCartBtn) clearCartBtn.addEventListener('click', () => { PDV_STATE.cart = []; updateCartUI(); });
-
-  barcodeBtns.forEach(btn => btn.addEventListener('click', () => {
-    alert('Leitor de código de barras não configurado neste ambiente.');
-  }));
-
-  // Expor addServiceToCart para cartões de serviço
-  window.addServiceToCart = function(svc, qty = 1) {
-    if (!svc) return;
-    addToCart({ type: 'service', service_id: svc.id, name: svc.name, description: svc.description || '', unit_price: Number(svc.price || 0) }, Number(qty || 1));
-  };
-}
-
-function renderPDVProducts() {
-  const grid = document.getElementById('productsGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  const inv = window.INV_STATE?.products || [];
-  let list = inv.filter(p => !!p && p.is_active !== false && Number(p.stock || 0) > 0);
-
-  const term = (PDV_STATE.searchTerm || '').toLowerCase().trim();
-  if (term) {
-    list = list.filter(p => String(p.name||'').toLowerCase().includes(term)
-      || String(p.description||'').toLowerCase().includes(term)
-      || String(p.barcode||'').toLowerCase().includes(term)
-      || String(p.id||'').toLowerCase().includes(term));
-  }
-
-  const cat = PDV_STATE.currentCategory;
-  if (cat && cat !== 'Todos') list = list.filter(p => (p.category||'') === cat);
-
-  list.slice(0, 100).forEach(p => {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    card.innerHTML = `
-      <div class="product-thumb">
-        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<i class="fa-solid fa-box"></i>`}
-      </div>
-      <div class="product-name">${p.name}</div>
-      <div class="product-price">${fmtBRL(p.price||0)}</div>
-      <div class="product-add"><button class="btn btn-primary">Adicionar</button></div>
-    `;
-    const addBtn = card.querySelector('.btn');
-    if (addBtn) addBtn.addEventListener('click', () => addToCart({ type: 'product', product_id: p.id, name: p.name, unit_price: Number(p.price||0) }, 1));
-    grid.appendChild(card);
-  });
-}
-
-function addToCart(item, qty = 1) {
-  if (!item) return;
-  const key = item.type === 'product' ? `p:${item.product_id}` : `s:${item.service_id}`;
-  const existing = PDV_STATE.cart.find(ci => (ci._key === key));
-  if (existing) {
-    existing.quantity += qty;
-    existing.line_total = existing.quantity * existing.unit_price;
-  } else {
-    PDV_STATE.cart.push({
-      ...item,
-      quantity: qty,
-      line_total: qty * (item.unit_price || 0),
-      _key: key
-    });
-  }
-  updateCartUI();
-}
-
-function removeFromCart(key) {
-  PDV_STATE.cart = PDV_STATE.cart.filter(ci => ci._key !== key);
-  updateCartUI();
-}
-
-function updateCartUI() {
-  const itemsEl = document.getElementById('cartItems');
-  if (itemsEl) {
-    itemsEl.innerHTML = '';
-    PDV_STATE.cart.forEach(ci => {
-      const row = document.createElement('div');
-      row.className = 'cart-item';
-      row.innerHTML = `
-        <div class="cart-item-name">${ci.name}</div>
-        <div class="cart-item-qty">x${ci.quantity}</div>
-        <div class="cart-item-total">${fmtBRL(ci.line_total||0)}</div>
-        <div class="cart-item-remove"><button class="btn btn-warning">Remover</button></div>
-      `;
-      const rm = row.querySelector('.btn-warning');
-      if (rm) rm.addEventListener('click', () => removeFromCart(ci._key));
-      itemsEl.appendChild(row);
-    });
-  }
-
-  let subtotal = PDV_STATE.cart.reduce((sum, ci) => sum + Number(ci.line_total || 0), 0);
-  const discountInput = document.getElementById('discountInput');
-  const amountPaidInput = document.getElementById('amountPaidInput');
-  const discount = Number(discountInput?.value || 0);
-  const total = Math.max(0, subtotal - discount);
-
-  const subtotalEl = document.getElementById('subtotalAmount');
-  const discountEl = document.getElementById('discountAmount');
-  const totalEl = document.getElementById('totalAmount');
-  if (subtotalEl) subtotalEl.textContent = fmtBRL(subtotal);
-  if (discountEl) discountEl.textContent = fmtBRL(discount);
-  if (totalEl) totalEl.textContent = fmtBRL(total);
-
-  const changeEl = document.getElementById('changeAmount');
-  const amountPaid = Number(amountPaidInput?.value || 0);
-  const change = Math.max(0, amountPaid - total);
-  if (changeEl) changeEl.textContent = fmtBRL(change);
-}
-
-function updatePaymentVisibility() {
-  const panel = document.querySelector('.payment-extra');
-  if (!panel) return;
-  const amountRow = panel.querySelector('#amountPaidInput')?.closest('.form-row');
-  const changeRow = panel.querySelector('#changeAmount')?.closest('.summary-line');
-  const method = PDV_STATE.selectedPaymentMethod || '';
-  const isCash = method === 'Dinheiro';
-  amountRow?.classList.toggle('hidden', !isCash);
-  changeRow?.classList.toggle('hidden', !isCash);
-  amountRow?.classList.toggle('cash-input', isCash);
-  changeRow?.classList.toggle('cash-change', isCash);
-  panel.classList.toggle('cash-panel', isCash);
-}
-
-async function finalizeSale() {
-  if (!PDV_STATE.cart.length) { alert('Carrinho vazio.'); return; }
-  const supabase = window.supabaseClient;
-  const discountInput = document.getElementById('discountInput');
-  const discount = Number(discountInput?.value || 0);
-  const subtotal = PDV_STATE.cart.reduce((sum, ci) => sum + Number(ci.line_total || 0), 0);
-  const total = Math.max(0, subtotal - discount);
-  const payment_method = PDV_STATE.selectedPaymentMethod || 'Dinheiro';
-
-  if (!supabase) {
-    alert('Supabase não está configurado. Venda não foi salva, mas o total foi calculado.');
-    return;
-  }
-
-  const { data: sale, error: saleErr } = await supabase
-    .from('sales')
-    .insert({ subtotal, discount, total, payment_method })
-    .select()
-    .single();
-
-  if (saleErr) { alert('Erro ao salvar venda: ' + saleErr.message); return; }
-
-  const itemsPayload = PDV_STATE.cart.map(ci => ({
-    sale_id: sale.id,
-    item_type: ci.type,
-    product_id: ci.product_id || null,
-    service_id: ci.service_id || null,
-    name: ci.name,
-    description: ci.description || null,
-    quantity: Number(ci.quantity || 1),
-    unit_price: Number(ci.unit_price || 0),
-    line_total: Number(ci.line_total || 0),
-  }));
-
-  const { error: itemsErr } = await supabase.from('sale_items').insert(itemsPayload);
-  if (itemsErr) { alert('Erro ao salvar itens da venda: ' + itemsErr.message); return; }
-
-  alert('Venda finalizada com sucesso!');
-  PDV_STATE.cart = [];
-  updateCartUI();
 }
 
 // ==============================
@@ -326,7 +608,6 @@ function bindInput(id, onChange, isTextarea = false) {
 function debounce(fn, wait) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); }; }
 function fmtBRL(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v||0)); }
 
-// Busca serviços para OS
 async function searchServices(term) {
   const resultsEl = document.getElementById('serviceResults');
   if (!resultsEl) return;
@@ -350,36 +631,6 @@ async function searchServices(term) {
     `;
     const btn = card.querySelector('.btn');
     if (btn) btn.addEventListener('click', () => addService({ id: svc.id, name: svc.name, price: Number(svc.price||0) }, 1));
-    resultsEl.appendChild(card);
-  });
-}
-
-// Busca serviços para PDV
-async function searchServicesPdv(term) {
-  const resultsEl = document.getElementById('pdvServiceResults');
-  if (!resultsEl) return;
-  resultsEl.innerHTML = '';
-  if (!term || term.length < 2) return;
-  const supabase = window.supabaseClient;
-  if (!supabase) return;
-  const { data } = await supabase
-    .from('services')
-    .select('*')
-    .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
-    .eq('is_active', true)
-    .limit(20);
-  (data||[]).forEach(svc => {
-    const card = document.createElement('div');
-    card.className = 'os-result-card';
-    card.innerHTML = `
-      <div class=\"os-result-title\">${svc.name}</div>
-      <div class=\"os-result-price\">${fmtBRL(svc.price||0)}</div>
-      <div class=\"os-result-qty\"><input type=\"number\" min=\"1\" step=\"1\" value=\"1\" class=\"pdv-service-qty\" /></div>
-      <div class=\"os-result-add\"><button class=\"btn btn-primary\">Adicionar</button></div>
-    `;
-    const btn = card.querySelector('.btn');
-    const qtyInput = card.querySelector('.pdv-service-qty');
-    if (btn) btn.addEventListener('click', () => window.addServiceToCart({ id: svc.id, name: svc.name, description: svc.description || '', price: Number(svc.price||0) }, Number(qtyInput?.value || 1)));
     resultsEl.appendChild(card);
   });
 }
@@ -926,39 +1177,28 @@ async function uploadProductImage(file, baseName = '') {
         const path = `${safeBase}/${nowName}.${ext}`;
         const ct = file.type || 'image/jpeg';
         const reqUrl = `${baseUrl}/storage/v1/object/product-images/${path}`;
-        const { data: sessData } = await supabase.auth.getSession();
-        const accessToken = sessData?.session?.access_token || null;
-        const headers = {
-          'Content-Type': ct,
-          'x-upsert': 'false',
-          'apikey': anonKey
-        };
-        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-        const res = await fetch(reqUrl, { method: 'POST', headers, body: file });
-+        const { data: sessData } = await supabase.auth.getSession();
-+        const accessToken = sessData?.session?.access_token || null;
-+        const headers = {
-+          'Content-Type': ct,
-+          'x-upsert': 'false',
-+          'apikey': anonKey
-+        };
-+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-+        const res = await fetch(reqUrl, { method: 'POST', headers, body: file });
-         let json = null;
-         try { json = await res.clone().json(); } catch {}
-         console.warn('Fallback upload resposta:', res.status, json);
-         if (res.ok) {
-           const { data: pub2 } = bucket?.getPublicUrl(path) || { data: null };
-           return pub2?.publicUrl || null;
-         } else {
--          const errMsg = json?.message || `HTTP ${res.status}`;
-+          const errMsgRaw = json?.message || `HTTP ${res.status}`;
-+          const errMsg = /LWS Protected Header/i.test(errMsgRaw) ? 'Authorization inválido ou sessão ausente. Faça login e tente novamente.' : errMsgRaw;
-           const errCode = json?.code || null;
-           alert(`Falha no upload (fallback) — Storage.
+        const res = await fetch(reqUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${anonKey}`,
+            'Content-Type': ct,
+            'x-upsert': 'false'
+          },
+          body: file
+        });
+        let json = null;
+        try { json = await res.clone().json(); } catch {}
+        console.warn('Fallback upload resposta:', res.status, json);
+        if (res.ok) {
+          const { data: pub2 } = bucket?.getPublicUrl(path) || { data: null };
+          return pub2?.publicUrl || null;
+        } else {
+          const errMsg = json?.message || `HTTP ${res.status}`;
+          const errCode = json?.code || null;
+          alert(`Falha no upload (fallback) — Storage.
 Status: ${res.status}${errCode ? `\nCode: ${errCode}` : ''}
 Mensagem: ${errMsg}`);
-         }
+        }
       }
     } catch (fe) {
       console.warn('Fallback upload também falhou:', fe);
@@ -1168,141 +1408,5 @@ function setupSidebarToggle() {
     sidebar.classList.add('collapsed');
     document.body.classList.add('sidebar-collapsed');
     overlay.classList.remove('active');
-  });
-}
-
-// Navegação por menu e bootstrap da aplicação
-function hookMenuNavigation() {
-  const menuItems = document.querySelectorAll('#mainSidebar .menu-item[data-page]');
-  if (!menuItems || menuItems.length === 0) return;
-
-  const sections = {
-    pdv: document.getElementById('pdvSection'),
-    os: document.getElementById('osSection'),
-    inventory: document.getElementById('inventorySection'),
-    services: document.getElementById('servicesSection'),
-    suppliers: document.getElementById('suppliersSection'),
-    clients: document.getElementById('clientsSection'),
-    receivables: document.getElementById('receivablesSection'),
-    payables: document.getElementById('payablesSection'),
-    reports: document.getElementById('reportsSection'),
-    invoices: document.getElementById('nfSection'),
-    checklist: document.getElementById('checklistSection'),
-    settings: document.getElementById('configSection'),
-  };
-
-  const aliases = {
-    dashboard:'dashboard', pdv:'pdv', os:'os',
-    servicos:'services', estoque:'inventory', nf:'invoices',
-    clientes:'clients', fornecedores:'suppliers',
-    receber:'receivables', pagar:'payables',
-    relatorios:'reports', checklist:'checklist', config:'settings', logout:'logout'
-  };
-
-  function showSection(key) {
-    Object.values(sections).forEach(el => { if (el) el.classList.add('hidden'); });
-    const quickSec = document.querySelector('.quick-section');
-    if (key === 'dashboard') {
-      quickSec?.classList.remove('hidden');
-      return;
-    }
-    quickSec?.classList.add('hidden');
-    const target = sections[key];
-    if (target) target.classList.remove('hidden');
-  }
-
-  function markActive(item) {
-    document.querySelectorAll('#mainSidebar .menu-item').forEach(mi => mi.classList.remove('active'));
-    item.classList.add('active');
-  }
-
-  function initForPage(page) {
-    if (page === 'pdv' && typeof initPDVOnce === 'function') initPDVOnce();
-    if (page === 'os' && typeof initOSOnce === 'function') initOSOnce();
-    if (page === 'inventory' && typeof initInventoryOnce === 'function') initInventoryOnce();
-    if (page === 'services' && typeof initServicesOnce === 'function') initServicesOnce();
-    if (page === 'suppliers' && typeof initSuppliersOnce === 'function') initSuppliersOnce();
-    if (page === 'clients' && typeof initClientsOnce === 'function') initClientsOnce();
-    if (page === 'receivables' && typeof initReceivablesOnce === 'function') initReceivablesOnce?.();
-    if (page === 'payables' && typeof initPayablesOnce === 'function') initPayablesOnce?.();
-    if (page === 'reports' && typeof initReportsOnce === 'function') initReportsOnce();
-    if (page === 'invoices' && typeof initInvoicesOnce === 'function') initInvoicesOnce();
-    if (page === 'checklist' && typeof initChecklistOnce === 'function') initChecklistOnce?.();
-    if (page === 'settings' && typeof initSettingsOnce === 'function') initSettingsOnce?.();
-  }
-
-  menuItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      const raw = item.dataset.page;
-      const page = aliases[raw] || raw;
-      if (!page) return;
-      if (page === 'logout') {
-        const sup = window.supabaseClient; if (sup) { sup.auth.signOut().finally(() => { window.location.href = 'auth.html'; }); } else { window.location.href = 'auth.html'; }
-        return;
-      }
-      showSection(page);
-      markActive(item);
-      initForPage(page);
-    });
-  });
-
-  const first = Array.from(menuItems).find(mi => mi.dataset.page && mi.dataset.page !== 'logout');
-  if (first) {
-    const raw = first.dataset.page;
-    const page = aliases[raw] || raw;
-    showSection(page);
-    markActive(first);
-    initForPage(page);
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  try { initSupabase(); } catch {}
-  try { setupSidebarToggle(); } catch {}
-  try { hookMenuNavigation(); } catch {}
-  try {
-    if (document.getElementById('checklistSection') && typeof initChecklistOnce === 'function') initChecklistOnce();
-    if (document.getElementById('configSection') && typeof initSettingsOnce === 'function') initSettingsOnce();
-  } catch {}
-  try { setupHeaderActions(); } catch {}
-  try { setupQuickShortcuts(); } catch {}
-});
-
-let HEADER_INITIALIZED = false;
-function setupHeaderActions() {
-  if (HEADER_INITIALIZED) return;
-  HEADER_INITIALIZED = true;
-  const dtEl = document.getElementById('datetime');
-  const update = () => { if (dtEl) dtEl.textContent = new Date().toLocaleString('pt-BR'); };
-  update();
-  setInterval(update, 1000);
-  const gear = document.querySelector('.header-right .fa-gear');
-  gear?.addEventListener('click', () => {
-    const cfgLink = document.querySelector('#mainSidebar .menu-item[data-page="config"]');
-    cfgLink?.click();
-  });
-}
-
-function setupQuickShortcuts() {
-  const cards = document.querySelectorAll('.quick-card[data-module]');
-  if (!cards || cards.length === 0) return;
-  const map = {
-    'Ordem de Serviço': 'os',
-    'Venda (PDV)': 'pdv',
-    'Estoque': 'estoque',
-    'Notas Fiscais': 'nf',
-    'Clientes': 'clientes',
-    'A Receber': 'receber',
-    'A Pagar': 'pagar',
-  };
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      const mod = card.getAttribute('data-module');
-      const pageKey = map[mod];
-      if (!pageKey) return;
-      const link = document.querySelector(`#mainSidebar .menu-item[data-page="${pageKey}"]`);
-      link?.click();
-    });
   });
 }

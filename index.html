@@ -57,7 +57,7 @@
     <!-- Cards Financeiros Topo -->
     <section class="finance-cards">
       <!-- Card 1 - Vendas no Ano (Azul) -->
-      <div class="card finance card-blue">
+      <div class="card finance card-blue" data-card="vendas-ano">
         <div class="card-body">
           <div class="left">
             <div class="icon-badge badge-blue"><i class="fa-solid fa-calendar-days"></i></div>
@@ -73,7 +73,7 @@
       </div>
 
       <!-- Card 2 - Vendas no Mês (Verde) -->
-      <div class="card finance card-green">
+      <div class="card finance card-green" data-card="vendas-mes">
         <div class="card-body">
           <div class="left">
             <div class="icon-badge badge-green"><i class="fa-solid fa-cart-shopping"></i></div>
@@ -89,7 +89,7 @@
       </div>
 
       <!-- Card 3 - Margem Bruta (Amarelo) -->
-      <div class="card finance card-yellow">
+      <div class="card finance card-yellow" data-card="margem-bruta">
         <div class="card-body">
           <div class="left">
             <div class="icon-badge badge-yellow"><i class="fa-solid fa-chart-line"></i></div>
@@ -105,7 +105,7 @@
       </div>
 
       <!-- Card 4 - Despesas (Vermelho) -->
-      <div class="card finance card-red">
+      <div class="card finance card-red" data-card="despesas-mes">
         <div class="card-body">
           <div class="left">
             <div class="icon-badge badge-red"><i class="fa-solid fa-money-bill-wave"></i></div>
@@ -237,11 +237,16 @@
                 <label for="discountInput">Desconto (R$)</label>
                 <input type="number" id="discountInput" min="0" step="0.01" placeholder="0,00" />
               </div>
-              <div class="form-row">
-                <label for="amountPaidInput">Valor Recebido (R$)</label>
-                <input type="number" id="amountPaidInput" min="0" step="0.01" placeholder="0,00" />
+              <div class="cash-payment-section" id="cashPaymentSection" style="display: none;">
+                <div class="form-row cash-input">
+                  <label for="amountPaidInput">Valor Recebido (R$)</label>
+                  <input type="number" id="amountPaidInput" min="0" step="0.01" placeholder="0,00" />
+                </div>
+                <div class="change-display">
+                  <span class="change-label">Troco</span>
+                  <span class="change-amount" id="changeAmount">R$ 0,00</span>
+                </div>
               </div>
-              <div class="summary-line"><span>Troco</span><span id="changeAmount">R$ 0,00</span></div>
             </div>
 
             <div class="pdv-services">
@@ -1699,6 +1704,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <!-- QuaggaJS (Barcode Scanner) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+    <!-- Dashboard Data JS -->
+    <script src="./js/dashboard-data.js"></script>
     <!-- App JS -->
     <script src="./script.js"></script>
     <!-- Services JS -->
