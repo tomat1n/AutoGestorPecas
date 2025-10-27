@@ -457,12 +457,14 @@ async function searchServicesPdv(term) {
     const card = document.createElement('div');
     card.className = 'os-result-card';
     card.innerHTML = `
-      <div class="os-result-title">${svc.name}</div>
-      <div class="os-result-price">${fmtBRL(svc.price||0)}</div>
-      <div class="os-result-add"><button class="btn btn-primary">Adicionar</button></div>
+      <div class=\"os-result-title\">${svc.name}</div>
+      <div class=\"os-result-price\">${fmtBRL(svc.price||0)}</div>
+      <div class=\"os-result-qty\"><input type=\"number\" min=\"1\" step=\"1\" value=\"1\" class=\"pdv-service-qty\" /></div>
+      <div class=\"os-result-add\"><button class=\"btn btn-primary\">Adicionar</button></div>
     `;
     const btn = card.querySelector('.btn');
-    if (btn) btn.addEventListener('click', () => window.addServiceToCart({ id: svc.id, name: svc.name, description: svc.description || '', price: Number(svc.price||0) }, 1));
+    const qtyInput = card.querySelector('.pdv-service-qty');
+    if (btn) btn.addEventListener('click', () => window.addServiceToCart({ id: svc.id, name: svc.name, description: svc.description || '', price: Number(svc.price||0) }, Number(qtyInput?.value || 1)));
     resultsEl.appendChild(card);
   });
 }
