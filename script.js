@@ -17,8 +17,29 @@ function setupPDVEvents() {
     btn.addEventListener('click', () => {
       payOptions.forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
+      // Guardar método de pagamento no estado
+      window.PDV_STATE.paymentMethod = btn.getAttribute('data-method') || 'Dinheiro';
     });
   });
+
+  // Desconto
+  const discountInput = document.getElementById('discountInput');
+  if (discountInput) {
+    discountInput.addEventListener('input', () => {
+      const val = parseFloat(discountInput.value) || 0;
+      window.PDV_STATE.discount = Math.max(0, val);
+      window.cart?.render();
+    });
+  }
+  // Valor recebido
+  const amountPaidInput = document.getElementById('amountPaidInput');
+  if (amountPaidInput) {
+    amountPaidInput.addEventListener('input', () => {
+      const val = parseFloat(amountPaidInput.value) || 0;
+      window.PDV_STATE.amountPaid = Math.max(0, val);
+      window.cart?.render();
+    });
+  }
 
   const clearBtn = document.getElementById('btnClearCart');
   if (clearBtn) {
