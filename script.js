@@ -5,6 +5,8 @@ let PDV_INITIALIZED = false;
 function initPDVOnce() {
   if (PDV_INITIALIZED) return;
   PDV_INITIALIZED = true;
+  // Estado inicial do PDV
+  window.PDV_STATE = { discount: 0, amountPaid: 0, paymentMethod: 'Dinheiro' };
   initShoppingCart();
   setupPDVEvents();
   // Render inicial do grid do PDV
