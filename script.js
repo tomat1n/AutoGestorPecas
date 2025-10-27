@@ -30,6 +30,7 @@ function initPDVOnce() {
   try { initInventoryOnce?.(); } catch {}
   setupPDVEvents();
   renderPDVProducts();
+  updatePaymentVisibility();
 }
 
 function setupPDVEvents() {
