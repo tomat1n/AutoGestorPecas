@@ -225,6 +225,15 @@ function setupPDVEvents() {
     });
   }
 
+  // Busca de serviços no PDV
+  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
+  if (pdvServiceSearch) {
+    pdvServiceSearch.addEventListener('input', debounce(async () => {
+      const term = (pdvServiceSearch.value || '').trim();
+      await searchServicesPdv(term);
+    }, 300));
+  }
+
   // Categorias
   const catBtns = document.querySelectorAll('#categories .category');
   catBtns.forEach(btn => {
