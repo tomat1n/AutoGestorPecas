@@ -79,7 +79,7 @@ async function navigateTo(page) {
   const settingsSection = document.getElementById('configSection') || document.getElementById('config-section');
   const checklistSection = document.getElementById('checklistSection');
 
-  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
+  const sections = [pdvSection, osSection, servicesSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
   sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
 
   const quickSection = document.querySelector('.quick-section');
