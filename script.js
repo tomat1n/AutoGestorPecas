@@ -377,6 +377,17 @@ function initShoppingCart() {
     }
     window.cart.add(product, allowed);
   };
+  // Adicionar serviços diretamente ao carrinho
+  window.addServiceToCart = (service, quantity = 1) => {
+    const item = {
+      id: String(service.id || service.service_id || service.uuid || service.name),
+      name: service.name || 'Serviço',
+      description: service.description || '',
+      price: Number(service.price || 0),
+      type: 'service'
+    };
+    window.cart.add(item, Number(quantity || 1));
+  };
   window.cart.render();
 }
 
