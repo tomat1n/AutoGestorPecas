@@ -75,6 +75,7 @@ async function navigateTo(page) {
   const clientsSection = document.getElementById('clientsSection');
   const suppliersSection = document.getElementById('suppliersSection');
   const nfSection = document.getElementById('nfSection');
+  const servicesSection = document.getElementById('servicesSection');
   const settingsSection = document.getElementById('configSection') || document.getElementById('config-section');
   const checklistSection = document.getElementById('checklistSection');
 
