@@ -35,7 +35,8 @@ function Ensure-Directory([string] $Path) {
 
 # Resolve caminhos absolutos
 $SourceDir = (Resolve-Path $SourceDir).Path
-$BackupDir = (Resolve-Path (Ensure-Directory $BackupDir; $BackupDir)).Path
+Ensure-Directory $BackupDir
+$BackupDir = (Resolve-Path $BackupDir).Path
 
 # Timestamp e nomes
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
