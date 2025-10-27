@@ -338,10 +338,10 @@ async function finalizeSale() {
       }
     }
 
-    // 4) Gerar recibo PDF, subir no Storage e salvar URL
+    // 4) Gerar recibos (A4 e térmico), subir no Storage e salvar URLs
     let pdfUrl = '';
     try {
-      const pdfBlob = generateSalePdf({
+      const payload = {
         saleId: sale.id,
         createdAt: sale.created_at,
         paymentMethod,
@@ -351,13 +351,21 @@ async function finalizeSale() {
         amountPaid: Number(window.PDV_STATE?.amountPaid || 0),
         change: Math.max(0, Number(window.PDV_STATE?.amountPaid || 0) - totalValue),
         items: cart.items
-      });
-      pdfUrl = await uploadReceiptPdfToSupabase(pdfBlob, sale.id);
-      if (pdfUrl) {
-        await supabase.from('sales').update({ pdf_doc_url: pdfUrl }).eq('id', sale.id);
+      };
+      const a4Blob = generateSalePdf(payload);
+      const thermalBlob = generateSaleThermalPdf(payload);
+      const a4Url = await uploadReceiptPdfToSupabase(a4Blob, sale.id);
+      const thermalUrl = await uploadReceiptPdfToSupabase(thermalBlob, sale.id);
+      pdfUrl = a4Url || thermalUrl || '';
+      const updateData = {};
+      if (a4Url) updateData.a4_doc_url = a4Url;
+      if (thermalUrl) updateData.thermal_doc_url = thermalUrl;
+      if (pdfUrl) updateData.pdf_doc_url = pdfUrl;
+      if (Object.keys(updateData).length) {
+        await supabase.from('sales').update(updateData).eq('id', sale.id);
       }
     } catch (e) {
-      console.warn('Falha ao gerar/enviar recibo PDF:', e);
+      console.warn('Falha ao gerar/enviar recibos PDF:', e);
     }
 
     // 5) Mostrar troco e link de compartilhamento
