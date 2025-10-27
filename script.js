@@ -102,14 +102,15 @@ function renderPDVProducts() {
   const grid = document.getElementById('productsGrid');
   if (!grid) return;
   grid.innerHTML = '';
-  const inv = window.INV_STATE?.inventory || [];
-  let list = inv.filter(p => !!p && p.is_active !== false);
+  const inv = window.INV_STATE?.products || [];
+  let list = inv.filter(p => !!p && p.is_active !== false && Number(p.stock || 0) > 0);
 
   const term = (PDV_STATE.searchTerm || '').toLowerCase().trim();
   if (term) {
     list = list.filter(p => String(p.name||'').toLowerCase().includes(term)
       || String(p.description||'').toLowerCase().includes(term)
-      || String(p.barcode||'').toLowerCase().includes(term));
+      || String(p.barcode||'').toLowerCase().includes(term)
+      || String(p.id||'').toLowerCase().includes(term));
   }
 
   const cat = PDV_STATE.currentCategory;
