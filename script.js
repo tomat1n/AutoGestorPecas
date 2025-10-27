@@ -463,6 +463,57 @@ function generateSalePdf({ saleId, createdAt, paymentMethod, subtotal, discount,
   return doc.output('blob');
 }
 
+function generateSaleThermalPdf({ saleId, createdAt, paymentMethod, subtotal, discount, total, amountPaid, change, items }) {
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) throw new Error('Biblioteca jsPDF não carregada');
+  // Térmico 80mm de largura, altura fixa (ajuste se necessário)
+  const doc = new jsPDF('p', 'mm', [80, 200]);
+  const formatBRL = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
+  const dateStr = createdAt ? new Date(createdAt).toLocaleString() : new Date().toLocaleString();
+
+  // Cabeçalho
+  doc.setFontSize(12);
+  doc.text('Recibo PDV (Térmico)', 40, 8, { align: 'center' });
+  doc.setFontSize(9);
+  doc.text(`Venda: ${saleId}`, 4, 14);
+  doc.text(`Data: ${dateStr}`, 4, 18);
+  doc.text(`Pago: ${paymentMethod}`, 4, 22);
+
+  // Itens
+  let y = 28;
+  items.forEach((item) => {
+    const name = String(item.name || (item.type === 'service' ? 'Serviço' : 'Produto'));
+    const qty = Number(item.quantity || 1);
+    const unit = Number(item.price || 0);
+    const line = unit * qty;
+
+    const nameLines = doc.splitTextToSize(name, 66);
+    nameLines.forEach((part) => {
+      if (y > 190) { doc.addPage(); y = 10; }
+      doc.text(part, 4, y);
+      y += 5;
+    });
+    if (y > 190) { doc.addPage(); y = 10; }
+    doc.text(`x${qty}`, 4, y);
+    doc.text(formatBRL(line), 60, y, { align: 'right' });
+    y += 6;
+    doc.line(4, y, 76, y);
+    y += 2;
+  });
+
+  if (y > 180) { doc.addPage(); y = 10; }
+  doc.setFontSize(10);
+  doc.text(`Subtotal: ${formatBRL(subtotal)}`, 4, y); y += 5;
+  doc.text(`Desconto: ${formatBRL(discount)}`, 4, y); y += 5;
+  doc.text(`Total: ${formatBRL(total)}`, 4, y); y += 5;
+  doc.text(`Recebido: ${formatBRL(amountPaid)}`, 4, y); y += 5;
+  doc.text(`Troco: ${formatBRL(change)}`, 4, y); y += 7;
+
+  doc.text('Obrigado pela preferência!', 40, y, { align: 'center' });
+
+  return doc.output('blob');
+}
+
 async function uploadReceiptPdfToSupabase(pdfBlob, saleId) {
   const supabase = window.supabaseClient;
   if (!supabase) throw new Error('Supabase não configurado');
