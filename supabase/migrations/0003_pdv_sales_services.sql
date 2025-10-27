@@ -253,7 +253,10 @@ create policy sale_items_select_auth on public.sale_items for select using (auth
 create policy sale_items_insert_auth on public.sale_items for insert with check (auth.uid() is not null);
 create policy sale_items_update_auth on public.sale_items for update using (auth.uid() is not null);
 
-create policy if not exists stock_movements_select_auth on public.stock_movements for select using (auth.uid() is not null);
-create policy if not exists stock_movements_insert_auth on public.stock_movements for insert with check (auth.uid() is not null);
+-- Stock Movements
+drop policy if exists stock_movements_select_auth on public.stock_movements;
+drop policy if exists stock_movements_insert_auth on public.stock_movements;
+create policy stock_movements_select_auth on public.stock_movements for select using (auth.uid() is not null);
+create policy stock_movements_insert_auth on public.stock_movements for insert with check (auth.uid() is not null);
 
 commit;
