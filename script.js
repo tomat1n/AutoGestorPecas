@@ -99,6 +99,10 @@ async function navigateTo(page) {
       if (osSection) osSection.classList.remove('hidden');
       try { initOSOnce?.(); } catch {}
       break;
+    case 'servicos':
+      if (servicesSection) servicesSection.classList.remove('hidden');
+      try { initServicesOnce?.(); } catch {}
+      break;
     case 'estoque':
       if (inventorySection) inventorySection.classList.remove('hidden');
       try { initInventoryOnce?.(); } catch {}
