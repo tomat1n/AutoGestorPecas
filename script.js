@@ -935,19 +935,30 @@ async function uploadProductImage(file, baseName = '') {
           },
           body: file
         });
-        let json = null;
-        try { json = await res.clone().json(); } catch {}
-        console.warn('Fallback upload resposta:', res.status, json);
-        if (res.ok) {
-          const { data: pub2 } = bucket?.getPublicUrl(path) || { data: null };
-          return pub2?.publicUrl || null;
-        } else {
-          const errMsg = json?.message || `HTTP ${res.status}`;
-          const errCode = json?.code || null;
-          alert(`Falha no upload (fallback) — Storage.
++        const { data: sessData } = await supabase.auth.getSession();
++        const accessToken = sessData?.session?.access_token || null;
++        const headers = {
++          'Content-Type': ct,
++          'x-upsert': 'false',
++          'apikey': anonKey
++        };
++        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
++        const res = await fetch(reqUrl, { method: 'POST', headers, body: file });
+         let json = null;
+         try { json = await res.clone().json(); } catch {}
+         console.warn('Fallback upload resposta:', res.status, json);
+         if (res.ok) {
+           const { data: pub2 } = bucket?.getPublicUrl(path) || { data: null };
+           return pub2?.publicUrl || null;
+         } else {
+-          const errMsg = json?.message || `HTTP ${res.status}`;
++          const errMsgRaw = json?.message || `HTTP ${res.status}`;
++          const errMsg = /LWS Protected Header/i.test(errMsgRaw) ? 'Authorization inválido ou sessão ausente. Faça login e tente novamente.' : errMsgRaw;
+           const errCode = json?.code || null;
+           alert(`Falha no upload (fallback) — Storage.
 Status: ${res.status}${errCode ? `\nCode: ${errCode}` : ''}
 Mensagem: ${errMsg}`);
-        }
+         }
       }
     } catch (fe) {
       console.warn('Fallback upload também falhou:', fe);
