@@ -18,6 +18,221 @@ function initSupabase() {
   }
 }
 
+// =====================
+// PDV (Ponto de Venda)
+// =====================
+let PDV_INITIALIZED = false;
+const PDV_STATE = { cart: [], selectedPaymentMethod: null, currentCategory: 'Todos', searchTerm: '' };
+
+function initPDVOnce() {
+  if (PDV_INITIALIZED) return;
+  PDV_INITIALIZED = true;
+  try { initInventoryOnce?.(); } catch {}
+  setupPDVEvents();
+  renderPDVProducts();
+}
+
+function setupPDVEvents() {
+  const productSearch = document.getElementById('productSearch');
+  const categoriesEl = document.getElementById('categories');
+  const productsGrid = document.getElementById('productsGrid');
+  const cartItems = document.getElementById('cartItems');
+  const subtotalEl = document.getElementById('subtotalAmount');
+  const discountEl = document.getElementById('discountAmount');
+  const totalEl = document.getElementById('totalAmount');
+  const discountInput = document.getElementById('discountInput');
+  const amountPaidInput = document.getElementById('amountPaidInput');
+  const changeAmount = document.getElementById('changeAmount');
+  const payOptions = document.getElementById('payOptions');
+  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
+  const finalizeSaleBtn = document.getElementById('finalizeSaleBtn');
+  const clearCartBtn = document.getElementById('btnClearCart');
+  const barcodeBtns = [document.getElementById('btnScanBarcode'), document.getElementById('barcodeScannerBtn')].filter(Boolean);
+
+  if (productSearch) productSearch.addEventListener('input', debounce(() => {
+    PDV_STATE.searchTerm = productSearch.value || '';
+    renderPDVProducts();
+  }, 300));
+
+  if (categoriesEl) {
+    categoriesEl.querySelectorAll('.category').forEach(btn => {
+      btn.addEventListener('click', () => {
+        categoriesEl.querySelectorAll('.category').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        PDV_STATE.currentCategory = btn.dataset.cat || 'Todos';
+        renderPDVProducts();
+      });
+    });
+  }
+
+  if (payOptions) {
+    payOptions.querySelectorAll('.pay-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        payOptions.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        PDV_STATE.selectedPaymentMethod = opt.dataset.method || null;
+      });
+    });
+  }
+
+  if (discountInput) discountInput.addEventListener('input', updateCartUI);
+  if (amountPaidInput) amountPaidInput.addEventListener('input', updateCartUI);
+
+  if (pdvServiceSearch) pdvServiceSearch.addEventListener('input', debounce(() => {
+    searchServicesPdv(pdvServiceSearch.value || '');
+  }, 300));
+
+  if (finalizeSaleBtn) finalizeSaleBtn.addEventListener('click', finalizeSale);
+  if (clearCartBtn) clearCartBtn.addEventListener('click', () => { PDV_STATE.cart = []; updateCartUI(); });
+
+  barcodeBtns.forEach(btn => btn.addEventListener('click', () => {
+    alert('Leitor de código de barras não configurado neste ambiente.');
+  }));
+
+  // Expor addServiceToCart para cartões de serviço
+  window.addServiceToCart = function(svc, qty = 1) {
+    if (!svc) return;
+    addToCart({ type: 'service', service_id: svc.id, name: svc.name, description: svc.description || '', unit_price: Number(svc.price || 0) }, Number(qty || 1));
+  };
+}
+
+function renderPDVProducts() {
+  const grid = document.getElementById('productsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const inv = window.INV_STATE?.inventory || [];
+  let list = inv.filter(p => !!p && p.is_active !== false);
+
+  const term = (PDV_STATE.searchTerm || '').toLowerCase().trim();
+  if (term) {
+    list = list.filter(p => String(p.name||'').toLowerCase().includes(term)
+      || String(p.description||'').toLowerCase().includes(term)
+      || String(p.barcode||'').toLowerCase().includes(term));
+  }
+
+  const cat = PDV_STATE.currentCategory;
+  if (cat && cat !== 'Todos') list = list.filter(p => (p.category||'') === cat);
+
+  list.slice(0, 100).forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <div class="product-thumb">
+        ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<i class="fa-solid fa-box"></i>`}
+      </div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-price">${fmtBRL(p.price||0)}</div>
+      <div class="product-add"><button class="btn btn-primary">Adicionar</button></div>
+    `;
+    const addBtn = card.querySelector('.btn');
+    if (addBtn) addBtn.addEventListener('click', () => addToCart({ type: 'product', product_id: p.id, name: p.name, unit_price: Number(p.price||0) }, 1));
+    grid.appendChild(card);
+  });
+}
+
+function addToCart(item, qty = 1) {
+  if (!item) return;
+  const key = item.type === 'product' ? `p:${item.product_id}` : `s:${item.service_id}`;
+  const existing = PDV_STATE.cart.find(ci => (ci._key === key));
+  if (existing) {
+    existing.quantity += qty;
+    existing.line_total = existing.quantity * existing.unit_price;
+  } else {
+    PDV_STATE.cart.push({
+      ...item,
+      quantity: qty,
+      line_total: qty * (item.unit_price || 0),
+      _key: key
+    });
+  }
+  updateCartUI();
+}
+
+function removeFromCart(key) {
+  PDV_STATE.cart = PDV_STATE.cart.filter(ci => ci._key !== key);
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const itemsEl = document.getElementById('cartItems');
+  if (itemsEl) {
+    itemsEl.innerHTML = '';
+    PDV_STATE.cart.forEach(ci => {
+      const row = document.createElement('div');
+      row.className = 'cart-item';
+      row.innerHTML = `
+        <div class="cart-item-name">${ci.name}</div>
+        <div class="cart-item-qty">x${ci.quantity}</div>
+        <div class="cart-item-total">${fmtBRL(ci.line_total||0)}</div>
+        <div class="cart-item-remove"><button class="btn btn-warning">Remover</button></div>
+      `;
+      const rm = row.querySelector('.btn-warning');
+      if (rm) rm.addEventListener('click', () => removeFromCart(ci._key));
+      itemsEl.appendChild(row);
+    });
+  }
+
+  let subtotal = PDV_STATE.cart.reduce((sum, ci) => sum + Number(ci.line_total || 0), 0);
+  const discountInput = document.getElementById('discountInput');
+  const amountPaidInput = document.getElementById('amountPaidInput');
+  const discount = Number(discountInput?.value || 0);
+  const total = Math.max(0, subtotal - discount);
+
+  const subtotalEl = document.getElementById('subtotalAmount');
+  const discountEl = document.getElementById('discountAmount');
+  const totalEl = document.getElementById('totalAmount');
+  if (subtotalEl) subtotalEl.textContent = fmtBRL(subtotal);
+  if (discountEl) discountEl.textContent = fmtBRL(discount);
+  if (totalEl) totalEl.textContent = fmtBRL(total);
+
+  const changeEl = document.getElementById('changeAmount');
+  const amountPaid = Number(amountPaidInput?.value || 0);
+  const change = Math.max(0, amountPaid - total);
+  if (changeEl) changeEl.textContent = fmtBRL(change);
+}
+
+async function finalizeSale() {
+  if (!PDV_STATE.cart.length) { alert('Carrinho vazio.'); return; }
+  const supabase = window.supabaseClient;
+  const discountInput = document.getElementById('discountInput');
+  const discount = Number(discountInput?.value || 0);
+  const subtotal = PDV_STATE.cart.reduce((sum, ci) => sum + Number(ci.line_total || 0), 0);
+  const total = Math.max(0, subtotal - discount);
+  const payment_method = PDV_STATE.selectedPaymentMethod || 'Dinheiro';
+
+  if (!supabase) {
+    alert('Supabase não está configurado. Venda não foi salva, mas o total foi calculado.');
+    return;
+  }
+
+  const { data: sale, error: saleErr } = await supabase
+    .from('sales')
+    .insert({ subtotal, discount, total, payment_method })
+    .select()
+    .single();
+
+  if (saleErr) { alert('Erro ao salvar venda: ' + saleErr.message); return; }
+
+  const itemsPayload = PDV_STATE.cart.map(ci => ({
+    sale_id: sale.id,
+    item_type: ci.type,
+    product_id: ci.product_id || null,
+    service_id: ci.service_id || null,
+    name: ci.name,
+    description: ci.description || null,
+    quantity: Number(ci.quantity || 1),
+    unit_price: Number(ci.unit_price || 0),
+    line_total: Number(ci.line_total || 0),
+  }));
+
+  const { error: itemsErr } = await supabase.from('sale_items').insert(itemsPayload);
+  if (itemsErr) { alert('Erro ao salvar itens da venda: ' + itemsErr.message); return; }
+
+  alert('Venda finalizada com sucesso!');
+  PDV_STATE.cart = [];
+  updateCartUI();
+}
+
 // ==============================
 // OS (Ordem de Serviço)
 // ==============================
