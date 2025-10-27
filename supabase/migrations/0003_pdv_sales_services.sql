@@ -147,6 +147,16 @@ create trigger sales_set_updated_at
 
 create index if not exists idx_sales_created_at on public.sales (created_at);
 
+-- Garantir colunas necessárias em sales (se tabela já existia)
+alter table public.sales
+  add column if not exists subtotal numeric(12,2) not null default 0,
+  add column if not exists discount numeric(12,2) not null default 0,
+  add column if not exists total numeric(12,2) not null default 0,
+  add column if not exists payment_method text,
+  add column if not exists thermal_doc_url text,
+  add column if not exists a4_doc_url text,
+  add column if not exists pdf_doc_url text;
+
 create table if not exists public.sale_items (
   id uuid primary key default gen_random_uuid(),
   sale_id uuid not null references public.sales(id) on delete cascade,
@@ -160,6 +170,17 @@ create table if not exists public.sale_items (
   line_total numeric(12,2) not null default 0,
   created_at timestamptz not null default now()
 );
+
+-- Garantir colunas necessárias em sale_items (se tabela já existia)
+alter table public.sale_items
+  add column if not exists item_type text,
+  add column if not exists product_id text,
+  add column if not exists service_id uuid,
+  add column if not exists name text,
+  add column if not exists description text,
+  add column if not exists quantity numeric(12,2) not null default 1,
+  add column if not exists unit_price numeric(12,2) not null default 0,
+  add column if not exists line_total numeric(12,2) not null default 0;
 
 create index if not exists idx_sale_items_sale on public.sale_items (sale_id);
 
