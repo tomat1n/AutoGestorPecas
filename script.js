@@ -290,7 +290,7 @@ class ShoppingCart {
     if (existing) {
       existing.quantity += quantity;
     } else {
-      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '' });
+      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '', type: (product.type || 'product') });
     }
     this.save();
     this.render();
