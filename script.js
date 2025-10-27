@@ -338,7 +338,7 @@ class ShoppingCart {
       cartItems.innerHTML = this.items.map(item => `
         <div class="cart-item">
           <div class="item-image">
-            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'">` : `<i class="fas fa-box"></i>`}
+            ${item.image_url ? `<img src="${item.image_url}" alt="${item.name}" onerror="this.style.display='none'">` : (item.type === 'service' ? `<i class="fa-solid fa-wrench"></i>` : `<i class="fas fa-box"></i>`)}
           </div>
           <div class="item-details">
             <div class="item-name">${item.name}</div>
