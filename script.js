@@ -1240,44 +1240,40 @@ document.addEventListener('DOMContentLoaded', () => {
   try { setupQuickShortcuts(); } catch {}
 });
 
+let HEADER_INITIALIZED = false;
 function setupHeaderActions() {
-  let HEADER_INITIALIZED = false;
-  function setupHeaderActions() {
-    if (HEADER_INITIALIZED) return;
-    HEADER_INITIALIZED = true;
-    const dtEl = document.getElementById('datetime');
-    const update = () => { if (dtEl) dtEl.textContent = new Date().toLocaleString('pt-BR'); };
-    update();
-    setInterval(update, 1000);
-    const gear = document.querySelector('.header-right .fa-gear');
-    gear?.addEventListener('click', () => {
-      const cfgLink = document.querySelector('#mainSidebar .menu-item[data-page="config"]');
-      cfgLink?.click();
+  if (HEADER_INITIALIZED) return;
+  HEADER_INITIALIZED = true;
+  const dtEl = document.getElementById('datetime');
+  const update = () => { if (dtEl) dtEl.textContent = new Date().toLocaleString('pt-BR'); };
+  update();
+  setInterval(update, 1000);
+  const gear = document.querySelector('.header-right .fa-gear');
+  gear?.addEventListener('click', () => {
+    const cfgLink = document.querySelector('#mainSidebar .menu-item[data-page="config"]');
+    cfgLink?.click();
+  });
+}
+
+function setupQuickShortcuts() {
+  const cards = document.querySelectorAll('.quick-card[data-module]');
+  if (!cards || cards.length === 0) return;
+  const map = {
+    'Ordem de Serviço': 'os',
+    'Venda (PDV)': 'pdv',
+    'Estoque': 'estoque',
+    'Notas Fiscais': 'nf',
+    'Clientes': 'clientes',
+    'A Receber': 'receber',
+    'A Pagar': 'pagar',
+  };
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const mod = card.getAttribute('data-module');
+      const pageKey = map[mod];
+      if (!pageKey) return;
+      const link = document.querySelector(`#mainSidebar .menu-item[data-page="${pageKey}"]`);
+      link?.click();
     });
-  }
-  function setupQuickShortcuts() {
-    const cards = document.querySelectorAll('.quick-card[data-module]');
-    if (!cards || cards.length === 0) return;
-    const map = {
-      'Ordem de Serviço': 'os',
-      'Venda (PDV)': 'pdv',
-      'Estoque': 'estoque',
-      'Notas Fiscais': 'nf',
-      'Clientes': 'clientes',
-      'A Receber': 'receber',
-      'A Pagar': 'pagar',
-    };
-    cards.forEach(card => {
-      card.addEventListener('click', () => {
-        const mod = card.getAttribute('data-module');
-        const pageKey = map[mod];
-        if (!pageKey) return;
-        const link = document.querySelector(`#mainSidebar .menu-item[data-page="${pageKey}"]`);
-        link?.click();
-      });
-    });
-  }
-  function hookMenuNavigation() {
-    // ...
-  }
+  });
 }
