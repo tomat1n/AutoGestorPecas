@@ -926,3 +926,83 @@ function setupSidebarToggle() {
     overlay.classList.remove('active');
   });
 }
+
+// Navegação por menu e bootstrap da aplicação
+function hookMenuNavigation() {
+  const menuItems = document.querySelectorAll('#mainSidebar .menu-item[data-page]');
+  if (!menuItems || menuItems.length === 0) return;
+
+  const sections = {
+    pdv: document.getElementById('pdvSection'),
+    os: document.getElementById('osSection'),
+    inventory: document.getElementById('inventorySection'),
+    services: document.getElementById('servicesSection'),
+    suppliers: document.getElementById('suppliersSection'),
+    clients: document.getElementById('clientsSection'),
+    receivables: document.getElementById('receivablesSection'),
+    reports: document.getElementById('reportsSection'),
+    invoices: document.getElementById('nfSection'),
+    checklist: document.getElementById('checklistSection'),
+    settings: document.getElementById('configSection'),
+  };
+
+  function showSection(key) {
+    Object.values(sections).forEach(el => { if (el) el.classList.add('hidden'); });
+    const target = sections[key];
+    if (target) target.classList.remove('hidden');
+  }
+
+  function markActive(el) {
+    document.querySelectorAll('#mainSidebar .menu-item.active').forEach(mi => mi.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  function initForPage(page) {
+    if (page === 'pdv' && typeof initPDVOnce === 'function') initPDVOnce();
+    if (page === 'os' && typeof initOSOnce === 'function') initOSOnce();
+    if (page === 'inventory' && typeof initInventoryOnce === 'function') initInventoryOnce();
+    if (page === 'services' && typeof initServicesOnce === 'function') initServicesOnce?.();
+    if (page === 'suppliers' && typeof initSuppliersOnce === 'function') initSuppliersOnce?.();
+    if (page === 'clients' && typeof initClientsOnce === 'function') initClientsOnce?.();
+    if (page === 'receivables' && typeof initReceivablesOnce === 'function') initReceivablesOnce?.();
+    if (page === 'reports' && typeof initReportsOnce === 'function') initReportsOnce?.();
+    if (page === 'invoices' && typeof initInvoicesOnce === 'function') initInvoicesOnce?.();
+    if (page === 'checklist' && typeof initChecklistOnce === 'function') initChecklistOnce?.();
+    if (page === 'settings' && typeof initSettingsOnce === 'function') initSettingsOnce?.();
+  }
+
+  menuItems.forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = item.dataset.page;
+      if (!page) return;
+      if (page === 'logout') {
+        try { window.supabaseClient?.auth?.signOut?.(); } catch {}
+        try { localStorage.removeItem('session'); } catch {}
+        window.location.href = 'auth.html';
+        return;
+      }
+      showSection(page);
+      markActive(item);
+      initForPage(page);
+    });
+  });
+
+  const first = Array.from(menuItems).find(mi => mi.dataset.page && mi.dataset.page !== 'logout');
+  if (first) {
+    const page = first.dataset.page;
+    showSection(page);
+    markActive(first);
+    initForPage(page);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { initSupabase(); } catch {}
+  try { setupSidebarToggle(); } catch {}
+  try { hookMenuNavigation(); } catch {}
+  try {
+    if (document.getElementById('checklistSection') && typeof initChecklistOnce === 'function') initChecklistOnce();
+    if (document.getElementById('configSection') && typeof initSettingsOnce === 'function') initSettingsOnce();
+  } catch {}
+});
