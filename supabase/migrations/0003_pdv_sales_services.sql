@@ -175,6 +175,11 @@ create table if not exists public.stock_movements (
   created_at timestamptz not null default now()
 );
 
+-- Ajusta colunas caso a tabela já exista sem created_at
+alter table public.stock_movements
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists notes text;
+
 create index if not exists idx_stock_movements_product on public.stock_movements (product_id);
 create index if not exists idx_stock_movements_created on public.stock_movements (created_at);
 
