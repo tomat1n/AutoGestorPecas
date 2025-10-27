@@ -68,9 +68,11 @@ function setupPDVEvents() {
   if (payOptions) {
     payOptions.querySelectorAll('.pay-option').forEach(opt => {
       opt.addEventListener('click', () => {
-        payOptions.querySelectorAll('.pay-option').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
+        payOptions.querySelectorAll('.pay-option').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
         PDV_STATE.selectedPaymentMethod = opt.dataset.method || null;
+        updatePaymentVisibility();
+        updateCartUI();
       });
     });
   }
