@@ -1155,33 +1155,44 @@ function hookMenuNavigation() {
     suppliers: document.getElementById('suppliersSection'),
     clients: document.getElementById('clientsSection'),
     receivables: document.getElementById('receivablesSection'),
+    payables: document.getElementById('payablesSection'),
     reports: document.getElementById('reportsSection'),
     invoices: document.getElementById('nfSection'),
     checklist: document.getElementById('checklistSection'),
     settings: document.getElementById('configSection'),
   };
 
+  const aliases = {
+    dashboard:'dashboard', pdv:'pdv', os:'os',
+    servicos:'services', estoque:'inventory', nf:'invoices',
+    clientes:'clients', fornecedores:'suppliers',
+    receber:'receivables', pagar:'payables',
+    relatorios:'reports', checklist:'checklist', config:'settings', logout:'logout'
+  };
+
   function showSection(key) {
     Object.values(sections).forEach(el => { if (el) el.classList.add('hidden'); });
+    if (key === 'dashboard') return;
     const target = sections[key];
     if (target) target.classList.remove('hidden');
   }
 
-  function markActive(el) {
-    document.querySelectorAll('#mainSidebar .menu-item.active').forEach(mi => mi.classList.remove('active'));
-    el.classList.add('active');
+  function markActive(item) {
+    document.querySelectorAll('#mainSidebar .menu-item').forEach(mi => mi.classList.remove('active'));
+    item.classList.add('active');
   }
 
   function initForPage(page) {
     if (page === 'pdv' && typeof initPDVOnce === 'function') initPDVOnce();
     if (page === 'os' && typeof initOSOnce === 'function') initOSOnce();
     if (page === 'inventory' && typeof initInventoryOnce === 'function') initInventoryOnce();
-    if (page === 'services' && typeof initServicesOnce === 'function') initServicesOnce?.();
-    if (page === 'suppliers' && typeof initSuppliersOnce === 'function') initSuppliersOnce?.();
-    if (page === 'clients' && typeof initClientsOnce === 'function') initClientsOnce?.();
+    if (page === 'services' && typeof initServicesOnce === 'function') initServicesOnce();
+    if (page === 'suppliers' && typeof initSuppliersOnce === 'function') initSuppliersOnce();
+    if (page === 'clients' && typeof initClientsOnce === 'function') initClientsOnce();
     if (page === 'receivables' && typeof initReceivablesOnce === 'function') initReceivablesOnce?.();
-    if (page === 'reports' && typeof initReportsOnce === 'function') initReportsOnce?.();
-    if (page === 'invoices' && typeof initInvoicesOnce === 'function') initInvoicesOnce?.();
+    if (page === 'payables' && typeof initPayablesOnce === 'function') initPayablesOnce?.();
+    if (page === 'reports' && typeof initReportsOnce === 'function') initReportsOnce();
+    if (page === 'invoices' && typeof initInvoicesOnce === 'function') initInvoicesOnce();
     if (page === 'checklist' && typeof initChecklistOnce === 'function') initChecklistOnce?.();
     if (page === 'settings' && typeof initSettingsOnce === 'function') initSettingsOnce?.();
   }
@@ -1189,12 +1200,11 @@ function hookMenuNavigation() {
   menuItems.forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      const page = item.dataset.page;
+      const raw = item.dataset.page;
+      const page = aliases[raw] || raw;
       if (!page) return;
       if (page === 'logout') {
-        try { window.supabaseClient?.auth?.signOut?.(); } catch {}
-        try { localStorage.removeItem('session'); } catch {}
-        window.location.href = 'auth.html';
+        const sup = window.supabaseClient; if (sup) { sup.auth.signOut().finally(() => { window.location.href = 'auth.html'; }); } else { window.location.href = 'auth.html'; }
         return;
       }
       showSection(page);
@@ -1205,7 +1215,8 @@ function hookMenuNavigation() {
 
   const first = Array.from(menuItems).find(mi => mi.dataset.page && mi.dataset.page !== 'logout');
   if (first) {
-    const page = first.dataset.page;
+    const raw = first.dataset.page;
+    const page = aliases[raw] || raw;
     showSection(page);
     markActive(first);
     initForPage(page);
