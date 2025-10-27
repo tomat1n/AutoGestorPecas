@@ -380,6 +380,114 @@ async function finalizeSale() {
   }
 }
 
+function generateSalePdf({ saleId, createdAt, paymentMethod, subtotal, discount, total, amountPaid, change, items }) {
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) throw new Error('Biblioteca jsPDF não carregada');
+  const doc = new jsPDF('p', 'mm', 'a4');
+
+  const formatBRL = (v) => `R$ ${Number(v || 0).toFixed(2)}`;
+  const dateStr = createdAt ? new Date(createdAt).toLocaleString() : new Date().toLocaleString();
+
+  // Cabeçalho
+  doc.setFontSize(16);
+  doc.text('Recibo de Venda', 105, 15, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text(`Venda: ${saleId}`, 15, 25);
+  doc.text(`Data: ${dateStr}`, 15, 31);
+  doc.text(`Pagamento: ${paymentMethod}`, 15, 37);
+
+  // Tabela de itens
+  let y = 48;
+  doc.setFontSize(11);
+  doc.text('Itens', 15, y);
+  y += 6;
+  doc.setFontSize(10);
+  doc.text('Descrição', 15, y);
+  doc.text('Qtd', 120, y);
+  doc.text('Unitário', 140, y);
+  doc.text('Total', 170, y);
+  y += 4;
+  doc.line(15, y, 195, y);
+  y += 4;
+
+  items.forEach((item) => {
+    const name = String(item.name || (item.type === 'service' ? 'Serviço' : 'Produto'));
+    const qty = Number(item.quantity || 1);
+    const unit = Number(item.price || 0);
+    const line = unit * qty;
+
+    // Quebra de linha se nome for grande
+    const nameLines = doc.splitTextToSize(name, 100);
+    nameLines.forEach((linePart, idx) => {
+      // Adiciona nova página se ultrapassar o limite
+      if (y > 275) {
+        doc.addPage();
+        y = 20;
+      }
+      if (idx === 0) {
+        doc.text(linePart, 15, y);
+        doc.text(String(qty), 120, y);
+        doc.text(formatBRL(unit), 140, y);
+        doc.text(formatBRL(line), 170, y);
+      } else {
+        doc.text(linePart, 15, y);
+      }
+      y += 6;
+    });
+    y += 2;
+  });
+
+  // Totais
+  if (y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(11);
+  doc.line(120, y, 195, y);
+  y += 6;
+  doc.text(`Subtotal: ${formatBRL(subtotal)}`, 120, y);
+  y += 6;
+  doc.text(`Desconto: ${formatBRL(discount)}`, 120, y);
+  y += 6;
+  doc.text(`Total: ${formatBRL(total)}`, 120, y);
+  y += 6;
+  doc.text(`Recebido: ${formatBRL(amountPaid)}`, 120, y);
+  y += 6;
+  doc.text(`Troco: ${formatBRL(change)}`, 120, y);
+
+  return doc.output('blob');
+}
+
+async function uploadReceiptPdfToSupabase(pdfBlob, saleId) {
+  const supabase = window.supabaseClient;
+  if (!supabase) throw new Error('Supabase não configurado');
+
+  const fileName = `sale_${saleId}_${Date.now()}.pdf`;
+  const tryUpload = async (bucketName, pathPrefix) => {
+    const path = `${pathPrefix}/${fileName}`;
+    const { data, error } = await supabase.storage.from(bucketName).upload(path, pdfBlob, {
+      contentType: 'application/pdf',
+      upsert: true
+    });
+    if (error) throw error;
+    // Tenta obter URL pública; se não houver, cria URL assinada
+    const pub = supabase.storage.from(bucketName).getPublicUrl(path);
+    if (pub?.data?.publicUrl) return pub.data.publicUrl;
+    const signed = await supabase.storage.from(bucketName).createSignedUrl(path, 60 * 60 * 24 * 7); // 7 dias
+    if (signed?.data?.signedUrl) return signed.data.signedUrl;
+    return '';
+  };
+
+  // Tenta no bucket 'receipts', senão faz fallback para 'product-images'
+  try {
+    return await tryUpload('receipts', 'sales');
+  } catch (_) {
+    try {
+      return await tryUpload('product-images', 'receipts');
+    } catch (e2) {
+      console.warn('Falha ao enviar recibo PDF para Storage:', e2);
+      return '';
+    }
+  }
+}
+
 // Supabase
 function initSupabase() {
   const cfgGlobal = window.AUTO_GESTOR_CONFIG || {};
