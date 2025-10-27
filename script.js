@@ -926,15 +926,15 @@ async function uploadProductImage(file, baseName = '') {
         const path = `${safeBase}/${nowName}.${ext}`;
         const ct = file.type || 'image/jpeg';
         const reqUrl = `${baseUrl}/storage/v1/object/product-images/${path}`;
-        const res = await fetch(reqUrl, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${anonKey}`,
-            'Content-Type': ct,
-            'x-upsert': 'false'
-          },
-          body: file
-        });
+        const { data: sessData } = await supabase.auth.getSession();
+        const accessToken = sessData?.session?.access_token || null;
+        const headers = {
+          'Content-Type': ct,
+          'x-upsert': 'false',
+          'apikey': anonKey
+        };
+        if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+        const res = await fetch(reqUrl, { method: 'POST', headers, body: file });
 +        const { data: sessData } = await supabase.auth.getSession();
 +        const accessToken = sessData?.session?.access_token || null;
 +        const headers = {
