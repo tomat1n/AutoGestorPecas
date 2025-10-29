@@ -562,6 +562,22 @@ class UserManager {
     this.loadRolePermissions(role);
     
     modal.style.display = 'flex';
+    
+    // Adicionar evento para fechar ao clicar no fundo do modal
+    modal.onclick = (e) => {
+      if (e.target === modal) {
+        this.closeRolePermissionsModal();
+      }
+    };
+    
+    // Adicionar evento para fechar com ESC
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        this.closeRolePermissionsModal();
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
   }
 
   // Fechar modal de permissões por role
@@ -569,6 +585,12 @@ class UserManager {
     const modal = document.getElementById('rolePermissionsModal');
     modal.style.display = 'none';
     this.currentEditingRole = null;
+    
+    // Remover eventos do modal
+    modal.onclick = null;
+    
+    // Remover eventos de teclado (se houver)
+    document.removeEventListener('keydown', this.handleEscapeKey);
   }
 
   // Carregar permissões do role no modal
