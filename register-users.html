@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Usuários - AutoGestor Peças</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .user-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            background: #f9f9f9;
+            position: relative;
+        }
+        .user-info {
+            margin-bottom: 10px;
+        }
+        .user-info strong {
+            color: #2563eb;
+        }
+        .status {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: #2563eb;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 Registrar Usuários de Exemplo</h1>
+        
+        <p>Este script registrará os usuários de exemplo no sistema de autenticação do Supabase.</p>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        
+        <div class="user-card" id="admin-card">
+            <div class="status pending" id="admin-status">Pendente</div>
+            <h3>👑 Administrador</h3>
+            <div class="user-info"><strong>Email:</strong> admin@autogestorpecas.com</div>
+            <div class="user-info"><strong>Senha:</strong> admin123</div>
+            <div class="user-info"><strong>Permissões:</strong> Acesso total ao sistema</div>
+        </div>
+        
+        <div class="user-card" id="gerente-card">
+            <div class="status pending" id="gerente-status">Pendente</div>
+            <h3>👔 Gerente</h3>
+            <div class="user-info"><strong>Email:</strong> gerente@autogestorpecas.com</div>
+            <div class="user-info"><strong>Senha:</strong> gerente123</div>
+            <div class="user-info"><strong>Permissões:</strong> Vendas, estoque, clientes, relatórios</div>
+        </div>
+        
+        <div class="user-card" id="vendedor-card">
+            <div class="status pending" id="vendedor-status">Pendente</div>
+            <h3>🛒 Vendedor</h3>
+            <div class="user-info"><strong>Email:</strong> vendedor@autogestorpecas.com</div>
+            <div class="user-info"><strong>Senha:</strong> vendedor123</div>
+            <div class="user-info"><strong>Permissões:</strong> Vendas e clientes</div>
+        </div>
+        
+        <button onclick="registerAllUsers()" id="registerBtn">Registrar Todos os Usuários</button>
+        <button onclick="testAllLogins()" id="testBtn" disabled>Testar Todos os Logins</button>
+        <button onclick="clearLog()">Limpar Log</button>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        // Configuração do Supabase
+        const supabase = window.supabase.createClient(
+            window.AUTO_GESTOR_CONFIG.supabaseUrl,
+            window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+        );
+
+        let registeredCount = 0;
+        const totalUsers = 3;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'color: #dc2626;' : type === 'success' ? 'color: #059669;' : '';
+            logDiv.innerHTML += `<div style="${className}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(userId, status, message = '') {
+            const statusEl = document.getElementById(`${userId}-status`);
+            statusEl.className = `status ${status}`;
+            statusEl.textContent = message || status;
+        }
+
+        function updateProgress() {
+            const progressBar = document.getElementById('progressBar');
+            const percentage = (registeredCount / totalUsers) * 100;
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        async function registerUser(email, password, userData, userId) {
+            try {
+                updateStatus(userId, 'processing', 'Registrando...');
+                log(`Registrando usuário: ${email}...`);
+                
+                // Tentar fazer signup
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: userData,
+                        emailRedirectTo: window.location.origin + '/auth.html'
+                    }
+                });
+
+                if (error) {
+                    // Se o usuário já existe, tentar fazer login para confirmar
+                    if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+                        log(`Usuário ${email} já existe. Testando login...`);
+                        
+                        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                            email: email,
+                            password: password
+                        });
+
+                        if (loginError) {
+                            throw new Error(`Usuário existe mas senha incorreta: ${loginError.message}`);
+                        }
+
+                        // Fazer logout
+                        await supabase.auth.signOut();
+                        
+                        updateStatus(userId, 'success', 'Já existe');
+                        log(`✅ Usuário ${email} já existe e login funciona!`, 'success');
+                        registeredCount++;
+                        return true;
+                    } else {
+                        throw error;
+                    }
+                }
+
+                if (data.user) {
+                    updateStatus(userId, 'success', 'Registrado');
+                    log(`✅ Usuário ${email} registrado com sucesso!`, 'success');
+                    registeredCount++;
+                    
+                    // Se não precisa confirmar email, fazer logout
+                    if (data.session) {
+                        await supabase.auth.signOut();
+                    }
+                    
+                    return true;
+                } else {
+                    throw new Error('Falha no registro - dados não retornados');
+                }
+                
+            } catch (error) {
+                updateStatus(userId, 'error', 'Erro');
+                log(`❌ Erro ao registrar usuário ${email}: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function registerAllUsers() {
+            const registerBtn = document.getElementById('registerBtn');
+            const testBtn = document.getElementById('testBtn');
+            
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registrando...';
+            registeredCount = 0;
+
+            log('🚀 Iniciando registro de usuários...');
+
+            // Usuários para registrar
+            const users = [
+                {
+                    id: 'admin',
+                    email: 'admin@autogestorpecas.com',
+                    password: 'admin123',
+                    userData: {
+                        name: 'Administrador Sistema',
+                        role: 'administrador'
+                    }
+                },
+                {
+                    id: 'gerente',
+                    email: 'gerente@autogestorpecas.com',
+                    password: 'gerente123',
+                    userData: {
+                        name: 'Gerente Sistema',
+                        role: 'gerente'
+                    }
+                },
+                {
+                    id: 'vendedor',
+                    email: 'vendedor@autogestorpecas.com',
+                    password: 'vendedor123',
+                    userData: {
+                        name: 'Vendedor Sistema',
+                        role: 'vendedor'
+                    }
+                }
+            ];
+
+            for (const user of users) {
+                await registerUser(user.email, user.password, user.userData, user.id);
+                updateProgress();
+                // Aguardar um pouco entre registros
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            log(`\n🎉 Processo concluído! ${registeredCount}/${users.length} usuários prontos.`, 'success');
+            
+            registerBtn.disabled = false;
+            registerBtn.textContent = 'Registrar Todos os Usuários';
+            
+            if (registeredCount > 0) {
+                testBtn.disabled = false;
+            }
+        }
+
+        async function testAllLogins() {
+            const testBtn = document.getElementById('testBtn');
+            testBtn.disabled = true;
+            testBtn.textContent = 'Testando...';
+
+            log('🔐 Testando login de todos os usuários...');
+
+            const users = [
+                { email: 'admin@autogestorpecas.com', password: 'admin123' },
+                { email: 'gerente@autogestorpecas.com', password: 'gerente123' },
+                { email: 'vendedor@autogestorpecas.com', password: 'vendedor123' }
+            ];
+
+            let successCount = 0;
+            for (const user of users) {
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: user.email,
+                        password: user.password
+                    });
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    log(`✅ Login OK: ${user.email}`, 'success');
+                    successCount++;
+                    
+                    // Fazer logout
+                    await supabase.auth.signOut();
+                    
+                } catch (error) {
+                    log(`❌ Login falhou: ${user.email} - ${error.message}`, 'error');
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            log(`\n🎯 Teste concluído: ${successCount}/${users.length} logins funcionando!`, 'success');
+            
+            testBtn.disabled = false;
+            testBtn.textContent = 'Testar Todos os Logins';
+        }
+
+        // Log inicial
+        log('📋 Script de registro de usuários carregado.');
+        log('🔧 Clique em "Registrar Todos os Usuários" para começar.');
+    </script>
+</body>
+</html>

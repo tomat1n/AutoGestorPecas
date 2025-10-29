@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Autenticação</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+        .quick-fill {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .quick-fill button {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Teste de Autenticação</h1>
+    
+    <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="Digite o email">
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Senha:</label>
+        <input type="password" id="password" placeholder="Digite a senha">
+    </div>
+    
+    <div class="quick-fill">
+        <button onclick="fillAdmin()">Admin</button>
+        <button onclick="fillGerente()">Gerente</button>
+        <button onclick="fillVendedor()">Vendedor</button>
+    </div>
+    
+    <button onclick="testLogin()">Testar Login</button>
+    <button onclick="registerUser()">Registrar Usuário</button>
+    <button onclick="clearResult()">Limpar</button>
+    
+    <div id="result"></div>
+
+    <script>
+        // Configuração do Supabase
+        const supabase = window.supabase.createClient(
+            window.AUTO_GESTOR_CONFIG.supabaseUrl,
+            window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+        );
+
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.textContent = message;
+        }
+
+        function clearResult() {
+            document.getElementById('result').textContent = '';
+            document.getElementById('result').className = '';
+        }
+
+        function fillAdmin() {
+            document.getElementById('email').value = 'admin@autogestorpecas.com';
+            document.getElementById('password').value = 'admin123';
+        }
+
+        function fillGerente() {
+            document.getElementById('email').value = 'gerente@autogestorpecas.com';
+            document.getElementById('password').value = 'gerente123';
+        }
+
+        function fillVendedor() {
+            document.getElementById('email').value = 'vendedor@autogestorpecas.com';
+            document.getElementById('password').value = 'vendedor123';
+        }
+
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('Por favor, preencha email e senha.', 'error');
+                return;
+            }
+
+            try {
+                showResult('Testando login...', 'info');
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                showResult(`✅ Login bem-sucedido!
+Usuário: ${data.user.email}
+ID: ${data.user.id}
+Criado em: ${new Date(data.user.created_at).toLocaleString()}
+Metadata: ${JSON.stringify(data.user.user_metadata, null, 2)}`, 'success');
+                
+                // Fazer logout automaticamente
+                setTimeout(async () => {
+                    await supabase.auth.signOut();
+                }, 2000);
+                
+            } catch (error) {
+                showResult(`❌ Erro no login: ${error.message}
+Código: ${error.status || 'N/A'}
+Detalhes: ${error.error_description || 'N/A'}`, 'error');
+            }
+        }
+
+        async function registerUser() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('Por favor, preencha email e senha.', 'error');
+                return;
+            }
+
+            try {
+                showResult('Registrando usuário...', 'info');
+                
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            name: email.split('@')[0],
+                            role: email.includes('admin') ? 'administrador' : 
+                                  email.includes('gerente') ? 'gerente' : 'vendedor'
+                        }
+                    }
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data.user) {
+                    showResult(`✅ Usuário registrado com sucesso!
+Email: ${data.user.email}
+ID: ${data.user.id}
+Confirmação necessária: ${!data.user.email_confirmed_at ? 'Sim' : 'Não'}`, 'success');
+                } else {
+                    showResult('⚠️ Usuário pode já existir ou precisa confirmar email.', 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Erro no registro: ${error.message}
+Código: ${error.status || 'N/A'}`, 'error');
+            }
+        }
+
+        // Teste inicial
+        window.addEventListener('load', () => {
+            showResult('🔧 Sistema de teste carregado. Preencha as credenciais e teste o login.', 'info');
+        });
+    </script>
+</body>
+</html>
