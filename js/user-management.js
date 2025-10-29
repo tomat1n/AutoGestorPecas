@@ -636,12 +636,6 @@ class UserManager {
     };
     return roleNames[role] || role;
   }
-        document.getElementById('userName').value = user.name;
-        document.getElementById('userEmail').value = user.email;
-        document.getElementById('userRole').value = user.role;
-        document.getElementById('userStatus').value = user.status;
-        // Não popular a senha por segurança
-    }
 
     // Manipular envio do formulário
     async handleUserFormSubmit(e) {

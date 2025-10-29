@@ -1195,18 +1195,13 @@ async function uploadProductImage(file, baseName = '') {
         } else {
           const errMsg = json?.message || `HTTP ${res.status}`;
           const errCode = json?.code || null;
-          alert(`Falha no upload (fallback) — Storage.
-Status: ${res.status}${errCode ? `\nCode: ${errCode}` : ''}
-Mensagem: ${errMsg}`);
+          alert(`Falha no upload (fallback) — Storage.\nStatus: ${res.status}${errCode ? `\nCode: ${errCode}` : ''}\nMensagem: ${errMsg}`);
         }
       }
     } catch (fe) {
       console.warn('Fallback upload também falhou:', fe);
     }
-    alert(`Não foi possível enviar a imagem ao Storage.
-Status: ${status ?? 'desconhecido'}${code ? `\nCode: ${code}` : ''}
-Mensagem: ${msg}
-Dica: ${hint || 'Verifique URL/Anon Key, bucket e políticas.'}`);
+    alert(`Não foi possível enviar a imagem ao Storage.\nStatus: ${status ?? 'desconhecido'}${code ? `\nCode: ${code}` : ''}\nMensagem: ${msg}\nDica: ${hint || 'Verifique URL/Anon Key, bucket e políticas.'}`);
     return null;
   }
 }

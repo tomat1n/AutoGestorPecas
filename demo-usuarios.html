@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Usuários de Exemplo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .user-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .user-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .user-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .user-icon {
+            font-size: 3rem;
+            margin-right: 15px;
+        }
+
+        .user-info h3 {
+            color: #333;
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .user-info p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .credentials {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .credentials h4 {
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .credential-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .credential-label {
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .credential-value {
+            font-family: 'Courier New', monospace;
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .permissions {
+            margin-bottom: 20px;
+        }
+
+        .permissions h4 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .permission-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .permission-icon {
+            margin-right: 8px;
+            font-size: 1rem;
+        }
+
+        .permission-allowed {
+            color: #28a745;
+        }
+
+        .permission-denied {
+            color: #dc3545;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .admin-card {
+            border-top: 4px solid #ffd700;
+        }
+
+        .manager-card {
+            border-top: 4px solid #28a745;
+        }
+
+        .seller-card {
+            border-top: 4px solid #007bff;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+        }
+
+        .info-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .info-item h3 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .info-item p {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 AutoGestor Peças</h1>
+            <p>Demonstração dos Usuários de Exemplo</p>
+        </div>
+
+        <div class="users-grid">
+            <!-- Administrador -->
+            <div class="user-card admin-card">
+                <div class="user-header">
+                    <div class="user-icon">👑</div>
+                    <div class="user-info">
+                        <h3>Administrador</h3>
+                        <p>Acesso completo ao sistema</p>
+                    </div>
+                </div>
+
+                <div class="credentials">
+                    <h4>Credenciais de Acesso</h4>
+                    <div class="credential-item">
+                        <span class="credential-label">Email:</span>
+                        <span class="credential-value">admin@autogestorpecas.com</span>
+                    </div>
+                    <div class="credential-item">
+                        <span class="credential-label">Senha:</span>
+                        <span class="credential-value">admin123</span>
+                    </div>
+                </div>
+
+                <div class="permissions">
+                    <h4>Permissões</h4>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-allowed">✅</span>
+                        <span>Todas as permissões (Acesso Total)</span>
+                    </div>
+                </div>
+
+                <button class="login-btn" onclick="loginAs('admin')">
+                    Fazer Login como Administrador
+                </button>
+            </div>
+
+            <!-- Gerente -->
+            <div class="user-card manager-card">
+                <div class="user-header">
+                    <div class="user-icon">👔</div>
+                    <div class="user-info">
+                        <h3>Gerente</h3>
+                        <p>Permissões de gestão</p>
+                    </div>
+                </div>
+
+                <div class="credentials">
+                    <h4>Credenciais de Acesso</h4>
+                    <div class="credential-item">
+                        <span class="credential-label">Email:</span>
+                        <span class="credential-value">gerente@autogestorpecas.com</span>
+                    </div>
+                    <div class="credential-item">
+                        <span class="credential-label">Senha:</span>
+                        <span class="credential-value">gerente123</span>
+                    </div>
+                </div>
+
+                <div class="permissions">
+                    <h4>Permissões</h4>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-allowed">✅</span>
+                        <span>Dashboard, Clientes, Fornecedores</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-allowed">✅</span>
+                        <span>Serviços, Relatórios, Financeiro</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-denied">❌</span>
+                        <span>Configurações, Usuários</span>
+                    </div>
+                </div>
+
+                <button class="login-btn" onclick="loginAs('manager')">
+                    Fazer Login como Gerente
+                </button>
+            </div>
+
+            <!-- Vendedor -->
+            <div class="user-card seller-card">
+                <div class="user-header">
+                    <div class="user-icon">🛒</div>
+                    <div class="user-info">
+                        <h3>Vendedor</h3>
+                        <p>Permissões básicas</p>
+                    </div>
+                </div>
+
+                <div class="credentials">
+                    <h4>Credenciais de Acesso</h4>
+                    <div class="credential-item">
+                        <span class="credential-label">Email:</span>
+                        <span class="credential-value">vendedor@autogestorpecas.com</span>
+                    </div>
+                    <div class="credential-item">
+                        <span class="credential-label">Senha:</span>
+                        <span class="credential-value">vendedor123</span>
+                    </div>
+                </div>
+
+                <div class="permissions">
+                    <h4>Permissões</h4>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-allowed">✅</span>
+                        <span>Visualizar Dashboard</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-allowed">✅</span>
+                        <span>Visualizar Clientes e Fornecedores</span>
+                    </div>
+                    <div class="permission-item">
+                        <span class="permission-icon permission-denied">❌</span>
+                        <span>Gerenciar dados, Relatórios, Financeiro</span>
+                    </div>
+                </div>
+
+                <button class="login-btn" onclick="loginAs('seller')">
+                    Fazer Login como Vendedor
+                </button>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>Como Testar o Sistema</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <h3>1. Escolha um Usuário</h3>
+                    <p>Clique em um dos botões acima para simular o login com diferentes tipos de usuário</p>
+                </div>
+                <div class="info-item">
+                    <h3>2. Observe as Diferenças</h3>
+                    <p>Cada tipo de usuário tem acesso a diferentes funcionalidades do sistema</p>
+                </div>
+                <div class="info-item">
+                    <h3>3. Teste as Permissões</h3>
+                    <p>Navegue pelas seções e veja como as permissões afetam o que cada usuário pode fazer</p>
+                </div>
+                <div class="info-item">
+                    <h3>4. Sistema Completo</h3>
+                    <p>Acesse o sistema principal através do arquivo index.html para a experiência completa</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function loginAs(userType) {
+            const users = {
+                admin: {
+                    email: 'admin@autogestorpecas.com',
+                    password: 'admin123',
+                    name: 'Administrador',
+                    role: 'admin'
+                },
+                manager: {
+                    email: 'gerente@autogestorpecas.com',
+                    password: 'gerente123',
+                    name: 'Gerente',
+                    role: 'manager'
+                },
+                seller: {
+                    email: 'vendedor@autogestorpecas.com',
+                    password: 'vendedor123',
+                    name: 'Vendedor',
+                    role: 'seller'
+                }
+            };
+
+            const user = users[userType];
+            
+            // Simular login (em um sistema real, isso seria feito via API)
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            
+            alert(`Login simulado como ${user.name}!\n\nEmail: ${user.email}\nSenha: ${user.password}\n\nRedirecionando para o sistema principal...`);
+            
+            // Redirecionar para o sistema principal
+            window.location.href = 'index.html';
+        }
+
+        // Verificar se há um usuário logado
+        window.addEventListener('load', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            if (currentUser) {
+                const user = JSON.parse(currentUser);
+                console.log('Usuário atual:', user);
+            }
+        });
+    </script>
+</body>
+</html>

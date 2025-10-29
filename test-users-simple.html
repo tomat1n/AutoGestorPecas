@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Sistema de Usuários</title>
+    <link rel="stylesheet" href="css/user-management.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Teste Sistema de Usuários</h1>
+        <button onclick="window.userManager.openUserModal()">Criar Usuário</button>
+        <div id="usersList"></div>
+    </div>
+
+    <!-- Modal de usuário (copiado do index.html) -->
+    <div id="cfgUserModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Novo Usuário</h3>
+                <span class="close" onclick="window.userManager.closeUserModal()">&times;</span>
+            </div>
+            <form id="userForm">
+                <div class="form-group">
+                    <label for="userName">Nome:</label>
+                    <input type="text" id="userName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="userEmail">E-mail:</label>
+                    <input type="email" id="userEmail" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="userPassword">Senha:</label>
+                    <input type="password" id="userPassword" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label for="userRole">Função:</label>
+                    <select id="userRole" name="role" required>
+                        <option value="vendedor">Vendedor</option>
+                        <option value="gerente">Gerente</option>
+                        <option value="administrador">Administrador</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="userStatus">Status:</label>
+                    <select id="userStatus" name="status">
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" onclick="window.userManager.closeUserModal()">Cancelar</button>
+                    <button type="button" id="userModalAdd" onclick="window.userManager.saveUser()">Criar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="js/user-management.js"></script>
+    <script>
+        console.log('Teste iniciado');
+        
+        // Inicializar Supabase
+        if (typeof supabaseUrl !== 'undefined' && typeof supabaseAnonKey !== 'undefined') {
+            window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
+            console.log('Supabase inicializado');
+        } else {
+            console.warn('Configuração do Supabase não encontrada');
+        }
+        
+        // Inicializar UserManager
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM carregado, inicializando UserManager');
+            if (typeof UserManager !== 'undefined') {
+                window.userManager = new UserManager();
+                window.userManager.init().then(() => {
+                    console.log('UserManager inicializado com sucesso');
+                }).catch(error => {
+                    console.error('Erro ao inicializar UserManager:', error);
+                });
+            } else {
+                console.error('UserManager não encontrado');
+            }
+        });
+    </script>
+</body>
+</html>
