@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Modal Permissões - CORRIGIDO</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/user-management.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-info {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .debug-modal-header {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info">
+        <h1>🔍 Debug Modal de Permissões - VERSÃO CORRIGIDA</h1>
+        <p>Este teste vai verificar se o modal de permissões está funcionando corretamente após as correções.</p>
+        
+        <button class="test-button" onclick="testModal()">🧪 Abrir Modal de Teste</button>
+        <button class="test-button" onclick="testAllCloseMethods()">🔄 Testar Todos os Métodos de Fechamento</button>
+        
+        <div id="debugOutput" class="debug-modal-header">
+            <strong>Status:</strong> Aguardando teste...
+        </div>
+    </div>
+
+    <!-- Modal de Permissões (copiado do index.html com correções) -->
+    <div class="app-modal" id="rolePermissionsModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3 id="rolePermissionsTitle">Permissões do Perfil - TESTE</h3>
+                <button class="btn btn-secondary" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="permissions-overview">
+                    <div class="permission-module" data-module="dashboard">
+                        <h4>📊 Dashboard</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="vendas">
+                        <h4>💰 Vendas</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="create"> Criar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                            <label><input type="checkbox" data-action="delete"> Excluir</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="estoque">
+                        <h4>📦 Estoque</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="create"> Criar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                            <label><input type="checkbox" data-action="delete"> Excluir</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="financeiro">
+                        <h4>💳 Financeiro</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="create"> Criar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                            <label><input type="checkbox" data-action="delete"> Excluir</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="clientes">
+                        <h4>👥 Clientes</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="create"> Criar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                            <label><input type="checkbox" data-action="delete"> Excluir</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="relatorios">
+                        <h4>📈 Relatórios</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="export"> Exportar</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="configuracoes">
+                        <h4>⚙️ Configurações</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                        </div>
+                    </div>
+                    
+                    <div class="permission-module" data-module="usuarios">
+                        <h4>👤 Usuários</h4>
+                        <div class="permission-actions">
+                            <label><input type="checkbox" data-action="view"> Visualizar</label>
+                            <label><input type="checkbox" data-action="create"> Criar</label>
+                            <label><input type="checkbox" data-action="edit"> Editar</label>
+                            <label><input type="checkbox" data-action="delete"> Excluir</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
+                <button class="btn btn-primary" onclick="savePermissions()">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+
+        function testModal() {
+            const modal = document.getElementById('rolePermissionsModal');
+            const debugOutput = document.getElementById('debugOutput');
+            
+            debugOutput.innerHTML = '<strong>Status:</strong> Abrindo modal...';
+            
+            // Abrir modal
+            modal.classList.add('active');
+            
+            // Verificar se o botão X está visível
+            const closeButton = modal.querySelector('.modal-header button');
+            const buttonStyles = window.getComputedStyle(closeButton);
+            const modalStyles = window.getComputedStyle(modal);
+            
+            const isButtonVisible = buttonStyles.display !== 'none' && buttonStyles.visibility !== 'hidden';
+            const buttonRect = closeButton.getBoundingClientRect();
+            const isButtonInViewport = buttonRect.top >= 0 && buttonRect.left >= 0;
+            
+            debugOutput.innerHTML = `
+                <strong>Status:</strong> Modal aberto! ✅<br>
+                <strong>Botão X visível:</strong> ${isButtonVisible ? '✅ Sim' : '❌ Não'}<br>
+                <strong>Botão X no viewport:</strong> ${isButtonInViewport ? '✅ Sim' : '❌ Não'}<br>
+                <strong>Botão X tamanho:</strong> ${buttonRect.width}x${buttonRect.height}px<br>
+                <strong>Modal z-index:</strong> ${modalStyles.zIndex}<br>
+                <strong>Modal display:</strong> ${modalStyles.display}<br>
+                <br><strong>🎯 Teste agora:</strong><br>
+                1. ✅ Clique no botão X vermelho<br>
+                2. ✅ Clique no botão "Fechar"<br>
+                3. ✅ Clique no fundo escuro<br>
+                4. ✅ Pressione a tecla ESC
+            `;
+            
+            if (isButtonVisible && isButtonInViewport) {
+                debugOutput.className = 'debug-modal-header success';
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('rolePermissionsModal');
+            const debugOutput = document.getElementById('debugOutput');
+            
+            modal.classList.remove('active');
+            testResults.push('Botão X funcionou ✅');
+            debugOutput.innerHTML = '<strong>Status:</strong> Modal fechado via botão X ✅<br><strong>Resultado:</strong> SUCESSO!';
+            debugOutput.className = 'debug-modal-header success';
+        }
+
+        function savePermissions() {
+            alert('Função salvar permissões (teste)');
+        }
+
+        function testAllCloseMethods() {
+            testResults = [];
+            const debugOutput = document.getElementById('debugOutput');
+            
+            debugOutput.innerHTML = '<strong>Status:</strong> Iniciando teste completo...<br>Abra o modal e teste todos os métodos de fechamento!';
+            
+            setTimeout(() => {
+                testModal();
+            }, 1000);
+        }
+
+        // Fechar modal clicando no fundo
+        document.getElementById('rolePermissionsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+                testResults.push('Clique no fundo funcionou ✅');
+                document.getElementById('debugOutput').innerHTML = '<strong>Status:</strong> Modal fechado via clique no fundo ✅<br><strong>Resultado:</strong> SUCESSO!';
+                document.getElementById('debugOutput').className = 'debug-modal-header success';
+            }
+        });
+
+        // Fechar modal com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('rolePermissionsModal');
+                if (modal.classList.contains('active')) {
+                    closeModal();
+                    testResults.push('Tecla ESC funcionou ✅');
+                    document.getElementById('debugOutput').innerHTML = '<strong>Status:</strong> Modal fechado via tecla ESC ✅<br><strong>Resultado:</strong> SUCESSO!';
+                    document.getElementById('debugOutput').className = 'debug-modal-header success';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
