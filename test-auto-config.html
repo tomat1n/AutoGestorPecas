@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Configuração Automática</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 10px;
+        }
+        .config-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 3px;
+        }
+        .config-label {
+            font-weight: bold;
+            color: #374151;
+        }
+        .config-value {
+            color: #059669;
+            word-break: break-all;
+            font-family: monospace;
+            background: #f0f9ff;
+            padding: 5px;
+            border-radius: 3px;
+            margin-top: 5px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .status.error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Teste de Configuração Automática do Supabase</h1>
+        
+        <div class="test-section">
+            <div class="test-title">1. Configurações do config.js</div>
+            <div class="config-item">
+                <div class="config-label">URL do Supabase:</div>
+                <div class="config-value" id="globalUrl">Carregando...</div>
+            </div>
+            <div class="config-item">
+                <div class="config-label">Anon Key:</div>
+                <div class="config-value" id="globalKey">Carregando...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">2. Configurações do localStorage</div>
+            <div class="config-item">
+                <div class="config-label">URL salva:</div>
+                <div class="config-value" id="localUrl">Carregando...</div>
+            </div>
+            <div class="config-item">
+                <div class="config-label">Key salva:</div>
+                <div class="config-value" id="localKey">Carregando...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">3. Configurações Finais (usadas pelo sistema)</div>
+            <div class="config-item">
+                <div class="config-label">URL final:</div>
+                <div class="config-value" id="finalUrl">Carregando...</div>
+            </div>
+            <div class="config-item">
+                <div class="config-label">Key final:</div>
+                <div class="config-value" id="finalKey">Carregando...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">4. Status da Conexão</div>
+            <div id="connectionStatus">Testando...</div>
+        </div>
+
+        <button onclick="testConnection()">Testar Conexão</button>
+        <button onclick="clearLocalStorage()">Limpar localStorage</button>
+        <button onclick="location.reload()">Recarregar</button>
+    </div>
+
+    <!-- Carregar config.js -->
+    <script src="config.js"></script>
+    
+    <!-- Carregar Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        function displayConfigs() {
+            // Configurações globais do config.js
+            const globalCfg = window.AUTO_GESTOR_CONFIG || {};
+            document.getElementById('globalUrl').textContent = globalCfg.supabaseUrl || 'Não definida';
+            document.getElementById('globalKey').textContent = globalCfg.supabaseAnonKey ? 
+                globalCfg.supabaseAnonKey.substring(0, 50) + '...' : 'Não definida';
+
+            // Configurações do localStorage
+            let localCfg = {};
+            try {
+                localCfg = JSON.parse(localStorage.getItem('cfg') || '{}');
+            } catch (e) {}
+            
+            document.getElementById('localUrl').textContent = localCfg.cfgSupabaseUrl || 'Não salva';
+            document.getElementById('localKey').textContent = localCfg.cfgSupabaseAnonKey ? 
+                localCfg.cfgSupabaseAnonKey.substring(0, 50) + '...' : 'Não salva';
+
+            // Configurações finais (lógica do sistema)
+            const getValueWithFallback = (localValue, globalValue) => {
+                if (localValue !== undefined && localValue !== '') return localValue;
+                return globalValue || '';
+            };
+
+            const finalUrl = getValueWithFallback(localCfg.cfgSupabaseUrl, globalCfg.supabaseUrl);
+            const finalKey = getValueWithFallback(localCfg.cfgSupabaseAnonKey, globalCfg.supabaseAnonKey);
+
+            document.getElementById('finalUrl').textContent = finalUrl || 'Não configurada';
+            document.getElementById('finalKey').textContent = finalKey ? 
+                finalKey.substring(0, 50) + '...' : 'Não configurada';
+        }
+
+        async function testConnection() {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.innerHTML = '<div class="status">Testando conexão...</div>';
+
+            try {
+                // Usar as mesmas configurações que o sistema usa
+                let localCfg = {};
+                try {
+                    localCfg = JSON.parse(localStorage.getItem('cfg') || '{}');
+                } catch (e) {}
+
+                const globalCfg = window.AUTO_GESTOR_CONFIG || {};
+                const getValueWithFallback = (localValue, globalValue) => {
+                    if (localValue !== undefined && localValue !== '') return localValue;
+                    return globalValue || '';
+                };
+
+                const url = getValueWithFallback(localCfg.cfgSupabaseUrl, globalCfg.supabaseUrl);
+                const key = getValueWithFallback(localCfg.cfgSupabaseAnonKey, globalCfg.supabaseAnonKey);
+
+                if (!url || !key) {
+                    throw new Error('URL ou Key não configuradas');
+                }
+
+                const supabase = window.supabase.createClient(url, key);
+                
+                // Testar uma consulta simples
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('id')
+                    .limit(1);
+
+                if (error) {
+                    throw error;
+                }
+
+                statusDiv.innerHTML = '<div class="status success">✅ Conexão bem-sucedida! Sistema configurado automaticamente.</div>';
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Erro na conexão: ${error.message}</div>`;
+            }
+        }
+
+        function clearLocalStorage() {
+            localStorage.removeItem('cfg');
+            alert('localStorage limpo! Recarregue a página para ver o fallback automático.');
+        }
+
+        // Carregar configurações ao iniciar
+        document.addEventListener('DOMContentLoaded', () => {
+            displayConfigs();
+            testConnection();
+        });
+    </script>
+</body>
+</html>

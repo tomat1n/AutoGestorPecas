@@ -20,9 +20,22 @@ function getCfg(){try{return JSON.parse(localStorage.getItem('cfg')||'{}')}catch
 function setCfg(obj){localStorage.setItem('cfg',JSON.stringify(obj))}
 function populate(){
   const cfg=getCfg();
+  // Obter configurações do config.js como fallback
+  const globalCfg = window.AUTO_GESTOR_CONFIG || {};
+  
   const set=(id,val)=>{const el=document.getElementById(id); if(!el) return; if(el.type==='checkbox') el.checked=!!val; else if(el.type==='file'){} else el.value=(val??'');};
+  
+  // Função para obter valor com fallback do config.js
+  const getValueWithFallback = (id, cfgValue) => {
+    if (cfgValue !== undefined && cfgValue !== '') return cfgValue;
+    // Usar valores do config.js como fallback para campos específicos do Supabase
+    if (id === 'cfgSupabaseUrl') return globalCfg.supabaseUrl || '';
+    if (id === 'cfgSupabaseAnonKey') return globalCfg.supabaseAnonKey || '';
+    return cfgValue;
+  };
+  
   const ids=['cfgCompanyLegalName','cfgCompanyTradeName','cfgCompanyCNPJ','cfgCompanyIE','cfgCompanyAddress','cfgCompanyCity','cfgCompanyState','cfgCompanyPhone','cfgCompanyEmail','cfgNotifEmails','cfgPDVMaxDiscount','cfgPDVCouponMessage','cfgFiscalEnv','cfgFiscalCertPass','cfgFiscalSerie','cfgFiscalNumero','cfgFiscalCSC','cfgStockMinDefault','cfgStockMaxDefault','cfgCategoriesList','cfgBrandsList','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime','cfgSupabaseUrl','cfgSupabaseAnonKey'];
-  ids.forEach(id=>set(id,cfg[id]));
+  ids.forEach(id=>set(id,getValueWithFallback(id, cfg[id])));
   ['cfgNotifEmail','cfgNotifLowStock','cfgNotifDue','cfgNotifAutoReports','cfgPDVAutoPrint','cfgPDVPriceLookup','cfgPDVMaxDiscountToggle','cfgStockControl','cfgStockAllowNoStock','cfgBackupAutoToggle','cfgSecTwoFactor','cfgSecLockAfterAttempts'].forEach(id=>set(id,cfg[id]));
 }
 function collect(){
