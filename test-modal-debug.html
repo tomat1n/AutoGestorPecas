@@ -3,63 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debug Modal Permissões - CORRIGIDO</title>
+    <title>Debug Modal Permissões</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/user-management.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .debug-info {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .test-button {
-            background: #007bff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin: 10px;
-        }
-        .debug-modal-header {
-            background: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+        body { padding: 20px; font-family: Arial, sans-serif; }
+        .debug-info { background: #f8f9fa; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .test-btn { margin: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        
+        /* Forçar visibilidade dos botões para teste */
+        .force-visible {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 99999 !important;
+            background: red !important;
+            color: white !important;
+            border: 2px solid yellow !important;
         }
     </style>
 </head>
 <body>
+    <h1>🔍 Debug Modal de Permissões</h1>
+    
     <div class="debug-info">
-        <h1>🔍 Debug Modal de Permissões - VERSÃO CORRIGIDA</h1>
-        <p>Este teste vai verificar se o modal de permissões está funcionando corretamente após as correções.</p>
-        
-        <button class="test-button" onclick="testModal()">🧪 Abrir Modal de Teste</button>
-        <button class="test-button" onclick="testAllCloseMethods()">🔄 Testar Todos os Métodos de Fechamento</button>
-        
-        <div id="debugOutput" class="debug-modal-header">
-            <strong>Status:</strong> Aguardando teste...
-        </div>
+        <h3>Testes Disponíveis:</h3>
+        <button class="test-btn" onclick="openModal()">1. Abrir Modal</button>
+        <button class="test-btn" onclick="debugButtons()">2. Debug Botões</button>
+        <button class="test-btn" onclick="forceButtonsVisible()">3. Forçar Visibilidade</button>
+        <button class="test-btn" onclick="testCloseModal()">4. Testar Fechar</button>
+        <button class="test-btn" onclick="inspectCSS()">5. Inspecionar CSS</button>
+        <button class="test-btn" onclick="checkButtonsExistence()">6. Verificar Existência</button>
+        <button class="test-btn" onclick="highlightButtons()">7. Destacar Botões</button>
     </div>
 
-    <!-- Modal de Permissões (copiado do index.html com correções) -->
+    <div id="debugOutput" class="debug-info">
+        <h3>📊 Resultados dos Testes:</h3>
+        <div id="results"></div>
+    </div>
+
+    <!-- Modal de Permissões -->
     <div class="app-modal" id="rolePermissionsModal">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h3 id="rolePermissionsTitle">Permissões do Perfil - TESTE</h3>
-                <button class="btn btn-secondary" onclick="closeModal()">×</button>
+                <button class="btn btn-secondary" onclick="closeRolePermissionsModal()" id="closeBtn">×</button>
             </div>
             <div class="modal-body">
                 <div class="permissions-overview">
@@ -80,158 +71,214 @@
                             <label><input type="checkbox" data-action="delete"> Excluir</label>
                         </div>
                     </div>
-                    
-                    <div class="permission-module" data-module="estoque">
-                        <h4>📦 Estoque</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="create"> Criar</label>
-                            <label><input type="checkbox" data-action="edit"> Editar</label>
-                            <label><input type="checkbox" data-action="delete"> Excluir</label>
-                        </div>
-                    </div>
-                    
-                    <div class="permission-module" data-module="financeiro">
-                        <h4>💳 Financeiro</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="create"> Criar</label>
-                            <label><input type="checkbox" data-action="edit"> Editar</label>
-                            <label><input type="checkbox" data-action="delete"> Excluir</label>
-                        </div>
-                    </div>
-                    
-                    <div class="permission-module" data-module="clientes">
-                        <h4>👥 Clientes</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="create"> Criar</label>
-                            <label><input type="checkbox" data-action="edit"> Editar</label>
-                            <label><input type="checkbox" data-action="delete"> Excluir</label>
-                        </div>
-                    </div>
-                    
-                    <div class="permission-module" data-module="relatorios">
-                        <h4>📈 Relatórios</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="export"> Exportar</label>
-                        </div>
-                    </div>
-                    
-                    <div class="permission-module" data-module="configuracoes">
-                        <h4>⚙️ Configurações</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="edit"> Editar</label>
-                        </div>
-                    </div>
-                    
-                    <div class="permission-module" data-module="usuarios">
-                        <h4>👤 Usuários</h4>
-                        <div class="permission-actions">
-                            <label><input type="checkbox" data-action="view"> Visualizar</label>
-                            <label><input type="checkbox" data-action="create"> Criar</label>
-                            <label><input type="checkbox" data-action="edit"> Editar</label>
-                            <label><input type="checkbox" data-action="delete"> Excluir</label>
-                        </div>
-                    </div>
                 </div>
             </div>
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal()">Fechar</button>
-                <button class="btn btn-primary" onclick="savePermissions()">Salvar</button>
+                <button type="button" class="btn" onclick="closeRolePermissionsModal()" id="closeActionBtn">Fechar</button>
+                <button type="button" class="btn btn-primary" onclick="saveRolePermissions()">Salvar Permissões</button>
             </div>
         </div>
     </div>
 
     <script>
-        let testResults = [];
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            results.appendChild(div);
+            console.log(message);
+        }
 
-        function testModal() {
+        function openModal() {
+            log('🔄 Abrindo modal...');
             const modal = document.getElementById('rolePermissionsModal');
-            const debugOutput = document.getElementById('debugOutput');
-            
-            debugOutput.innerHTML = '<strong>Status:</strong> Abrindo modal...';
-            
-            // Abrir modal
             modal.classList.add('active');
+            log('✅ Modal aberto com classe "active"', 'success');
             
-            // Verificar se o botão X está visível
-            const closeButton = modal.querySelector('.modal-header button');
-            const buttonStyles = window.getComputedStyle(closeButton);
-            const modalStyles = window.getComputedStyle(modal);
-            
-            const isButtonVisible = buttonStyles.display !== 'none' && buttonStyles.visibility !== 'hidden';
-            const buttonRect = closeButton.getBoundingClientRect();
-            const isButtonInViewport = buttonRect.top >= 0 && buttonRect.left >= 0;
-            
-            debugOutput.innerHTML = `
-                <strong>Status:</strong> Modal aberto! ✅<br>
-                <strong>Botão X visível:</strong> ${isButtonVisible ? '✅ Sim' : '❌ Não'}<br>
-                <strong>Botão X no viewport:</strong> ${isButtonInViewport ? '✅ Sim' : '❌ Não'}<br>
-                <strong>Botão X tamanho:</strong> ${buttonRect.width}x${buttonRect.height}px<br>
-                <strong>Modal z-index:</strong> ${modalStyles.zIndex}<br>
-                <strong>Modal display:</strong> ${modalStyles.display}<br>
-                <br><strong>🎯 Teste agora:</strong><br>
-                1. ✅ Clique no botão X vermelho<br>
-                2. ✅ Clique no botão "Fechar"<br>
-                3. ✅ Clique no fundo escuro<br>
-                4. ✅ Pressione a tecla ESC
-            `;
-            
-            if (isButtonVisible && isButtonInViewport) {
-                debugOutput.className = 'debug-modal-header success';
-            }
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('rolePermissionsModal');
-            const debugOutput = document.getElementById('debugOutput');
-            
-            modal.classList.remove('active');
-            testResults.push('Botão X funcionou ✅');
-            debugOutput.innerHTML = '<strong>Status:</strong> Modal fechado via botão X ✅<br><strong>Resultado:</strong> SUCESSO!';
-            debugOutput.className = 'debug-modal-header success';
-        }
-
-        function savePermissions() {
-            alert('Função salvar permissões (teste)');
-        }
-
-        function testAllCloseMethods() {
-            testResults = [];
-            const debugOutput = document.getElementById('debugOutput');
-            
-            debugOutput.innerHTML = '<strong>Status:</strong> Iniciando teste completo...<br>Abra o modal e teste todos os métodos de fechamento!';
-            
+            // Verificar se os botões estão visíveis
             setTimeout(() => {
-                testModal();
-            }, 1000);
+                debugButtons();
+            }, 100);
         }
 
-        // Fechar modal clicando no fundo
-        document.getElementById('rolePermissionsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeModal();
-                testResults.push('Clique no fundo funcionou ✅');
-                document.getElementById('debugOutput').innerHTML = '<strong>Status:</strong> Modal fechado via clique no fundo ✅<br><strong>Resultado:</strong> SUCESSO!';
-                document.getElementById('debugOutput').className = 'debug-modal-header success';
+        function debugButtons() {
+            log('🔍 Verificando botões...');
+            
+            const closeBtn = document.getElementById('closeBtn');
+            const closeActionBtn = document.getElementById('closeActionBtn');
+            
+            if (closeBtn) {
+                const style = window.getComputedStyle(closeBtn);
+                log(`Botão X - Display: ${style.display}, Visibility: ${style.visibility}, Opacity: ${style.opacity}`);
+                log(`Botão X - Position: ${style.position}, Z-index: ${style.zIndex}`);
+                log(`Botão X - Width: ${style.width}, Height: ${style.height}`);
+                log(`Botão X - Background: ${style.backgroundColor}, Color: ${style.color}`);
+                
+                const rect = closeBtn.getBoundingClientRect();
+                log(`Botão X - Posição: top=${rect.top}, left=${rect.left}, width=${rect.width}, height=${rect.height}`);
+                
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                    log('❌ Botão X está invisível!', 'error');
+                } else {
+                    log('✅ Botão X deveria estar visível', 'success');
+                }
+            } else {
+                log('❌ Botão X não encontrado!', 'error');
             }
-        });
+            
+            if (closeActionBtn) {
+                const style = window.getComputedStyle(closeActionBtn);
+                log(`Botão Fechar - Display: ${style.display}, Visibility: ${style.visibility}, Opacity: ${style.opacity}`);
+                
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+                    log('❌ Botão Fechar está invisível!', 'error');
+                } else {
+                    log('✅ Botão Fechar deveria estar visível', 'success');
+                }
+            } else {
+                log('❌ Botão Fechar não encontrado!', 'error');
+            }
+        }
 
-        // Fechar modal com ESC
+        function forceButtonsVisible() {
+            log('🔧 Forçando visibilidade dos botões...');
+            
+            const closeBtn = document.getElementById('closeBtn');
+            const closeActionBtn = document.getElementById('closeActionBtn');
+            
+            if (closeBtn) {
+                closeBtn.classList.add('force-visible');
+                closeBtn.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; background: red !important; color: white !important; border: 2px solid yellow !important; z-index: 99999 !important; position: relative !important;';
+                log('✅ Botão X forçado a ser visível', 'success');
+            }
+            
+            if (closeActionBtn) {
+                closeActionBtn.classList.add('force-visible');
+                closeActionBtn.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; background: blue !important; color: white !important; border: 2px solid yellow !important; z-index: 99999 !important; position: relative !important;';
+                log('✅ Botão Fechar forçado a ser visível', 'success');
+            }
+        }
+
+        function closeRolePermissionsModal() {
+            log('🔄 Fechando modal...');
+            const modal = document.getElementById('rolePermissionsModal');
+            modal.classList.remove('active');
+            log('✅ Modal fechado', 'success');
+        }
+
+        function testCloseModal() {
+            log('🧪 Testando fechamento do modal...');
+            closeRolePermissionsModal();
+        }
+
+        function saveRolePermissions() {
+            log('💾 Salvando permissões (teste)...');
+        }
+
+        function inspectCSS() {
+            const modal = document.getElementById('rolePermissionsModal');
+            const header = modal.querySelector('.modal-header');
+            const closeBtn = header.querySelector('button');
+            const actions = modal.querySelector('.modal-actions');
+            const actionBtn = actions.querySelector('button');
+            
+            console.log('=== INSPEÇÃO CSS ===');
+            console.log('Modal display:', window.getComputedStyle(modal).display);
+            console.log('Header display:', window.getComputedStyle(header).display);
+            console.log('Close Button display:', window.getComputedStyle(closeBtn).display);
+            console.log('Close Button visibility:', window.getComputedStyle(closeBtn).visibility);
+            console.log('Close Button opacity:', window.getComputedStyle(closeBtn).opacity);
+            console.log('Actions display:', window.getComputedStyle(actions).display);
+            console.log('Action Button display:', window.getComputedStyle(actionBtn).display);
+            console.log('Action Button visibility:', window.getComputedStyle(actionBtn).visibility);
+            console.log('Action Button opacity:', window.getComputedStyle(actionBtn).opacity);
+            
+            // Verificar se os elementos existem
+            console.log('=== ELEMENTOS ===');
+            console.log('Modal existe:', !!modal);
+            console.log('Header existe:', !!header);
+            console.log('Close Button existe:', !!closeBtn);
+            console.log('Actions existe:', !!actions);
+            console.log('Action Button existe:', !!actionBtn);
+            
+            // Verificar posicionamento
+            console.log('=== POSICIONAMENTO ===');
+            if (closeBtn) {
+                const rect = closeBtn.getBoundingClientRect();
+                console.log('Close Button rect:', rect);
+                console.log('Close Button z-index:', window.getComputedStyle(closeBtn).zIndex);
+            }
+            if (actionBtn) {
+                const rect = actionBtn.getBoundingClientRect();
+                console.log('Action Button rect:', rect);
+                console.log('Action Button z-index:', window.getComputedStyle(actionBtn).zIndex);
+            }
+        }
+        
+        function checkButtonsExistence() {
+            const modal = document.getElementById('rolePermissionsModal');
+            const allButtons = modal.querySelectorAll('button');
+            console.log('=== BOTÕES ENCONTRADOS ===');
+            console.log('Total de botões:', allButtons.length);
+            allButtons.forEach((btn, index) => {
+                console.log(`Botão ${index + 1}:`, btn.textContent, btn.style.display, btn.offsetWidth, btn.offsetHeight);
+            });
+        }
+        
+        function highlightButtons() {
+            const modal = document.getElementById('rolePermissionsModal');
+            const allButtons = modal.querySelectorAll('button');
+            
+            console.log('=== DESTACANDO BOTÕES ===');
+            allButtons.forEach((btn, index) => {
+                // Adicionar borda vermelha e fundo amarelo para destacar
+                btn.style.border = '3px solid red !important';
+                btn.style.backgroundColor = 'yellow !important';
+                btn.style.color = 'black !important';
+                btn.style.zIndex = '99999 !important';
+                btn.style.position = 'relative !important';
+                
+                console.log(`Botão ${index + 1} destacado:`, btn.textContent);
+            });
+            
+            // Também destacar os containers
+            const header = modal.querySelector('.modal-header');
+            const actions = modal.querySelector('.modal-actions');
+            
+            if (header) {
+                header.style.border = '2px solid blue';
+                header.style.backgroundColor = 'lightblue';
+            }
+            
+            if (actions) {
+                actions.style.border = '2px solid green';
+                actions.style.backgroundColor = 'lightgreen';
+            }
+        }
+
+        // Adicionar eventos de teclado
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 const modal = document.getElementById('rolePermissionsModal');
                 if (modal.classList.contains('active')) {
-                    closeModal();
-                    testResults.push('Tecla ESC funcionou ✅');
-                    document.getElementById('debugOutput').innerHTML = '<strong>Status:</strong> Modal fechado via tecla ESC ✅<br><strong>Resultado:</strong> SUCESSO!';
-                    document.getElementById('debugOutput').className = 'debug-modal-header success';
+                    log('⌨️ ESC pressionado - fechando modal');
+                    closeRolePermissionsModal();
                 }
             }
         });
+
+        // Fechar ao clicar no fundo
+        document.getElementById('rolePermissionsModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                log('🖱️ Clique no fundo - fechando modal');
+                closeRolePermissionsModal();
+            }
+        });
+
+        // Log inicial
+        log('🚀 Sistema de debug carregado');
+        log('📝 Clique nos botões acima para testar o modal');
     </script>
 </body>
 </html>
