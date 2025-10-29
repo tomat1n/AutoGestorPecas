@@ -61,32 +61,35 @@ function saveSection(section){
 }
 
 function renderUsersList(){
-  const container=document.getElementById('cfgUsersList'); if(!container) return;
-  const cfg=getCfg(); const users=Array.isArray(cfg.users)?cfg.users:[];
-  if(users.length===0){ container.innerHTML='<p>Nenhum usuário cadastrado.</p>'; return; }
-  const html=users.map(u=>`<div class="user-row" style="padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div><strong>${escapeHTML(u.name)}</strong><br><small>${escapeHTML(u.email)} • ${escapeHTML(u.username)} • ${escapeHTML(u.role)}</small></div></div>`).join('');
-  container.innerHTML=html;
+  // Esta função agora é gerenciada pelo UserManager
+  if (window.userManager) {
+    window.userManager.renderUsersList();
+  } else {
+    const container=document.getElementById('cfgUsersList'); 
+    if(container) container.innerHTML='<p>Carregando usuários...</p>';
+  }
 }
 function escapeHTML(str){ return String(str).replace(/[&<>"']/g,m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m])); }
 
 function addNewUser(){
-  const name=document.getElementById('newUserFullName')?.value?.trim();
-  const email=document.getElementById('newUserEmail')?.value?.trim();
-  const username=document.getElementById('newUserUsername')?.value?.trim();
-  const password=document.getElementById('newUserPassword')?.value?.trim();
-  const role=document.getElementById('newUserRole')?.value;
-  if(!name||!email||!username||!password||!role){ alert('Preencha todos os campos obrigatórios.'); return; }
-  const cfg=getCfg(); if(!Array.isArray(cfg.users)) cfg.users=[];
-  cfg.users.push({name,email,username,role,createdAt:new Date().toISOString()});
-  setCfg(cfg);
-  renderUsersList();
-  closeModal('cfgUserModal');
-  document.getElementById('newUserFullName').value='';
-  document.getElementById('newUserEmail').value='';
-  document.getElementById('newUserUsername').value='';
-  document.getElementById('newUserPassword').value='';
-  document.getElementById('newUserRole').value='seller';
-  alert('Usuário adicionado.');
+  // Esta função agora é gerenciada pelo UserManager
+  if (window.userManager) {
+    window.userManager.saveUser();
+  } else {
+    alert('Sistema de usuários não está disponível.');
+  }
+}
+
+function removeUser(userId){
+  // Esta função agora é gerenciada pelo UserManager
+  if (window.userManager) {
+    const user = window.userManager.users.find(u => u.id === userId);
+    if (user) {
+      window.userManager.confirmDeleteUser(userId, user.name);
+    }
+  } else {
+    alert('Sistema de usuários não está disponível.');
+  }
 }
 
 function createBackup(){
@@ -184,3 +187,27 @@ function testSupabaseConn(){
     }).catch(e=>{ status&&(status.textContent='Erro: '+e.message); alert('Erro ao testar: '+e.message); });
   }catch(e){ status&&(status.textContent='Erro: '+e.message); alert('Erro ao testar: '+e.message); }
 }
+
+// Inicializar sistema de usuários quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+  // Verificar se estamos na aba de configurações
+  const settingsTab = document.querySelector('[data-page="settings"]');
+  if (settingsTab) {
+    // Inicializar UserManager quando necessário
+    window.initializeUserSystem = function() {
+      if (typeof UserManager !== 'undefined' && !window.userManager) {
+        window.userManager = new UserManager();
+        console.log('Sistema de usuários inicializado');
+      }
+    };
+    
+    // Inicializar quando a aba de configurações for clicada
+    settingsTab.addEventListener('click', function() {
+      setTimeout(() => {
+        if (typeof UserManager !== 'undefined') {
+          window.initializeUserSystem();
+        }
+      }, 100);
+    });
+  }
+});

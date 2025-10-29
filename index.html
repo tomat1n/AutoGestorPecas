@@ -11,6 +11,7 @@
   <!-- Font Awesome 6.4.0 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" href="css/user-management.css" />
 </head>
 <body>
   <!-- Sidebar Retrátil -->
@@ -18,6 +19,97 @@
     <div class="logo">
       <h2>AutoGestor Peças</h2>
       <div class="subtitle">Sistema de Gestão</div>
+    </div>
+
+    <!-- Modal de Permissões por Role -->
+    <div class="app-modal" id="rolePermissionsModal">
+      <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+          <h3 id="rolePermissionsTitle">Permissões do Perfil</h3>
+          <button class="btn btn-secondary" onclick="userManager.closeRolePermissionsModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="permissions-overview">
+            <div class="permission-module" data-module="dashboard">
+              <h4>📊 Dashboard</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="vendas">
+              <h4>💰 Vendas</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="create"> Criar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+                <label><input type="checkbox" data-action="delete"> Excluir</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="estoque">
+              <h4>📦 Estoque</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="create"> Criar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+                <label><input type="checkbox" data-action="delete"> Excluir</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="financeiro">
+              <h4>💳 Financeiro</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="create"> Criar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+                <label><input type="checkbox" data-action="delete"> Excluir</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="clientes">
+              <h4>👥 Clientes</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="create"> Criar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+                <label><input type="checkbox" data-action="delete"> Excluir</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="relatorios">
+              <h4>📈 Relatórios</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="export"> Exportar</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="configuracoes">
+              <h4>⚙️ Configurações</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+              </div>
+            </div>
+            
+            <div class="permission-module" data-module="usuarios">
+              <h4>👤 Usuários</h4>
+              <div class="permission-actions">
+                <label><input type="checkbox" data-action="view"> Visualizar</label>
+                <label><input type="checkbox" data-action="create"> Criar</label>
+                <label><input type="checkbox" data-action="edit"> Editar</label>
+                <label><input type="checkbox" data-action="delete"> Excluir</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="userManager.closeRolePermissionsModal()">Fechar</button>
+          <button type="button" class="btn btn-primary" onclick="userManager.saveRolePermissions()">Salvar Permissões</button>
+        </div>
+      </div>
     </div>
     <div class="menu">
       <a href="#" class="menu-item active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a>
@@ -1913,34 +2005,83 @@
           <!-- Usuários e Permissões -->
           <div class="cfg-card hidden" data-tab="users">
             <h3>Usuários e Permissões</h3>
-            <div class="cards-grid">
+            
+            <!-- Estatísticas de Usuários -->
+            <div class="cards-grid" style="margin-bottom: 20px;">
               <div class="config-card">
-                <div class="card-icon icon-primary"><i class="fas fa-user-shield"></i></div>
-                <div class="card-title">Administrador</div>
-                <div class="card-description">Acesso total ao sistema e configurações.</div>
-                <div class="form-actions"><button class="btn" id="cfgAdminManageBtn">Gerenciar</button></div>
+                <div class="card-icon icon-primary"><i class="fas fa-users"></i></div>
+                <div class="card-title">Total de Usuários</div>
+                <div class="card-description"><span id="totalUsers" style="font-size: 24px; font-weight: bold;">0</span></div>
               </div>
               <div class="config-card">
-                <div class="card-icon icon-success"><i class="fas fa-user-tie"></i></div>
-                <div class="card-title">Gerente</div>
-                <div class="card-description">Gerencia vendas, estoque e relatórios.</div>
-                <div class="form-actions"><button class="btn" id="cfgManagerManageBtn">Gerenciar</button></div>
+                <div class="card-icon icon-success"><i class="fas fa-user-check"></i></div>
+                <div class="card-title">Usuários Ativos</div>
+                <div class="card-description"><span id="activeUsers" style="font-size: 24px; font-weight: bold;">0</span></div>
               </div>
               <div class="config-card">
-                <div class="card-icon icon-warning"><i class="fas fa-user"></i></div>
-                <div class="card-title">Vendedor</div>
-                <div class="card-description">Acesso ao PDV e clientes.</div>
-                <div class="form-actions"><button class="btn" id="cfgSellerManageBtn">Gerenciar</button></div>
+                <div class="card-icon icon-warning"><i class="fas fa-user-shield"></i></div>
+                <div class="card-title">Administradores</div>
+                <div class="card-description"><span id="adminUsers" style="font-size: 24px; font-weight: bold;">0</span></div>
               </div>
               <div class="config-card">
-                <div class="card-icon icon-danger"><i class="fas fa-user-plus"></i></div>
-                <div class="card-title">Novo Usuário</div>
-                <div class="card-description">Criar novo usuário com permissões.</div>
-                <div class="form-actions"><button class="btn btn-primary" id="cfgNewUserCreateBtn">Criar Usuário</button></div>
+                <div class="card-icon icon-info"><i class="fas fa-user-tie"></i></div>
+                <div class="card-title">Gerentes</div>
+                <div class="card-description"><span id="managerUsers" style="font-size: 24px; font-weight: bold;">0</span></div>
               </div>
             </div>
-            <div class="list" id="cfgUsersList"></div>
-            <div class="form-actions"><button class="btn btn-primary" id="cfgUsersSaveBtn">Salvar</button></div>
+
+            <!-- Controles de Usuários -->
+            <div class="form-row" style="margin-bottom: 20px;">
+              <div class="form-group">
+                <label for="userSearch">Buscar Usuários</label>
+                <input type="text" id="userSearch" placeholder="Buscar por nome ou email..." />
+              </div>
+              <div class="form-group">
+                <label for="roleFilter">Filtrar por Role</label>
+                <select id="roleFilter">
+                  <option value="all">Todos</option>
+                  <option value="administrador">Administrador</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="vendedor">Vendedor</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button class="btn btn-primary" id="cfgNewUserCreateBtn">
+                  <i class="fas fa-user-plus"></i> Novo Usuário
+                </button>
+              </div>
+            </div>
+
+            <!-- Lista de Usuários -->
+            <div class="users-container">
+              <div id="usersList" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+
+            <!-- Gerenciamento de Roles -->
+            <div style="margin-top: 30px;">
+              <h4>Gerenciamento de Permissões por Role</h4>
+              <div class="cards-grid">
+                <div class="config-card">
+                  <div class="card-icon icon-primary"><i class="fas fa-user-shield"></i></div>
+                  <div class="card-title">Administrador</div>
+                  <div class="card-description">Acesso total ao sistema e configurações.</div>
+                  <div class="form-actions"><button class="btn" onclick="userManager.showRolePermissions('administrador')">Ver Permissões</button></div>
+                </div>
+                <div class="config-card">
+                  <div class="card-icon icon-success"><i class="fas fa-user-tie"></i></div>
+                  <div class="card-title">Gerente</div>
+                  <div class="card-description">Gerencia vendas, estoque e relatórios.</div>
+                  <div class="form-actions"><button class="btn" onclick="userManager.showRolePermissions('gerente')">Ver Permissões</button></div>
+                </div>
+                <div class="config-card">
+                  <div class="card-icon icon-warning"><i class="fas fa-user"></i></div>
+                  <div class="card-title">Vendedor</div>
+                  <div class="card-description">Acesso ao PDV e clientes.</div>
+                  <div class="form-actions"><button class="btn" onclick="userManager.showRolePermissions('vendedor')">Ver Permissões</button></div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Notificações -->
@@ -2194,24 +2335,126 @@
     <div class="app-modal" id="cfgUserModal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 class="section-title">Novo Usuário</h3>
-          <button class="btn btn-secondary" id="userModalCloseX">Fechar</button>
+          <h3 id="userModalTitle">Novo Usuário</h3>
+          <button class="btn btn-secondary" id="userModalCloseX">×</button>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label for="newUserFullName">Nome Completo</label><input id="newUserFullName" type="text" required></div>
-          <div class="form-group"><label for="newUserEmail">E-mail</label><input id="newUserEmail" type="email" required></div>
-          <div class="form-group"><label for="newUserUsername">Nome de Usuário</label><input id="newUserUsername" type="text" required></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label for="newUserPassword">Senha</label><input id="newUserPassword" type="password" required></div>
-          <div class="form-group"><label for="newUserRole">Perfil de Acesso</label>
-            <select id="newUserRole"><option value="admin">Administrador</option><option value="manager">Gerente</option><option value="seller">Vendedor</option></select>
+        <form id="userForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userName">Nome Completo *</label>
+              <input id="userName" name="name" type="text" required placeholder="Nome completo do usuário">
+            </div>
+            <div class="form-group">
+              <label for="userEmail">E-mail *</label>
+              <input id="userEmail" name="email" type="email" required placeholder="email@empresa.com">
+            </div>
           </div>
-        </div>
-        <div class="modal-actions">
-          <button class="btn" id="userModalCancel">Cancelar</button>
-          <button class="btn btn-primary" id="userModalAdd">Adicionar Usuário</button>
-        </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userPassword">Senha *</label>
+              <input id="userPassword" name="password" type="password" placeholder="Senha (deixe em branco para manter atual)">
+              <small style="color: #6b7280;">Mínimo 6 caracteres</small>
+            </div>
+            <div class="form-group">
+              <label for="userRole">Perfil de Acesso *</label>
+              <select id="userRole" name="role" required>
+                <option value="">Selecione um perfil</option>
+                <option value="administrador">Administrador</option>
+                <option value="gerente">Gerente</option>
+                <option value="vendedor">Vendedor</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="userStatus">Status</label>
+              <select id="userStatus" name="status">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+                <option value="suspenso">Suspenso</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- Seção de Permissões Personalizadas -->
+          <div id="customPermissionsSection" style="margin-top: 20px; display: none;">
+            <h4>Permissões Personalizadas</h4>
+            <div class="permissions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+              
+              <div class="permission-group">
+                <h5>Dashboard</h5>
+                <label><input type="checkbox" name="perm_dashboard_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_dashboard_edit"> Editar</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Vendas</h5>
+                <label><input type="checkbox" name="perm_vendas_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_vendas_create"> Criar</label>
+                <label><input type="checkbox" name="perm_vendas_edit"> Editar</label>
+                <label><input type="checkbox" name="perm_vendas_delete"> Excluir</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Estoque</h5>
+                <label><input type="checkbox" name="perm_estoque_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_estoque_create"> Criar</label>
+                <label><input type="checkbox" name="perm_estoque_edit"> Editar</label>
+                <label><input type="checkbox" name="perm_estoque_delete"> Excluir</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Financeiro</h5>
+                <label><input type="checkbox" name="perm_financeiro_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_financeiro_create"> Criar</label>
+                <label><input type="checkbox" name="perm_financeiro_edit"> Editar</label>
+                <label><input type="checkbox" name="perm_financeiro_delete"> Excluir</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Clientes</h5>
+                <label><input type="checkbox" name="perm_clientes_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_clientes_create"> Criar</label>
+                <label><input type="checkbox" name="perm_clientes_edit"> Editar</label>
+                <label><input type="checkbox" name="perm_clientes_delete"> Excluir</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Relatórios</h5>
+                <label><input type="checkbox" name="perm_relatorios_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_relatorios_export"> Exportar</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Configurações</h5>
+                <label><input type="checkbox" name="perm_configuracoes_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_configuracoes_edit"> Editar</label>
+              </div>
+              
+              <div class="permission-group">
+                <h5>Usuários</h5>
+                <label><input type="checkbox" name="perm_usuarios_view"> Visualizar</label>
+                <label><input type="checkbox" name="perm_usuarios_create"> Criar</label>
+                <label><input type="checkbox" name="perm_usuarios_edit"> Editar</label>
+                <label><input type="checkbox" name="perm_usuarios_delete"> Excluir</label>
+              </div>
+              
+            </div>
+            <div style="margin-top: 10px;">
+              <button type="button" class="btn btn-outline" onclick="userManager.resetPermissionsToRole()">
+                Resetar para Padrão do Perfil
+              </button>
+            </div>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn" id="userModalCancel">Cancelar</button>
+            <button type="button" class="btn btn-outline" onclick="userManager.toggleCustomPermissions()">
+              Permissões Personalizadas
+            </button>
+            <button type="submit" class="btn btn-primary" id="userModalAdd">Criar Usuário</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -2239,5 +2482,7 @@
     <script src="./invoices.js"></script>
     <!-- Settings JS -->
     <script src="./settings.js"></script>
+    <!-- User Management JS -->
+    <script src="js/user-management.js"></script>
   </body>
 </html>
