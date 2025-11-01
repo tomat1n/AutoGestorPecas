@@ -501,6 +501,10 @@ class UserManager {
         
         modal.classList.add('active');
         
+        // Forçar z-index muito alto diretamente no JavaScript
+        modal.style.zIndex = '999999';
+        modal.style.position = 'fixed';
+        
         // Adicionar evento para fechar ao clicar no fundo do modal
         modal.onclick = (e) => {
             if (e.target === modal) {
