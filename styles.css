@@ -828,8 +828,8 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .app-modal .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .app-modal .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px; }
 
-/* Modal de Permissões Personalizadas - z-index maior para aparecer acima do modal de usuário */
-#customPermissionsModal { z-index: 15000 !important; }
+/* Modal de Permissões Personalizadas - z-index muito maior para aparecer acima do modal de usuário */
+#customPermissionsModal { z-index: 99999 !important; }
 #customPermissionsModal .modal-content { 
   max-height: 90vh; 
   overflow-y: auto; 
