@@ -501,9 +501,30 @@ class UserManager {
         
         modal.classList.add('active');
         
-        // Forçar z-index muito alto diretamente no JavaScript
-        modal.style.zIndex = '999999';
+        // SOLUÇÃO ROBUSTA: Múltiplas estratégias para forçar o modal na frente
+        
+        // 1. Forçar z-index extremamente alto
+        modal.style.zIndex = '2147483647'; // Valor máximo do z-index
         modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        
+        // 2. Remover o modal do DOM e reinseri-lo no final do body para garantir que fique por cima
+        const parent = modal.parentNode;
+        const nextSibling = modal.nextSibling;
+        document.body.appendChild(modal);
+        
+        // 3. Aplicar com delay para garantir que seja executado após outros scripts
+        setTimeout(() => {
+            modal.style.zIndex = '2147483647';
+            modal.style.display = 'flex';
+        }, 10);
+        
+        // 4. Armazenar referências para restaurar depois
+        this.modalOriginalParent = parent;
+        this.modalOriginalNextSibling = nextSibling;
         
         // Adicionar evento para fechar ao clicar no fundo do modal
         modal.onclick = (e) => {
@@ -526,11 +547,31 @@ class UserManager {
         const modal = document.getElementById('customPermissionsModal');
         modal.classList.remove('active');
         
+        // Restaurar posição original do modal no DOM
+        if (this.modalOriginalParent && this.modalOriginalNextSibling) {
+            this.modalOriginalParent.insertBefore(modal, this.modalOriginalNextSibling);
+        } else if (this.modalOriginalParent) {
+            this.modalOriginalParent.appendChild(modal);
+        }
+        
+        // Limpar estilos forçados
+        modal.style.zIndex = '';
+        modal.style.position = '';
+        modal.style.top = '';
+        modal.style.left = '';
+        modal.style.width = '';
+        modal.style.height = '';
+        modal.style.display = '';
+        
         // Remover eventos do modal
         modal.onclick = null;
         
         // Remover eventos de teclado (se houver)
         document.removeEventListener('keydown', this.handleEscapeKeyCustom);
+        
+        // Limpar referências
+        this.modalOriginalParent = null;
+        this.modalOriginalNextSibling = null;
     }
     
     // Salvar permissões personalizadas
