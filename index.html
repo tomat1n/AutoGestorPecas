@@ -28,6 +28,8 @@
           <h3 id="rolePermissionsTitle">Permissões do Perfil</h3>
           <button class="btn btn-secondary" onclick="userManager.closeRolePermissionsModal()">×</button>
         </div>
+
+
         <div class="modal-body">
           <div class="permissions-overview">
             <div class="permission-module" data-module="dashboard">
@@ -108,6 +110,84 @@
         <div class="modal-actions">
           <button type="button" class="btn" onclick="userManager.closeRolePermissionsModal()">Fechar</button>
           <button type="button" class="btn btn-primary" onclick="userManager.saveRolePermissions()">Salvar Permissões</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Permissões Personalizadas -->
+    <div class="app-modal" id="customPermissionsModal">
+      <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-header">
+          <h3 id="customPermissionsTitle">Permissões Personalizadas</h3>
+          <button class="btn btn-secondary" onclick="userManager.closeCustomPermissionsModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="permissions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            
+            <div class="permission-group">
+              <h5>Dashboard</h5>
+              <label><input type="checkbox" name="perm_dashboard_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_dashboard_edit"> Editar</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Vendas</h5>
+              <label><input type="checkbox" name="perm_vendas_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_vendas_create"> Criar</label>
+              <label><input type="checkbox" name="perm_vendas_edit"> Editar</label>
+              <label><input type="checkbox" name="perm_vendas_delete"> Excluir</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Estoque</h5>
+              <label><input type="checkbox" name="perm_estoque_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_estoque_create"> Criar</label>
+              <label><input type="checkbox" name="perm_estoque_edit"> Editar</label>
+              <label><input type="checkbox" name="perm_estoque_delete"> Excluir</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Financeiro</h5>
+              <label><input type="checkbox" name="perm_financeiro_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_financeiro_create"> Criar</label>
+              <label><input type="checkbox" name="perm_financeiro_edit"> Editar</label>
+              <label><input type="checkbox" name="perm_financeiro_delete"> Excluir</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Clientes</h5>
+              <label><input type="checkbox" name="perm_clientes_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_clientes_create"> Criar</label>
+              <label><input type="checkbox" name="perm_clientes_edit"> Editar</label>
+              <label><input type="checkbox" name="perm_clientes_delete"> Excluir</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Relatórios</h5>
+              <label><input type="checkbox" name="perm_relatorios_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_relatorios_export"> Exportar</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Configurações</h5>
+              <label><input type="checkbox" name="perm_configuracoes_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_configuracoes_edit"> Editar</label>
+            </div>
+            
+            <div class="permission-group">
+              <h5>Usuários</h5>
+              <label><input type="checkbox" name="perm_usuarios_view"> Visualizar</label>
+              <label><input type="checkbox" name="perm_usuarios_create"> Criar</label>
+              <label><input type="checkbox" name="perm_usuarios_edit"> Editar</label>
+              <label><input type="checkbox" name="perm_usuarios_delete"> Excluir</label>
+            </div>
+            
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn" onclick="userManager.closeCustomPermissionsModal()">Fechar</button>
+          <button type="button" class="btn btn-outline" onclick="userManager.resetPermissionsToRole()">Resetar para Padrão do Perfil</button>
+          <button type="button" class="btn btn-primary" onclick="userManager.saveCustomPermissions()">Salvar Permissões</button>
         </div>
       </div>
     </div>
@@ -2376,80 +2456,9 @@
             </div>
           </div>
           
-          <!-- Seção de Permissões Personalizadas -->
-          <div id="customPermissionsSection" style="margin-top: 20px; display: none;">
-            <h4>Permissões Personalizadas</h4>
-            <div class="permissions-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-              
-              <div class="permission-group">
-                <h5>Dashboard</h5>
-                <label><input type="checkbox" name="perm_dashboard_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_dashboard_edit"> Editar</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Vendas</h5>
-                <label><input type="checkbox" name="perm_vendas_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_vendas_create"> Criar</label>
-                <label><input type="checkbox" name="perm_vendas_edit"> Editar</label>
-                <label><input type="checkbox" name="perm_vendas_delete"> Excluir</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Estoque</h5>
-                <label><input type="checkbox" name="perm_estoque_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_estoque_create"> Criar</label>
-                <label><input type="checkbox" name="perm_estoque_edit"> Editar</label>
-                <label><input type="checkbox" name="perm_estoque_delete"> Excluir</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Financeiro</h5>
-                <label><input type="checkbox" name="perm_financeiro_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_financeiro_create"> Criar</label>
-                <label><input type="checkbox" name="perm_financeiro_edit"> Editar</label>
-                <label><input type="checkbox" name="perm_financeiro_delete"> Excluir</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Clientes</h5>
-                <label><input type="checkbox" name="perm_clientes_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_clientes_create"> Criar</label>
-                <label><input type="checkbox" name="perm_clientes_edit"> Editar</label>
-                <label><input type="checkbox" name="perm_clientes_delete"> Excluir</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Relatórios</h5>
-                <label><input type="checkbox" name="perm_relatorios_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_relatorios_export"> Exportar</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Configurações</h5>
-                <label><input type="checkbox" name="perm_configuracoes_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_configuracoes_edit"> Editar</label>
-              </div>
-              
-              <div class="permission-group">
-                <h5>Usuários</h5>
-                <label><input type="checkbox" name="perm_usuarios_view"> Visualizar</label>
-                <label><input type="checkbox" name="perm_usuarios_create"> Criar</label>
-                <label><input type="checkbox" name="perm_usuarios_edit"> Editar</label>
-                <label><input type="checkbox" name="perm_usuarios_delete"> Excluir</label>
-              </div>
-              
-            </div>
-            <div style="margin-top: 10px;">
-              <button type="button" class="btn btn-outline" onclick="userManager.resetPermissionsToRole()">
-                Resetar para Padrão do Perfil
-              </button>
-            </div>
-          </div>
-          
           <div class="modal-actions">
             <button type="button" class="btn" id="userModalCancel">Cancelar</button>
-            <button type="button" class="btn btn-outline" onclick="userManager.toggleCustomPermissions()">
+            <button type="button" class="btn btn-outline" onclick="userManager.openCustomPermissionsModal()">
               Permissões Personalizadas
             </button>
             <button type="submit" class="btn btn-primary" id="userModalAdd">Criar Usuário</button>

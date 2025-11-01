@@ -57,8 +57,9 @@ class UserManager {
     async loadCurrentUser() {
         try {
             // Por enquanto, vamos simular um usuário administrador
+            // Usando um UUID válido em vez de '1'
             this.currentUser = {
-                id: '1',
+                id: '00000000-0000-4000-8000-000000000001',
                 name: 'Administrador',
                 email: 'admin@autogestorpecas.com',
                 role: 'administrador',
@@ -399,6 +400,17 @@ class UserManager {
             addUserBtn.addEventListener('click', () => this.openUserModal());
         }
 
+        // Botões de fechar modal de usuário
+        const userModalCancel = document.getElementById('userModalCancel');
+        if (userModalCancel) {
+            userModalCancel.addEventListener('click', () => this.closeUserModal());
+        }
+
+        const userModalCloseX = document.getElementById('userModalCloseX');
+        if (userModalCloseX) {
+            userModalCloseX.addEventListener('click', () => this.closeUserModal());
+        }
+
         // Formulário de usuário
         const userForm = document.getElementById('userForm');
         if (userForm) {
@@ -415,6 +427,16 @@ class UserManager {
         if (roleFilter) {
             roleFilter.addEventListener('change', (e) => this.filterUsersByRole(e.target.value));
         }
+
+        // Event listener para ESC key no modal de usuário
+        this.handleEscapeKeyUser = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('cfgUserModal');
+                if (modal && modal.classList.contains('active')) {
+                    this.closeUserModal();
+                }
+            }
+        };
     }
 
     // Abrir modal de usuário
@@ -450,60 +472,106 @@ class UserManager {
             if (passwordField) {
                 passwordField.required = true;
             }
-            this.hideCustomPermissions();
         }
 
+        // Usar o mesmo método que o settings.js
         if (modal) {
-            modal.style.display = 'flex';
+            modal.classList.add('active');
         }
-    }
-
-    // Alternar seção de permissões personalizadas
-    toggleCustomPermissions() {
-        const section = document.getElementById('customPermissionsSection');
-        const isVisible = section.style.display !== 'none';
         
-        if (isVisible) {
-            this.hideCustomPermissions();
-        } else {
-            this.showCustomPermissions();
-        }
+        // Adicionar event listener para ESC key
+        document.addEventListener('keydown', this.handleEscapeKeyUser);
     }
 
-    // Mostrar permissões personalizadas
-    showCustomPermissions() {
-        const section = document.getElementById('customPermissionsSection');
-        section.style.display = 'block';
+    // Alternar seção de permissões personalizadas (REMOVIDO - agora é modal separado)
+    
+    // Abrir modal de permissões personalizadas
+    openCustomPermissionsModal() {
+        const modal = document.getElementById('customPermissionsModal');
+        const title = document.getElementById('customPermissionsTitle');
         
         // Aplicar permissões padrão baseadas no role selecionado
         const role = document.getElementById('userRole').value;
         if (role) {
+            title.textContent = `Permissões Personalizadas - ${this.getRoleDisplayName(role)}`;
             this.applyRolePermissions(role);
+        } else {
+            title.textContent = 'Permissões Personalizadas';
         }
+        
+        modal.classList.add('active');
+        
+        // Adicionar evento para fechar ao clicar no fundo do modal
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                this.closeCustomPermissionsModal();
+            }
+        };
+        
+        // Definir e armazenar a função de escape para poder removê-la depois
+        this.handleEscapeKeyCustom = (e) => {
+            if (e.key === 'Escape') {
+                this.closeCustomPermissionsModal();
+            }
+        };
+        document.addEventListener('keydown', this.handleEscapeKeyCustom);
+    }
+    
+    // Fechar modal de permissões personalizadas
+    closeCustomPermissionsModal() {
+        const modal = document.getElementById('customPermissionsModal');
+        modal.classList.remove('active');
+        
+        // Remover eventos do modal
+        modal.onclick = null;
+        
+        // Remover eventos de teclado (se houver)
+        document.removeEventListener('keydown', this.handleEscapeKeyCustom);
+    }
+    
+    // Salvar permissões personalizadas
+    saveCustomPermissions() {
+        const permissions = this.collectCustomPermissions();
+        
+        // Aqui você pode implementar a lógica para salvar as permissões
+        // Por exemplo, armazenar em uma variável temporária ou enviar para o servidor
+        this.tempCustomPermissions = permissions;
+        
+        alert('Permissões personalizadas salvas com sucesso!');
+        this.closeCustomPermissionsModal();
     }
 
-    // Esconder permissões personalizadas
-    hideCustomPermissions() {
-        const section = document.getElementById('customPermissionsSection');
-        if (section) {
-            section.style.display = 'none';
-        }
-    }
+    // Mostrar permissões personalizadas (REMOVIDO - agora é modal separado)
+    
+    // Esconder permissões personalizadas (REMOVIDO - agora é modal separado)
 
     // Aplicar permissões padrão baseadas no role
     applyRolePermissions(role) {
         const permissions = this.permissions[role];
         if (!permissions) return;
         
-        // Limpar todas as permissões primeiro
-        const checkboxes = document.querySelectorAll('#customPermissionsSection input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = false);
+        // Limpar todas as permissões primeiro (buscar em ambos os modais)
+        const checkboxesRole = document.querySelectorAll('#rolePermissionsModal input[type="checkbox"]');
+        const checkboxesCustom = document.querySelectorAll('#customPermissionsModal input[type="checkbox"]');
         
-        // Aplicar permissões do role
+        checkboxesRole.forEach(cb => cb.checked = false);
+        checkboxesCustom.forEach(cb => cb.checked = false);
+        
+        // Aplicar permissões do role no modal de role
         Object.keys(permissions).forEach(module => {
             Object.keys(permissions[module]).forEach(action => {
-                const permName = `${module}_${action}`;
-                const checkbox = document.querySelector(`input[name="${permName}"]`);
+                const checkbox = document.querySelector(`#rolePermissionsModal input[data-action="${action}"]`);
+                if (checkbox && checkbox.closest('[data-module="' + module + '"]')) {
+                    checkbox.checked = permissions[module][action];
+                }
+            });
+        });
+        
+        // Aplicar permissões do role no modal de permissões personalizadas
+        Object.keys(permissions).forEach(module => {
+            Object.keys(permissions[module]).forEach(action => {
+                const permName = `perm_${module}_${action}`;
+                const checkbox = document.querySelector(`#customPermissionsModal input[name="${permName}"]`);
                 if (checkbox) {
                     checkbox.checked = permissions[module][action];
                 }
@@ -525,8 +593,8 @@ class UserManager {
         
         Object.keys(customPermissions).forEach(module => {
             Object.keys(customPermissions[module]).forEach(action => {
-                const permName = `${module}_${action}`;
-                const checkbox = document.querySelector(`input[name="${permName}"]`);
+                const permName = `perm_${module}_${action}`;
+                const checkbox = document.querySelector(`#customPermissionsModal input[name="${permName}"]`);
                 if (checkbox) {
                     checkbox.checked = customPermissions[module][action];
                 }
@@ -537,7 +605,7 @@ class UserManager {
     // Coletar permissões personalizadas do modal
     collectCustomPermissions() {
         const permissions = {};
-        const checkboxes = document.querySelectorAll('#customPermissionsSection input[type="checkbox"]');
+        const checkboxes = document.querySelectorAll('#customPermissionsModal input[type="checkbox"]');
         
         checkboxes.forEach(cb => {
             const [module, action] = cb.name.split('_');
@@ -570,14 +638,13 @@ class UserManager {
       }
     };
     
-    // Adicionar evento para fechar com ESC
-    const handleEscape = (e) => {
+    // Definir e armazenar a função de escape para poder removê-la depois
+    this.handleEscapeKey = (e) => {
       if (e.key === 'Escape') {
         this.closeRolePermissionsModal();
-        document.removeEventListener('keydown', handleEscape);
       }
     };
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener('keydown', this.handleEscapeKey);
   }
 
   // Fechar modal de permissões por role
@@ -640,12 +707,12 @@ class UserManager {
       // Salvar no localStorage (ou enviar para servidor)
       localStorage.setItem('userPermissions', JSON.stringify(this.permissions));
 
-      this.showNotification('Permissões atualizadas com sucesso!', 'success');
+      alert('Permissões atualizadas com sucesso!');
       this.closeRolePermissionsModal();
       
     } catch (error) {
       console.error('Erro ao salvar permissões:', error);
-      this.showNotification('Erro ao salvar permissões', 'error');
+      alert('Erro ao salvar permissões: ' + error.message);
     }
   }
 
@@ -727,9 +794,12 @@ class UserManager {
     closeUserModal() {
         const modal = document.getElementById('cfgUserModal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.classList.remove('active');
         }
         this.currentEditingUserId = null;
+        
+        // Remover event listener para ESC key
+        document.removeEventListener('keydown', this.handleEscapeKeyUser);
     }
 
     // Editar usuário
