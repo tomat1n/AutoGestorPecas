@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Criação de Usuário - AutoGestor Peças</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="js/user-management.js"></script>
+</head>
+<body>
+    <h1>Teste Criação de Usuário</h1>
+    <button onclick="testUserCreation()">Testar Criação de Usuário</button>
+    <div id="result"></div>
+
+    <script>
+        let userManager;
+
+        async function initTest() {
+            try {
+                // Inicializar Supabase
+                window.supabaseClient = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                // Inicializar UserManager
+                userManager = new UserManager();
+                await userManager.init();
+
+                document.getElementById('result').innerHTML = '<p style="color: green;">✅ Sistema inicializado com sucesso!</p>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<p style="color: red;">❌ Erro na inicialização: ' + error.message + '</p>';
+            }
+        }
+
+        async function testUserCreation() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testando criação de usuário...</p>';
+
+            try {
+                const testUserData = {
+                    name: 'Teste Usuário RLS',
+                    email: 'teste-usuario-rls@test.com',
+                    password: '123456',
+                    role: 'vendedor'
+                };
+
+                const result = await userManager.createUser(testUserData);
+
+                if (result.success) {
+                    resultDiv.innerHTML += '<p style="color: green;">✅ Usuário criado com sucesso!</p>';
+                    resultDiv.innerHTML += '<p>ID: ' + result.data.id + '</p>';
+                    resultDiv.innerHTML += '<p>Nome: ' + result.data.name + '</p>';
+                    resultDiv.innerHTML += '<p>Email: ' + result.data.email + '</p>';
+                    
+                    // Limpar usuário de teste
+                    resultDiv.innerHTML += '<p>Limpando usuário de teste...</p>';
+                    await window.supabaseClient
+                        .from('users')
+                        .delete()
+                        .eq('email', 'teste-usuario-rls@test.com');
+                    resultDiv.innerHTML += '<p style="color: green;">✅ Teste concluído com sucesso!</p>';
+                } else {
+                    resultDiv.innerHTML += '<p style="color: red;">❌ Falha na criação: ' + result.error + '</p>';
+                }
+
+            } catch (error) {
+                resultDiv.innerHTML += '<p style="color: red;">❌ Erro no teste: ' + error.message + '</p>';
+            }
+        }
+
+        // Inicializar automaticamente
+        window.onload = () => {
+            setTimeout(initTest, 500);
+        };
+    </script>
+</body>
+</html>

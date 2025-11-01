@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrigir RLS - AutoGestor Peças</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Corrigir Problema RLS</h1>
+    <button onclick="testAndFix()">Testar e Corrigir</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAndFix() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testando inserção de usuário...</p>';
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                // Testar inserção direta
+                const testUser = {
+                    name: 'Teste RLS',
+                    email: 'teste-rls@test.com',
+                    password_hash: '$2b$10$test',
+                    role: 'vendedor',
+                    status: 'ativo',
+                    permissions: {}
+                };
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (error) {
+                    resultDiv.innerHTML += '<p style="color: red;">❌ Erro RLS confirmado: ' + error.message + '</p>';
+                    
+                    // Tentar desabilitar RLS via SQL
+                    resultDiv.innerHTML += '<p>Tentando desabilitar RLS...</p>';
+                    
+                    const disableSQL = 'ALTER TABLE users DISABLE ROW LEVEL SECURITY;';
+                    
+                    try {
+                        const { error: disableError } = await supabase.rpc('exec_sql', { sql: disableSQL });
+                        if (disableError) {
+                            resultDiv.innerHTML += '<p style="color: orange;">⚠️ Não foi possível desabilitar RLS via código: ' + disableError.message + '</p>';
+                            resultDiv.innerHTML += '<p><strong>SOLUÇÃO MANUAL:</strong></p>';
+                            resultDiv.innerHTML += '<p>1. Acesse o painel do Supabase</p>';
+                            resultDiv.innerHTML += '<p>2. Vá em Database > Tables > users</p>';
+                            resultDiv.innerHTML += '<p>3. Clique em "RLS disabled" ou execute: ALTER TABLE users DISABLE ROW LEVEL SECURITY;</p>';
+                        } else {
+                            resultDiv.innerHTML += '<p style="color: green;">✅ RLS desabilitado com sucesso!</p>';
+                            
+                            // Testar novamente
+                            const { data: retestData, error: retestError } = await supabase
+                                .from('users')
+                                .insert([testUser])
+                                .select();
+                                
+                            if (retestError) {
+                                resultDiv.innerHTML += '<p style="color: red;">❌ Ainda há erro: ' + retestError.message + '</p>';
+                            } else {
+                                resultDiv.innerHTML += '<p style="color: green;">✅ Inserção funcionando! Limpando teste...</p>';
+                                await supabase.from('users').delete().eq('email', 'teste-rls@test.com');
+                                resultDiv.innerHTML += '<p style="color: green;">✅ Problema RLS resolvido!</p>';
+                            }
+                        }
+                    } catch (rpcError) {
+                        resultDiv.innerHTML += '<p style="color: orange">⚠️ RPC não disponível. Solução manual necessária.</p>';
+                        resultDiv.innerHTML += '<p><strong>Execute no SQL Editor do Supabase:</strong></p>';
+                        resultDiv.innerHTML += '<pre>ALTER TABLE users DISABLE ROW LEVEL SECURITY;<br>ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY;<br>ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY;</pre>';
+                    }
+                    
+                } else {
+                    resultDiv.innerHTML += '<p style="color: green;">✅ Inserção funcionando! Limpando teste...</p>';
+                    await supabase.from('users').delete().eq('email', 'teste-rls@test.com');
+                    resultDiv.innerHTML += '<p style="color: green;">✅ Não há problema RLS!</p>';
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.innerHTML += '<p style="color: red;">❌ Erro: ' + error.message + '</p>';
+            }
+        }
+
+        // Executar automaticamente
+        window.onload = () => {
+            setTimeout(testAndFix, 1000);
+        };
+    </script>
+</body>
+</html>

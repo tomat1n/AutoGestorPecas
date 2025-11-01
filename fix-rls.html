@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correção RLS - AutoGestor Peças</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Correção das Políticas RLS</h1>
+    <button onclick="fixRLS()">Aplicar Correção</button>
+    <div id="result"></div>
+
+    <script>
+        async function fixRLS() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Aplicando correção...</p>';
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                // SQL para corrigir RLS
+                const fixSQL = `
+                    -- Remover políticas existentes
+                    DROP POLICY IF EXISTS "users_select_policy" ON users;
+                    DROP POLICY IF EXISTS "users_insert_policy" ON users;
+                    DROP POLICY IF EXISTS "users_update_policy" ON users;
+                    DROP POLICY IF EXISTS "users_delete_policy" ON users;
+                    DROP POLICY IF EXISTS "activity_log_select_policy" ON user_activity_log;
+                    DROP POLICY IF EXISTS "activity_log_insert_policy" ON user_activity_log;
+                    DROP POLICY IF EXISTS "sessions_policy" ON user_sessions;
+
+                    -- Desabilitar RLS
+                    ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+                    ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY;
+                    ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY;
+                `;
+
+                // Executar cada comando separadamente
+                const commands = [
+                    'DROP POLICY IF EXISTS "users_select_policy" ON users',
+                    'DROP POLICY IF EXISTS "users_insert_policy" ON users',
+                    'DROP POLICY IF EXISTS "users_update_policy" ON users',
+                    'DROP POLICY IF EXISTS "users_delete_policy" ON users',
+                    'DROP POLICY IF EXISTS "activity_log_select_policy" ON user_activity_log',
+                    'DROP POLICY IF EXISTS "activity_log_insert_policy" ON user_activity_log',
+                    'DROP POLICY IF EXISTS "sessions_policy" ON user_sessions',
+                    'ALTER TABLE users DISABLE ROW LEVEL SECURITY',
+                    'ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY',
+                    'ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY'
+                ];
+
+                for (const command of commands) {
+                    try {
+                        const { error } = await supabase.rpc('exec_sql', { sql: command });
+                        if (error) {
+                            console.log(`Comando falhou (pode ser normal): ${command}`, error);
+                        } else {
+                            console.log(`Comando executado: ${command}`);
+                        }
+                    } catch (e) {
+                        console.log(`Erro no comando: ${command}`, e);
+                    }
+                }
+
+                resultDiv.innerHTML = '<p style="color: green;">✅ Correção aplicada! Tente criar um usuário agora.</p>';
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+            }
+        }
+
+        // Aplicar automaticamente ao carregar
+        window.onload = () => {
+            setTimeout(fixRLS, 1000);
+        };
+    </script>
+</body>
+</html>

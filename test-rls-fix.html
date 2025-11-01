@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste RLS - AutoGestor Peças</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>Teste de Inserção de Usuário</h1>
+    <button onclick="testInsert()">Testar Inserção</button>
+    <div id="result"></div>
+
+    <script>
+        async function testInsert() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Testando inserção...</p>';
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                // Testar inserção simples
+                const testUser = {
+                    name: 'Teste RLS',
+                    email: 'teste-rls@test.com',
+                    password_hash: '$2b$10$test',
+                    role: 'vendedor',
+                    status: 'ativo',
+                    permissions: {}
+                };
+
+                const { data, error } = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (error) {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Erro RLS: ${error.message}</p>
+                                          <p>Código: ${error.code}</p>
+                                          <p>Detalhes: ${error.details}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: green;">✅ Sucesso! Usuário criado: ${data[0].name}</p>`;
+                    
+                    // Limpar o usuário de teste
+                    await supabase.from('users').delete().eq('email', 'teste-rls@test.com');
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+            }
+        }
+
+        // Testar automaticamente ao carregar
+        window.onload = () => {
+            setTimeout(testInsert, 1000);
+        };
+    </script>
+</body>
+</html>
