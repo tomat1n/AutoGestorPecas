@@ -19,8 +19,8 @@
     const { sUrl, sKey } = getSupabaseConfig();
     if(!sUrl || !sKey) { throw new Error('Configuração do Supabase ausente. Preencha URL e Anon Key nas Configurações.'); }
     return window.supabase?.createClient ? window.supabase.createClient(sUrl, sKey, {
-      auth: { persistSession: !!persist, autoRefreshToken: true }
-    }) : window.Supabase?.createClient?.(sUrl, sKey, { auth: { persistSession: !!persist, autoRefreshToken: true } });
+      auth: { persistSession: !!persist, autoRefreshToken: false }
+    }) : window.Supabase?.createClient?.(sUrl, sKey, { auth: { persistSession: !!persist, autoRefreshToken: false } });
   }
   const redirectIndex = window.location.origin + '/index.html';
 

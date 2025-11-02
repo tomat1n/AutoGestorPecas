@@ -151,10 +151,7 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script>
-        const { supabaseUrl } = window.AUTO_GESTOR_CONFIG;
-        
-        // Service role key (será removida após uso)
-        const SERVICE_ROLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpzb3VrbWJ6anBueXd2bHR5ZGN0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTE0NDE5NSwiZXhwIjoyMDc2NzIwMTk1fQ.H_KG8hbUXPLqCTE1ZFSe04ByFWrQUwh1jPWhLH9Khrc';
+        const { supabaseUrl, supabaseServiceKey } = window.AUTO_GESTOR_CONFIG;
 
         function updateProgress(percent, text) {
             const progressBar = document.getElementById('progressBar');
@@ -176,10 +173,15 @@
 
         async function applyRLSFixes() {
             try {
+                if (!supabaseUrl || !supabaseServiceKey) {
+                    addLog('❌ URL ou Service Role Key ausentes. Salve em Configurações (localStorage).', 'error');
+                    updateProgress(0, '⚠️ Configure Supabase (URL + Service Role Key)');
+                    return;
+                }
                 addLog('🔑 Conectando com service role key...', 'info');
                 updateProgress(10, '🔑 Estabelecendo conexão administrativa...');
 
-                const adminSupabase = window.supabase.createClient(supabaseUrl, SERVICE_ROLE_KEY);
+                const adminSupabase = window.supabase.createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
                 // Teste de conexão
                 addLog('🧪 Testando conexão...', 'info');

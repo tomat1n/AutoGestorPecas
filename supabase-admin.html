@@ -179,6 +179,10 @@
         <div class="step">
             <h3>🔑 Inserir Service Role Key:</h3>
             <div class="form-group">
+                <label for="supaUrl">URL do Supabase:</label>
+                <input type="text" id="supaUrl" placeholder="https://xxxxx.supabase.co" />
+            </div>
+            <div class="form-group">
                 <label for="serviceKey">Service Role Key do Supabase:</label>
                 <input type="password" id="serviceKey" placeholder="Paste your service_role key here..." />
             </div>
@@ -208,10 +212,21 @@
     </div>
 
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
     <script>
-        const { supabaseUrl } = window.AUTO_GESTOR_CONFIG;
         let adminSupabase = null;
+        function getSupabaseUrl(){
+            const inputUrl = document.getElementById('supaUrl')?.value?.trim() || '';
+            return inputUrl;
+        }
+        // Prefill URL from localStorage if exists
+        window.addEventListener('load', () => {
+            try{
+                const cfg = JSON.parse(localStorage.getItem('cfg')||'{}');
+                const savedUrl = cfg?.cfgSupabaseUrl || '';
+                const el = document.getElementById('supaUrl');
+                if (el && !el.value) el.value = savedUrl;
+            }catch{}
+        });
 
         function updateProgress(percent, text) {
             const progressBar = document.getElementById('progressBar');
@@ -223,9 +238,10 @@
 
         async function testConnection() {
             const serviceKey = document.getElementById('serviceKey').value.trim();
+            const supabaseUrl = getSupabaseUrl();
             
-            if (!serviceKey) {
-                alert('❌ Por favor, insira a Service Role Key primeiro!');
+            if (!serviceKey || !supabaseUrl) {
+                alert('❌ Informe URL do Supabase e a Service Role Key.');
                 return;
             }
 
@@ -235,7 +251,7 @@
             resultDiv.innerHTML = '<div class="loading"></div> Testando conexão...';
 
             try {
-                adminSupabase = window.supabase.createClient(supabaseUrl, serviceKey);
+                adminSupabase = window.supabase.createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
                 
                 // Testar conexão fazendo uma consulta simples
                 const { data, error } = await adminSupabase
@@ -266,9 +282,10 @@
 
         async function applyFixes() {
             const serviceKey = document.getElementById('serviceKey').value.trim();
+            const supabaseUrl = getSupabaseUrl();
             
-            if (!serviceKey) {
-                alert('❌ Por favor, insira a Service Role Key primeiro!');
+            if (!serviceKey || !supabaseUrl) {
+                alert('❌ Informe URL do Supabase e a Service Role Key.');
                 return;
             }
 
@@ -408,6 +425,8 @@
             updateProgress(10, 'Chamando função remota...');
 
             try{
+                const supabaseUrl = getSupabaseUrl();
+                if(!supabaseUrl){ throw new Error('Informe a URL do Supabase.'); }
                 const fnUrl = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/fix-rls-users`;
                 const res = await fetch(fnUrl, { method:'POST' });
                 const json = await res.json();
@@ -419,7 +438,10 @@
                 updateProgress(80, 'Correções aplicadas. Validando...');
 
                 // Validação simples: tentar inserir com anon (o próprio script usa anon do config.js)
-                const anonClient = window.supabase.createClient(supabaseUrl, window.AUTO_GESTOR_CONFIG.supabaseAnonKey);
+                const cfg = JSON.parse(localStorage.getItem('cfg')||'{}');
+                const anonKey = cfg?.cfgSupabaseAnonKey || '';
+                if(!anonKey){ throw new Error('Anon Key não encontrada. Salve nas Configurações.'); }
+                const anonClient = window.supabase.createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
                 const testUser = {
                     id: crypto.randomUUID(),
                     name: 'EdgeFix Test',

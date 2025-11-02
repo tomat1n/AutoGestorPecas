@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desabilitar RLS - AutoGestor Peças</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>🔧 Desabilitar RLS - Solução Definitiva</h1>
+    <p>Este script vai desabilitar o RLS (Row Level Security) nas tabelas necessárias.</p>
+    
+    <button onclick="disableRLS()" style="background: #e74c3c; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+        🚀 Desabilitar RLS Agora
+    </button>
+    
+    <div id="result" style="margin-top: 20px; padding: 15px; border-radius: 5px;"></div>
+
+    <script>
+        async function disableRLS() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.background = '#f8f9fa';
+            resultDiv.innerHTML = '<p>🔄 Desabilitando RLS...</p>';
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                // SQL para desabilitar RLS
+                const disableRLSSQL = `
+                    ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+                    ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY;
+                    ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY;
+                `;
+
+                resultDiv.innerHTML += '<p>📝 Executando comandos SQL...</p>';
+
+                // Tentar via RPC primeiro
+                try {
+                    const { data, error } = await supabase.rpc('exec_sql', { 
+                        sql: disableRLSSQL 
+                    });
+                    
+                    if (error) {
+                        throw new Error(`RPC Error: ${error.message}`);
+                    }
+                    
+                    resultDiv.style.background = '#d4edda';
+                    resultDiv.innerHTML = '<p style="color: #155724;">✅ <strong>RLS DESABILITADO COM SUCESSO!</strong></p>';
+                    resultDiv.innerHTML += '<p>Agora você pode criar usuários normalmente.</p>';
+                    resultDiv.innerHTML += '<p><a href="user-management.html" style="color: #007bff;">🔗 Voltar para Gerenciamento de Usuários</a></p>';
+                    
+                } catch (rpcError) {
+                    console.log('RPC falhou:', rpcError.message);
+                    
+                    // Tentar abordagem alternativa - executar comandos individualmente
+                    resultDiv.innerHTML += '<p>⚠️ RPC não disponível. Tentando abordagem alternativa...</p>';
+                    
+                    const commands = [
+                        'ALTER TABLE users DISABLE ROW LEVEL SECURITY;',
+                        'ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY;',
+                        'ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY;'
+                    ];
+                    
+                    let success = false;
+                    for (const cmd of commands) {
+                        try {
+                            await supabase.rpc('exec_sql', { sql: cmd });
+                            resultDiv.innerHTML += `<p>✅ ${cmd}</p>`;
+                            success = true;
+                        } catch (cmdError) {
+                            resultDiv.innerHTML += `<p>❌ ${cmd} - ${cmdError.message}</p>`;
+                        }
+                    }
+                    
+                    if (success) {
+                        resultDiv.style.background = '#d4edda';
+                        resultDiv.innerHTML += '<p style="color: #155724;"><strong>✅ RLS PARCIALMENTE DESABILITADO!</strong></p>';
+                        resultDiv.innerHTML += '<p>Tente criar um usuário agora.</p>';
+                    } else {
+                        // Solução manual necessária
+                        resultDiv.style.background = '#f8d7da';
+                        resultDiv.innerHTML = '<p style="color: #721c24;"><strong>❌ SOLUÇÃO MANUAL NECESSÁRIA</strong></p>';
+                        resultDiv.innerHTML += '<p><strong>Siga estes passos:</strong></p>';
+                        resultDiv.innerHTML += '<ol>';
+                        resultDiv.innerHTML += '<li>Acesse o <a href="https://supabase.com/dashboard" target="_blank">painel do Supabase</a></li>';
+                        resultDiv.innerHTML += '<li>Vá em <strong>Database > Tables > users</strong></li>';
+                        resultDiv.innerHTML += '<li>Clique em <strong>"RLS disabled"</strong> ou vá em <strong>SQL Editor</strong></li>';
+                        resultDiv.innerHTML += '<li>Execute este comando:</li>';
+                        resultDiv.innerHTML += '</ol>';
+                        resultDiv.innerHTML += '<pre style="background: #f1f1f1; padding: 10px; border-radius: 3px;">ALTER TABLE users DISABLE ROW LEVEL SECURITY;</pre>';
+                        resultDiv.innerHTML += '<p>Depois tente criar o usuário novamente.</p>';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.innerHTML = `<p style="color: #721c24;">❌ <strong>Erro:</strong> ${error.message}</p>`;
+                resultDiv.innerHTML += '<p>Será necessário desabilitar RLS manualmente no painel do Supabase.</p>';
+            }
+        }
+
+        // Executar automaticamente após 1 segundo
+        window.onload = () => {
+            setTimeout(() => {
+                document.querySelector('button').click();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

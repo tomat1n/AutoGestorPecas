@@ -515,21 +515,48 @@ async function finalizeSale() {
 
 // Supabase
 function initSupabase() {
-  const cfgGlobal = window.AUTO_GESTOR_CONFIG || {};
   let cfgLS = {};
   try { cfgLS = JSON.parse(localStorage.getItem('cfg') || '{}'); } catch {}
   const isValidUrl = (u) => /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(u||'').trim());
   const isValidKey = (k) => typeof k === 'string' && k.trim().split('.').length === 3;
   const urlCandidate = cfgLS?.cfgSupabaseUrl;
   const keyCandidate = cfgLS?.cfgSupabaseAnonKey;
-  const url = (isValidUrl(urlCandidate) ? urlCandidate : (cfgGlobal.supabaseUrl || '')).trim();
-  const key = (isValidKey(keyCandidate) ? keyCandidate : (cfgGlobal.supabaseAnonKey || '')).trim();
+  const url = (isValidUrl(urlCandidate) ? urlCandidate : '').trim();
+  const key = (isValidKey(keyCandidate) ? keyCandidate : '').trim();
   // Guarda cfg atual para diagnósticos/fallbacks
   window.SUPA_CFG = { url, key };
+  // Evitar conflitos com sessões antigas do supabase-js
+  try {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith('sb-') && k.endsWith('-auth-token')) keysToRemove.push(k);
+      if (k.includes('supabase.auth.token')) keysToRemove.push(k);
+    }
+    keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+  } catch {}
+
+  const supaOptions = { auth: { persistSession: true, autoRefreshToken: false } };
   if (url && key && window.supabase) {
-    window.supabaseClient = window.supabase.createClient(url, key);
+    window.supabaseClient = window.supabase.createClient(url, key, supaOptions);
   } else {
     window.supabaseClient = null;
+  }
+
+  // Inicializar cliente admin (service_role) se disponível — apenas desenvolvimento
+  const svcCandidate = cfgLS?.cfgSupabaseServiceKey;
+  const serviceKey = (isValidKey(svcCandidate) ? svcCandidate : '').trim();
+  if (url && serviceKey && window.supabase) {
+    try {
+      window.adminSupabaseClient = window.supabase.createClient(url, serviceKey, supaOptions);
+      window.ADMIN_SUPA_CFG = { url, key: serviceKey };
+    } catch (e) {
+      console.warn('Falha ao inicializar cliente admin do Supabase:', e?.message || e);
+      window.adminSupabaseClient = null;
+    }
+  } else {
+    window.adminSupabaseClient = null;
   }
 }
 

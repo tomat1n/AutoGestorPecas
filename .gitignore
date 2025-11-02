@@ -2,3 +2,4 @@ backups/
 Thumbs.db
 Desktop.ini
 .vercel
+supabase/.temp/

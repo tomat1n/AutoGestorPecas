@@ -73,12 +73,13 @@ class UserManager {
     // Carregar lista de usuários do Supabase
     async loadUsers() {
         try {
-            if (!window.supabaseClient) {
+            const client = window.adminSupabaseClient || window.supabaseClient;
+            if (!client) {
                 console.warn('Supabase não configurado');
                 return;
             }
 
-            const { data, error } = await window.supabaseClient
+            const { data, error } = await client
                 .from('users')
                 .select('*')
                 .order('created_at', { ascending: false });
@@ -99,7 +100,9 @@ class UserManager {
     // Criar novo usuário
     async createUser(userData) {
         try {
-            if (!window.supabaseClient) {
+            const anonClient = window.supabaseClient;
+            const adminClient = window.adminSupabaseClient;
+            if (!anonClient && !adminClient) {
                 throw new Error('Supabase não configurado');
             }
 
@@ -111,17 +114,37 @@ class UserManager {
                 email: userData.email,
                 password_hash: passwordHash,
                 role: userData.role,
-                status: 'ativo',
-                permissions: this.permissions[userData.role] || this.permissions.vendedor,
+                status: userData.status || 'ativo',
+                permissions: userData.custom_permissions ? userData.custom_permissions : (this.permissions[userData.role] || this.permissions.vendedor),
                 created_by: this.currentUser?.id
             };
 
             // Tentar múltiplas abordagens para contornar RLS
             let data, error;
 
-            // Abordagem 1: Inserção direta (funciona se RLS estiver desabilitado)
+            // Abordagem 1: Inserção com cliente admin (service_role) se disponível — ignora RLS
+            if (adminClient) {
+                try {
+                    const adminIns = await adminClient
+                        .from('users')
+                        .insert([newUser])
+                        .select();
+                    if (!adminIns.error) {
+                        data = adminIns.data; error = null;
+                        console.log('✅ Usuário criado com cliente admin (service_role)');
+                    } else {
+                        console.log('❌ Inserção via admin falhou:', adminIns.error?.message);
+                        error = adminIns.error;
+                    }
+                } catch (e) {
+                    console.log('❌ Erro ao usar cliente admin:', e?.message || e);
+                }
+            }
+
+            // Abordagem 2: Inserção direta (anon/auth) — só funciona se RLS estiver desabilitado/ajustado
             try {
-                const result = await window.supabaseClient
+                if (!data) {
+                const result = await anonClient
                     .from('users')
                     .insert([newUser])
                     .select();
@@ -132,16 +155,18 @@ class UserManager {
                 if (!error) {
                     console.log('✅ Usuário criado com inserção direta');
                 }
+                }
             } catch (directError) {
                 error = directError;
                 console.log('❌ Inserção direta falhou:', directError.message);
             }
 
-            // Abordagem 2: Tentar via função RPC se a inserção direta falhar
+            // Abordagem 3: Tentar via função RPC se a inserção direta falhar
             if (error && error.message.includes('row-level security')) {
                 console.log('🔄 Tentando via função RPC...');
                 try {
-                    const rpcResult = await window.supabaseClient.rpc('create_user_bypass_rls', {
+                    const rpcClient = adminClient || anonClient;
+                    const rpcResult = await rpcClient.rpc('create_user_bypass_rls', {
                         p_name: newUser.name,
                         p_email: newUser.email,
                         p_password_hash: newUser.password_hash,
@@ -163,17 +188,18 @@ class UserManager {
                 }
             }
 
-            // Abordagem 3: Tentar desabilitar RLS temporariamente
+            // Abordagem 4: Tentar desabilitar RLS temporariamente (requer função exec_sql/grants)
             if (error && error.message.includes('row-level security')) {
                 console.log('🔄 Tentando desabilitar RLS temporariamente...');
                 try {
-                    // Tentar desabilitar RLS
-                    await window.supabaseClient.rpc('exec_sql', { 
-                        sql: 'ALTER TABLE users DISABLE ROW LEVEL SECURITY;' 
+                    const rpcClient = adminClient || anonClient;
+                    // Desabilitar RLS e remover FORCE se estiver ativo
+                    await rpcClient.rpc('exec_sql', { 
+                        sql: 'ALTER TABLE users DISABLE ROW LEVEL SECURITY; ALTER TABLE users NO FORCE ROW LEVEL SECURITY;' 
                     });
                     
                     // Tentar inserção novamente
-                    const retryResult = await window.supabaseClient
+                    const retryResult = await (adminClient || anonClient)
                         .from('users')
                         .insert([newUser])
                         .select();
@@ -191,12 +217,14 @@ class UserManager {
             // Se ainda há erro, lançar exceção com instruções
             if (error) {
                 const errorMsg = `Erro RLS: ${error.message}\n\n` +
-                    `SOLUÇÃO MANUAL NECESSÁRIA:\n` +
-                    `1. Acesse o painel do Supabase\n` +
-                    `2. Vá em Database > Tables > users\n` +
-                    `3. Desabilite RLS ou execute:\n` +
-                    `   ALTER TABLE users DISABLE ROW LEVEL SECURITY;\n` +
-                    `4. Tente criar o usuário novamente`;
+                    `SOLUÇÕES POSSÍVEIS (uma delas):\n` +
+                    `A) Informar a Service Role Key em Configurações > Integrações para uso em desenvolvimento.\n` +
+                    `B) No Supabase, executar no SQL Editor:\n` +
+                    `   ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;\n` +
+                    `   ALTER TABLE public.users NO FORCE ROW LEVEL SECURITY;\n` +
+                    `   -- opcional: conceder execução às funções de bypass\n` +
+                    `   GRANT EXECUTE ON FUNCTION public.create_user_bypass_rls(text, text, text, text, text, jsonb, uuid) TO anon, authenticated;\n` +
+                    `Depois, tente criar o usuário novamente.`;
                 throw new Error(errorMsg);
             }
 
@@ -217,7 +245,8 @@ class UserManager {
     // Atualizar usuário
     async updateUser(userId, userData) {
         try {
-            if (!window.supabaseClient) {
+            const client = window.adminSupabaseClient || window.supabaseClient;
+            if (!client) {
                 throw new Error('Supabase não configurado');
             }
 
@@ -226,7 +255,7 @@ class UserManager {
                 email: userData.email,
                 role: userData.role,
                 status: userData.status,
-                permissions: userData.permissions || this.permissions[userData.role],
+                permissions: (userData.custom_permissions ?? userData.permissions) || this.permissions[userData.role],
                 updated_at: new Date().toISOString()
             };
 
@@ -235,7 +264,7 @@ class UserManager {
                 updateData.password_hash = await this.hashPassword(userData.password);
             }
 
-            const { data, error } = await window.supabaseClient
+            const { data, error } = await client
                 .from('users')
                 .update(updateData)
                 .eq('id', userId)
@@ -261,7 +290,8 @@ class UserManager {
     // Deletar usuário
     async deleteUser(userId) {
         try {
-            if (!window.supabaseClient) {
+            const client = window.adminSupabaseClient || window.supabaseClient;
+            if (!client) {
                 throw new Error('Supabase não configurado');
             }
 
@@ -269,7 +299,7 @@ class UserManager {
                 throw new Error('Não é possível deletar seu próprio usuário');
             }
 
-            const { error } = await window.supabaseClient
+            const { error } = await client
                 .from('users')
                 .delete()
                 .eq('id', userId);
@@ -292,7 +322,8 @@ class UserManager {
     // Log de atividades do usuário
     async logUserActivity(action, resource, resourceId, details = {}) {
         try {
-            if (!window.supabaseClient || !this.currentUser) return;
+            const client = window.adminSupabaseClient || window.supabaseClient;
+            if (!client || !this.currentUser) return;
 
             const logData = {
                 user_id: this.currentUser.id,
@@ -304,7 +335,7 @@ class UserManager {
                 user_agent: navigator.userAgent
             };
 
-            await window.supabaseClient
+            await client
                 .from('user_activity_log')
                 .insert([logData]);
         } catch (error) {

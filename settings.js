@@ -20,21 +20,16 @@ function getCfg(){try{return JSON.parse(localStorage.getItem('cfg')||'{}')}catch
 function setCfg(obj){localStorage.setItem('cfg',JSON.stringify(obj))}
 function populate(){
   const cfg=getCfg();
-  // Obter configurações do config.js como fallback
-  const globalCfg = window.AUTO_GESTOR_CONFIG || {};
-  
+  // Não usar fallback do config.js para segredos; apenas localStorage
+
   const set=(id,val)=>{const el=document.getElementById(id); if(!el) return; if(el.type==='checkbox') el.checked=!!val; else if(el.type==='file'){} else el.value=(val??'');};
   
-  // Função para obter valor com fallback do config.js
-  const getValueWithFallback = (id, cfgValue) => {
-    if (cfgValue !== undefined && cfgValue !== '') return cfgValue;
-    // Usar valores do config.js como fallback para campos específicos do Supabase
-    if (id === 'cfgSupabaseUrl') return globalCfg.supabaseUrl || '';
-    if (id === 'cfgSupabaseAnonKey') return globalCfg.supabaseAnonKey || '';
-    return cfgValue;
+  // Retornar somente valores salvos
+  const getValueWithFallback = (_id, cfgValue) => {
+    return (cfgValue !== undefined ? cfgValue : '');
   };
   
-  const ids=['cfgCompanyLegalName','cfgCompanyTradeName','cfgCompanyCNPJ','cfgCompanyIE','cfgCompanyAddress','cfgCompanyCity','cfgCompanyState','cfgCompanyPhone','cfgCompanyEmail','cfgNotifEmails','cfgPDVMaxDiscount','cfgPDVCouponMessage','cfgFiscalEnv','cfgFiscalCertPass','cfgFiscalSerie','cfgFiscalNumero','cfgFiscalCSC','cfgStockMinDefault','cfgStockMaxDefault','cfgCategoriesList','cfgBrandsList','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime','cfgSupabaseUrl','cfgSupabaseAnonKey'];
+  const ids=['cfgCompanyLegalName','cfgCompanyTradeName','cfgCompanyCNPJ','cfgCompanyIE','cfgCompanyAddress','cfgCompanyCity','cfgCompanyState','cfgCompanyPhone','cfgCompanyEmail','cfgNotifEmails','cfgPDVMaxDiscount','cfgPDVCouponMessage','cfgFiscalEnv','cfgFiscalCertPass','cfgFiscalSerie','cfgFiscalNumero','cfgFiscalCSC','cfgStockMinDefault','cfgStockMaxDefault','cfgCategoriesList','cfgBrandsList','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime','cfgSupabaseUrl','cfgSupabaseAnonKey','cfgSupabaseServiceKey'];
   ids.forEach(id=>set(id,getValueWithFallback(id, cfg[id])));
   ['cfgNotifEmail','cfgNotifLowStock','cfgNotifDue','cfgNotifAutoReports','cfgPDVAutoPrint','cfgPDVPriceLookup','cfgPDVMaxDiscountToggle','cfgStockControl','cfgStockAllowNoStock','cfgBackupAutoToggle','cfgSecTwoFactor','cfgSecLockAfterAttempts'].forEach(id=>set(id,cfg[id]));
 }
@@ -42,7 +37,7 @@ function collect(){
   const g=id=>document.getElementById(id);
   const v=id=>{const el=g(id); if(!el) return undefined; if(el.type==='checkbox') return el.checked; else return el.value};
   const data={};
-  ['cfgCompanyLegalName','cfgCompanyTradeName','cfgCompanyCNPJ','cfgCompanyIE','cfgCompanyAddress','cfgCompanyCity','cfgCompanyState','cfgCompanyPhone','cfgCompanyEmail','cfgNotifEmails','cfgPDVMaxDiscount','cfgPDVCouponMessage','cfgFiscalEnv','cfgFiscalCertPass','cfgFiscalSerie','cfgFiscalNumero','cfgFiscalCSC','cfgStockMinDefault','cfgStockMaxDefault','cfgCategoriesList','cfgBrandsList','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime','cfgSupabaseUrl','cfgSupabaseAnonKey'].forEach(id=>data[id]=v(id));
+  ['cfgCompanyLegalName','cfgCompanyTradeName','cfgCompanyCNPJ','cfgCompanyIE','cfgCompanyAddress','cfgCompanyCity','cfgCompanyState','cfgCompanyPhone','cfgCompanyEmail','cfgNotifEmails','cfgPDVMaxDiscount','cfgPDVCouponMessage','cfgFiscalEnv','cfgFiscalCertPass','cfgFiscalSerie','cfgFiscalNumero','cfgFiscalCSC','cfgStockMinDefault','cfgStockMaxDefault','cfgCategoriesList','cfgBrandsList','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime','cfgSupabaseUrl','cfgSupabaseAnonKey','cfgSupabaseServiceKey'].forEach(id=>data[id]=v(id));
   ['cfgNotifEmail','cfgNotifLowStock','cfgNotifDue','cfgNotifAutoReports','cfgPDVAutoPrint','cfgPDVPriceLookup','cfgPDVMaxDiscountToggle','cfgStockControl','cfgStockAllowNoStock','cfgBackupAutoToggle','cfgSecTwoFactor','cfgSecLockAfterAttempts'].forEach(id=>data[id]=v(id));
   return data;
 }
@@ -61,7 +56,7 @@ const sectionKeys={
   stock:['cfgStockControl','cfgStockAllowNoStock','cfgStockMinDefault','cfgStockMaxDefault'],
   categories:['cfgCategoriesList','cfgBrandsList'],
   security:['cfgSecTwoFactor','cfgSecLockAfterAttempts','cfgSecLoginAttempts','cfgSecLockTime','cfgSecSessionTime'],
-  integrations:['cfgSupabaseUrl','cfgSupabaseAnonKey']
+  integrations:['cfgSupabaseUrl','cfgSupabaseAnonKey','cfgSupabaseServiceKey']
 };
 
 function saveSection(section){
@@ -182,7 +177,7 @@ function testSupabaseConn(){
   const status=document.getElementById('cfgSupabaseStatus');
   if(!url||!key||!window.supabase){ status&&(status.textContent='Preencha URL e chave.'); alert('Preencha URL e Anon Key do Supabase.'); return; }
   try{
-    const client=window.supabase.createClient(url.trim(), key.trim());
+    const client=window.supabase.createClient(url.trim(), key.trim(), { auth: { persistSession: false, autoRefreshToken: false } });
     client.from('service_orders').select('id').limit(1).then(({ data, error })=>{
       if(error){
         const msg=String(error.message||'');
