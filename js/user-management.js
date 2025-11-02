@@ -145,17 +145,43 @@ class UserManager {
                 return;
             }
 
-            const { data, error } = await client
-                .from('users')
-                .select('*')
-                .order('created_at', { ascending: false });
+            // 1) Tentar via RPC que bypassa RLS (preferido p/ admins)
+            // Usa security definer no banco; funciona mesmo com RLS se GRANT EXECUTE estiver aplicado.
+            let data = null;
+            let error = null;
+            try {
+                const rpcRes = await client.rpc('get_users_bypass_rls');
+                if (!rpcRes.error && Array.isArray(rpcRes.data)) {
+                    data = rpcRes.data;
+                } else {
+                    error = rpcRes.error || new Error('RPC get_users_bypass_rls falhou sem erro explícito');
+                }
+            } catch (e) {
+                error = e;
+            }
+
+            // 2) Se RPC não disponível (sem GRANT ou falha), tentar SELECT direto (RLS pode limitar)
+            if (!data) {
+                try {
+                    const sel = await client
+                        .from('users')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+                    if (!sel.error) {
+                        data = sel.data;
+                    } else {
+                        error = sel.error;
+                    }
+                } catch (e) {
+                    error = e;
+                }
+            }
 
             if (error) {
                 console.error('Erro ao carregar usuários:', error);
-                return;
             }
 
-            this.users = data || [];
+            this.users = Array.isArray(data) ? data : [];
             this.renderUsersList();
             this.updateUserStats();
         } catch (error) {
