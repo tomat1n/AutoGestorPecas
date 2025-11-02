@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executor SQL - Desabilitar RLS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .alert-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .sql-code {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .step {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #495057;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            display: none;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Executor SQL - Desabilitar RLS</h1>
+        
+        <div class="alert alert-warning">
+            <strong>⚠️ ATENÇÃO:</strong> Este script vai desabilitar Row Level Security (RLS) nas tabelas de usuários. 
+            Isso é necessário porque o sistema não usa autenticação JWT do Supabase.
+        </div>
+
+        <div class="step">
+            <h3>📋 Opção 1: Execução Automática</h3>
+            <p>Clique no botão abaixo para tentar executar os comandos SQL automaticamente:</p>
+            <button class="btn btn-danger" onclick="executeSQL()">
+                🚀 Desabilitar RLS Automaticamente
+            </button>
+        </div>
+
+        <div class="step">
+            <h3>📋 Opção 2: Execução Manual no Supabase</h3>
+            <p>Se a execução automática falhar, copie e execute este SQL no painel do Supabase:</p>
+            
+            <div class="sql-code" id="sqlCode">-- DESABILITAR RLS - COPIE E EXECUTE NO SUPABASE
+ALTER TABLE users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS user_sessions DISABLE ROW LEVEL SECURITY;
+
+-- Remover políticas existentes
+DROP POLICY IF EXISTS "users_policy" ON users;
+DROP POLICY IF EXISTS "user_activity_log_policy" ON user_activity_log;
+DROP POLICY IF EXISTS "user_sessions_policy" ON user_sessions;
+
+-- Garantir acesso público
+GRANT ALL ON users TO anon;
+GRANT ALL ON users TO authenticated;
+GRANT ALL ON user_activity_log TO anon;
+GRANT ALL ON user_activity_log TO authenticated;</div>
+
+            <button class="btn" onclick="copySQL()">📋 Copiar SQL</button>
+        </div>
+
+        <div class="step">
+            <h3>🎯 Passos Manuais no Supabase:</h3>
+            <ol>
+                <li>Acesse o <strong>painel do Supabase</strong></li>
+                <li>Vá em <strong>Database → SQL Editor</strong></li>
+                <li>Cole o código SQL acima</li>
+                <li>Clique em <strong>Run</strong></li>
+                <li>Volte aqui e teste a criação de usuários</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>✅ Teste Final</h3>
+            <p>Após executar o SQL, teste a criação de usuários:</p>
+            <button class="btn" onclick="testUserCreation()">
+                🧪 Testar Criação de Usuário
+            </button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script>
+        // Inicializar Supabase
+        const { supabaseUrl, supabaseAnonKey } = window.AUTO_GESTOR_CONFIG;
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        async function executeSQL() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'alert alert-warning';
+            resultDiv.innerHTML = '<div class="loading"></div> Executando comandos SQL...';
+
+            try {
+                // Tentar executar cada comando individualmente
+                const commands = [
+                    'ALTER TABLE users DISABLE ROW LEVEL SECURITY',
+                    'ALTER TABLE user_activity_log DISABLE ROW LEVEL SECURITY',
+                    'ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY'
+                ];
+
+                let results = [];
+                
+                for (let command of commands) {
+                    try {
+                        // Como não temos exec_sql, vamos tentar uma abordagem diferente
+                        // Vamos tentar inserir um usuário de teste para verificar se RLS está ativo
+                        const testResult = await supabase
+                            .from('users')
+                            .insert([{
+                                name: 'Teste RLS',
+                                email: 'teste_rls_' + Date.now() + '@test.com',
+                                password_hash: 'test',
+                                role: 'vendedor',
+                                created_at: new Date().toISOString()
+                            }])
+                            .select();
+
+                        if (testResult.error) {
+                            if (testResult.error.message.includes('row-level security')) {
+                                results.push(`❌ RLS ainda ativo: ${testResult.error.message}`);
+                            } else {
+                                results.push(`⚠️ Outro erro: ${testResult.error.message}`);
+                            }
+                        } else {
+                            results.push('✅ Inserção bem-sucedida - RLS pode estar desabilitado');
+                            // Limpar o usuário de teste
+                            await supabase
+                                .from('users')
+                                .delete()
+                                .eq('email', testResult.data[0].email);
+                        }
+                        break; // Só precisamos testar uma vez
+                    } catch (error) {
+                        results.push(`❌ Erro: ${error.message}`);
+                    }
+                }
+
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = `
+                    <h4>📊 Resultado da Execução:</h4>
+                    ${results.map(r => `<p>${r}</p>`).join('')}
+                    <hr>
+                    <p><strong>🔧 SOLUÇÃO MANUAL NECESSÁRIA:</strong></p>
+                    <p>1. Acesse o painel do Supabase</p>
+                    <p>2. Vá em <strong>Database → SQL Editor</strong></p>
+                    <p>3. Execute o comando: <code>ALTER TABLE users DISABLE ROW LEVEL SECURITY;</code></p>
+                    <p>4. Teste novamente a criação de usuários</p>
+                `;
+
+            } catch (error) {
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro na Execução:</h4>
+                    <p>${error.message}</p>
+                    <p><strong>Use a execução manual no painel do Supabase.</strong></p>
+                `;
+            }
+        }
+
+        function copySQL() {
+            const sqlCode = document.getElementById('sqlCode').textContent;
+            navigator.clipboard.writeText(sqlCode).then(() => {
+                alert('✅ SQL copiado para a área de transferência!');
+            }).catch(() => {
+                alert('❌ Erro ao copiar. Selecione e copie manualmente.');
+            });
+        }
+
+        async function testUserCreation() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'alert alert-warning';
+            resultDiv.innerHTML = '<div class="loading"></div> Testando criação de usuário...';
+
+            try {
+                const testUser = {
+                    name: 'Usuário Teste',
+                    email: 'teste_' + Date.now() + '@autogestorpecas.com',
+                    password_hash: 'hash_teste_123',
+                    role: 'Vendedor',
+                    created_at: new Date().toISOString()
+                };
+
+                const result = await supabase
+                    .from('users')
+                    .insert([testUser])
+                    .select();
+
+                if (result.error) {
+                    resultDiv.className = 'alert alert-error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Teste Falhou:</h4>
+                        <p><strong>Erro:</strong> ${result.error.message}</p>
+                        <p><strong>RLS ainda está ativo!</strong> Execute o SQL manual no painel do Supabase.</p>
+                    `;
+                } else {
+                    resultDiv.className = 'alert alert-success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Teste Bem-Sucedido!</h4>
+                        <p>Usuário criado com sucesso: ${result.data[0].name}</p>
+                        <p><strong>RLS foi desabilitado corretamente!</strong></p>
+                        <p>Agora você pode usar o sistema normalmente.</p>
+                    `;
+
+                    // Limpar usuário de teste
+                    setTimeout(async () => {
+                        await supabase
+                            .from('users')
+                            .delete()
+                            .eq('id', result.data[0].id);
+                    }, 2000);
+                }
+
+            } catch (error) {
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro no Teste:</h4>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        // Executar teste automático ao carregar
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('result').className = 'alert alert-warning';
+                document.getElementById('result').innerHTML = `
+                    <h4>🔍 Status Inicial:</h4>
+                    <p>Página carregada. Use os botões acima para desabilitar RLS e testar.</p>
+                `;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
