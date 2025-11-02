@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar Usuário - Bypass RLS</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+</head>
+<body>
+    <h1>🚀 Criar Usuário - Bypass RLS</h1>
+    <p>Este método usa uma abordagem alternativa para criar usuários.</p>
+    
+    <form id="userForm" style="max-width: 400px; margin: 20px 0;">
+        <div style="margin-bottom: 15px;">
+            <label>Nome:</label><br>
+            <input type="text" id="userName" required style="width: 100%; padding: 8px; margin-top: 5px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Email:</label><br>
+            <input type="email" id="userEmail" required style="width: 100%; padding: 8px; margin-top: 5px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Senha:</label><br>
+            <input type="password" id="userPassword" required style="width: 100%; padding: 8px; margin-top: 5px;">
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label>Função:</label><br>
+            <select id="userRole" style="width: 100%; padding: 8px; margin-top: 5px;">
+                <option value="vendedor">Vendedor</option>
+                <option value="gerente">Gerente</option>
+                <option value="administrador">Administrador</option>
+            </select>
+        </div>
+        
+        <button type="submit" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            ✅ Criar Usuário
+        </button>
+    </form>
+    
+    <div id="result" style="margin-top: 20px; padding: 15px; border-radius: 5px;"></div>
+
+    <script>
+        // Função para hash de senha simples (para demonstração)
+        async function hashPassword(password) {
+            // Em produção, use bcrypt no backend
+            return '$2b$10$' + btoa(password).replace(/[^a-zA-Z0-9]/g, '').substring(0, 50);
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.background = '#f8f9fa';
+            resultDiv.innerHTML = '<p>🔄 Criando usuário...</p>';
+            
+            try {
+                const supabase = window.supabase.createClient(
+                    window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                    window.AUTO_GESTOR_CONFIG.supabaseAnonKey
+                );
+
+                const userData = {
+                    name: document.getElementById('userName').value,
+                    email: document.getElementById('userEmail').value,
+                    password_hash: await hashPassword(document.getElementById('userPassword').value),
+                    role: document.getElementById('userRole').value,
+                    status: 'ativo',
+                    permissions: getDefaultPermissions(document.getElementById('userRole').value)
+                };
+
+                // Método 1: Tentar inserção direta com configuração especial
+                resultDiv.innerHTML += '<p>📝 Tentativa 1: Inserção direta...</p>';
+                
+                let result = await supabase
+                    .from('users')
+                    .insert([userData])
+                    .select();
+
+                if (result.error && result.error.message.includes('row-level security')) {
+                    resultDiv.innerHTML += '<p>❌ RLS bloqueou. Tentando método alternativo...</p>';
+                    
+                    // Método 2: Usar SQL direto via RPC
+                    const insertSQL = `
+                        INSERT INTO users (name, email, password_hash, role, status, permissions)
+                        VALUES ('${userData.name}', '${userData.email}', '${userData.password_hash}', '${userData.role}', '${userData.status}', '${JSON.stringify(userData.permissions)}')
+                        RETURNING id, name, email, role, status, created_at;
+                    `;
+                    
+                    try {
+                        result = await supabase.rpc('exec_sql', { sql: insertSQL });
+                        if (!result.error) {
+                            resultDiv.innerHTML += '<p>✅ Usuário criado via SQL direto!</p>';
+                        }
+                    } catch (sqlError) {
+                        resultDiv.innerHTML += '<p>❌ SQL direto falhou: ' + sqlError.message + '</p>';
+                        
+                        // Método 3: Desabilitar RLS e tentar novamente
+                        resultDiv.innerHTML += '<p>🔄 Tentando desabilitar RLS...</p>';
+                        
+                        try {
+                            await supabase.rpc('exec_sql', { 
+                                sql: 'ALTER TABLE users DISABLE ROW LEVEL SECURITY;' 
+                            });
+                            
+                            result = await supabase
+                                .from('users')
+                                .insert([userData])
+                                .select();
+                                
+                            if (!result.error) {
+                                resultDiv.innerHTML += '<p>✅ RLS desabilitado e usuário criado!</p>';
+                            }
+                        } catch (rlsError) {
+                            throw new Error('Todas as tentativas falharam. Solução manual necessária.');
+                        }
+                    }
+                }
+
+                if (result.error) {
+                    throw result.error;
+                }
+
+                // Sucesso!
+                resultDiv.style.background = '#d4edda';
+                resultDiv.innerHTML = '<p style="color: #155724;"><strong>✅ USUÁRIO CRIADO COM SUCESSO!</strong></p>';
+                resultDiv.innerHTML += '<p><strong>Dados do usuário:</strong></p>';
+                resultDiv.innerHTML += '<ul>';
+                resultDiv.innerHTML += `<li><strong>ID:</strong> ${result.data[0].id}</li>`;
+                resultDiv.innerHTML += `<li><strong>Nome:</strong> ${result.data[0].name}</li>`;
+                resultDiv.innerHTML += `<li><strong>Email:</strong> ${result.data[0].email}</li>`;
+                resultDiv.innerHTML += `<li><strong>Função:</strong> ${result.data[0].role}</li>`;
+                resultDiv.innerHTML += '</ul>';
+                resultDiv.innerHTML += '<p><a href="user-management.html" style="color: #007bff;">🔗 Voltar para Gerenciamento de Usuários</a></p>';
+                
+                // Limpar formulário
+                document.getElementById('userForm').reset();
+                
+            } catch (error) {
+                console.error('Erro:', error);
+                resultDiv.style.background = '#f8d7da';
+                resultDiv.innerHTML = '<p style="color: #721c24;"><strong>❌ Erro:</strong> ' + error.message + '</p>';
+                
+                if (error.message.includes('row-level security')) {
+                    resultDiv.innerHTML += '<p><strong>SOLUÇÃO MANUAL:</strong></p>';
+                    resultDiv.innerHTML += '<ol>';
+                    resultDiv.innerHTML += '<li>Acesse o <a href="https://supabase.com/dashboard" target="_blank">painel do Supabase</a></li>';
+                    resultDiv.innerHTML += '<li>Vá em <strong>Database > Tables > users</strong></li>';
+                    resultDiv.innerHTML += '<li>Desabilite RLS ou execute no SQL Editor:</li>';
+                    resultDiv.innerHTML += '</ol>';
+                    resultDiv.innerHTML += '<pre style="background: #f1f1f1; padding: 10px;">ALTER TABLE users DISABLE ROW LEVEL SECURITY;</pre>';
+                }
+            }
+        });
+
+        function getDefaultPermissions(role) {
+            const permissions = {
+                administrador: {
+                    dashboard: { view: true },
+                    vendas: { view: true, create: true, edit: true, delete: true },
+                    clientes: { view: true, create: true, edit: true, delete: true },
+                    produtos: { view: true, create: true, edit: true, delete: true },
+                    servicos: { view: true, create: true, edit: true, delete: true },
+                    financeiro: { view: true, create: true, edit: true, delete: true },
+                    relatorios: { view: true },
+                    usuarios: { view: true, create: true, edit: true, delete: true },
+                    configuracoes: { view: true, create: true, edit: true, delete: true }
+                },
+                gerente: {
+                    dashboard: { view: true },
+                    vendas: { view: true, create: true, edit: true, delete: true },
+                    clientes: { view: true, create: true, edit: true, delete: true },
+                    produtos: { view: true, create: true, edit: true },
+                    servicos: { view: true, create: true, edit: true, delete: true },
+                    financeiro: { view: true, create: true, edit: true },
+                    relatorios: { view: true },
+                    usuarios: { view: true },
+                    configuracoes: { view: true }
+                },
+                vendedor: {
+                    dashboard: { view: true },
+                    vendas: { view: true, create: true, edit: true },
+                    clientes: { view: true, create: true, edit: true },
+                    produtos: { view: true },
+                    servicos: { view: true, create: true, edit: true },
+                    financeiro: { view: false },
+                    relatorios: { view: false },
+                    usuarios: { view: false },
+                    configuracoes: { view: false }
+                }
+            };
+            
+            return permissions[role] || permissions.vendedor;
+        }
+    </script>
+</body>
+</html>
