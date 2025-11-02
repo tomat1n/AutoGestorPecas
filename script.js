@@ -2,6 +2,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Inicializa Supabase
   try { initSupabase?.(); } catch {}
 
+  // Evitar flash: esconder menus/cards/seções até aplicar permissões
+  try {
+    document.querySelectorAll('.menu-item[data-page]').forEach((item) => {
+      if (item.getAttribute('data-page') !== 'logout') item.classList.add('hidden');
+    });
+    const financeSectionEarly = document.querySelector('.finance-cards');
+    if (financeSectionEarly) financeSectionEarly.classList.add('hidden');
+    const quickSectionEarly = document.querySelector('.quick-section');
+    if (quickSectionEarly) quickSectionEarly.classList.add('hidden');
+    const idsToHide = ['pdvSection','osSection','inventorySection','receivablesSection','payablesSection','reportsSection','clientsSection','suppliersSection','nfSection','checklistSection','configSection','config-section'];
+    idsToHide.forEach(id => { const el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+  } catch {}
+
   // Gate de autenticação mínimo
   try {
     const cfgLS = (()=>{ try { return JSON.parse(localStorage.getItem('cfg')||'{}'); } catch { return {}; } })();
@@ -176,6 +189,12 @@ async function getCurrentPermissionsCached() {
             const modDefaults = defaults[mod] || {};
             result[mod] = { ...modDefaults, ...permsObj[mod] };
           });
+          // Garantir que administradores sempre vejam o checklist
+          if (roleName === 'administrador') {
+            const adminChecklist = { ...(defaults.checklist||{}), ...(permsObj?.checklist||{}) };
+            adminChecklist.view = true;
+            result.checklist = adminChecklist;
+          }
           return result;
         } catch { return permsObj || (APP_PERMISSIONS_DEFAULT[roleName] || APP_PERMISSIONS_DEFAULT.vendedor); }
       };
