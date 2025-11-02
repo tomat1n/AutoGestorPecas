@@ -298,7 +298,11 @@ async function navigateTo(page) {
     if (!allowed) {
       const module = PAGE_TO_MODULE[page] || page;
       notifyNoPermission(`Você não tem permissão para visualizar: ${module}.`);
-      page = 'dashboard';
+      // Fallback para primeira página permitida, priorizando checklist
+      const ordered = ['checklist','dashboard','pdv','estoque','clientes','fornecedores','receber','pagar','relatorios','config'];
+      for (const p of ordered) {
+        if (await canViewPage(p)) { page = p; break; }
+      }
     }
   }
 
@@ -319,7 +323,8 @@ async function navigateTo(page) {
 
   const quickSection = document.querySelector('.quick-section');
   if (quickSection) {
-    if (page === 'dashboard') quickSection.classList.remove('hidden');
+    const showDashboard = page === 'dashboard' && (await canViewPage('dashboard'));
+    if (showDashboard) quickSection.classList.remove('hidden');
     else quickSection.classList.add('hidden');
   }
 
