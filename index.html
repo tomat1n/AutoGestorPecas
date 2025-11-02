@@ -12,6 +12,24 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="css/user-management.css" />
+  <style>
+    /* Gate visual: esconder tudo até permissões serem aplicadas */
+    body:not([data-permissions-applied="true"]) .menu-item[data-page]:not([data-page="logout"]) { display: none !important; }
+    body:not([data-permissions-applied="true"]) .quick-section { display: none !important; }
+    body:not([data-permissions-applied="true"]) .finance-cards { display: none !important; }
+    body:not([data-permissions-applied="true"]) #pdvSection,
+    body:not([data-permissions-applied="true"]) #osSection,
+    body:not([data-permissions-applied="true"]) #inventorySection,
+    body:not([data-permissions-applied="true"]) #receivablesSection,
+    body:not([data-permissions-applied="true"]) #payablesSection,
+    body:not([data-permissions-applied="true"]) #reportsSection,
+    body:not([data-permissions-applied="true"]) #clientsSection,
+    body:not([data-permissions-applied="true"]) #suppliersSection,
+    body:not([data-permissions-applied="true"]) #nfSection,
+    body:not([data-permissions-applied="true"]) #checklistSection,
+    body:not([data-permissions-applied="true"]) #configSection,
+    body:not([data-permissions-applied="true"]) #config-section { display: none !important; }
+  </style>
 </head>
 <body>
   <!-- Sidebar Retrátil -->

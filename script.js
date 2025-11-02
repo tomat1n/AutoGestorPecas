@@ -75,7 +75,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hasUrl = /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfgLS?.cfgSupabaseUrl||'').trim());
     const hasKey = typeof cfgLS?.cfgSupabaseAnonKey === 'string' && String(cfgLS.cfgSupabaseAnonKey).trim().split('.').length === 3;
     let defaultPage = (hasUrl && hasKey) ? 'dashboard' : 'config';
-    try { await applyMenuVisibilityByPermissions(); } catch {}
+    try {
+      const lastPage = localStorage.getItem('lastPage');
+      if (hasUrl && hasKey && lastPage) {
+        const okLast = await canViewPage(lastPage);
+        if (okLast) defaultPage = lastPage;
+      }
+    } catch {}
+    // Já aplicado anteriormente para evitar flash
     try {
       const ok = await canViewPage(defaultPage);
       if (!ok) {
@@ -316,6 +323,9 @@ async function applyMenuVisibilityByPermissions() {
       if (!canDashboard) financeSection.classList.add('hidden');
       else financeSection.classList.remove('hidden');
     }
+
+    // Sinaliza que permissões foram aplicadas para liberar o gate visual
+    try { document.body.setAttribute('data-permissions-applied', 'true'); } catch {}
   } catch (e) { console.warn('Falha ao aplicar visibilidade por permissão:', e); }
 }
 
@@ -370,6 +380,14 @@ async function navigateTo(page) {
       }
     }
   }
+
+  // Atualiza estado ativo do menu conforme a página navegada
+  try {
+    const items = document.querySelectorAll('.menu-item');
+    items.forEach(i => i.classList.remove('active'));
+    const target = document.querySelector(`.menu-item[data-page="${page}"]`);
+    if (target) target.classList.add('active');
+  } catch {}
 
   const pdvSection = document.getElementById('pdvSection');
   const osSection = document.getElementById('osSection');
@@ -448,6 +466,11 @@ async function navigateTo(page) {
       if (pdvSection) pdvSection.classList.remove('hidden');
       try { initPDVOnce?.(); } catch {}
   }
+
+  // Persistir página atual para evitar salto ao atualizar (F5)
+  try { localStorage.setItem('lastPage', page); } catch {}
+  // Libera o gate visual após navegação
+  try { document.body.setAttribute('data-permissions-applied', 'true'); } catch {}
 }
 
 // Add header actions: gear icon opens Configurações
