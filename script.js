@@ -190,83 +190,82 @@ function notifyNoPermission(message) {
 
 async function getCurrentPermissionsCached() {
   try {
-    if (window.userManager?.currentUser?.permissions) {
-      return window.userManager.currentUser.permissions;
-    }
     if (window.CURRENT_PERMISSIONS) return window.CURRENT_PERMISSIONS;
+
     const supabase = window.supabaseClient;
+    let roleCandidate = null;
+    let savedPerms = null;
+
+    // Permissões/role do gerenciador de usuários (se disponível)
+    if (window.userManager?.currentUser) {
+      roleCandidate = window.userManager.currentUser.role || roleCandidate;
+      savedPerms = window.userManager.currentUser.permissions || savedPerms;
+    }
+
+    // Dados do usuário autenticado
     if (supabase && supabase.auth?.getUser) {
       const { data } = await supabase.auth.getUser();
       const uid = data?.user?.id || null;
       const email = data?.user?.email || null;
       const roleMeta = data?.user?.user_metadata?.role || null;
-      const mergeWithDefaults = (permsObj, roleName) => {
-        try {
-          const roleKey = toRoleKey(roleName);
-          const defaults = APP_PERMISSIONS_DEFAULT[roleKey] || {};
-          const result = { ...defaults };
-          // merge shallow per-module
-          Object.keys(permsObj || {}).forEach((mod) => {
-            const modDefaults = defaults[mod] || {};
-            result[mod] = { ...modDefaults, ...permsObj[mod] };
-          });
-          // Garantir que administradores sempre vejam o checklist
-          if (roleKey === 'administrador') {
-            const adminChecklist = { ...(defaults.checklist||{}), ...(permsObj?.checklist||{}) };
-            adminChecklist.view = true;
-            result.checklist = adminChecklist;
-          }
-          return result;
-        } catch {
-          const roleKey = toRoleKey(roleName);
-          return permsObj || (APP_PERMISSIONS_DEFAULT[roleKey] || APP_PERMISSIONS_DEFAULT.vendedor);
-        }
-      };
-      if (uid) {
+      roleCandidate = roleCandidate || roleMeta;
+
+      // Buscar registro na tabela users para obter permissões persistidas
+      const tryLoadBy = async (field, value) => {
         try {
           const { data: rows } = await supabase
             .from('users')
             .select('permissions,role')
-            .eq('id', uid)
+            .eq(field, value)
             .limit(1);
           if (Array.isArray(rows) && rows.length) {
-            const roleKey = toRoleKey(rows[0].role);
-            const perms = mergeWithDefaults(rows[0].permissions, roleKey);
-            window.CURRENT_PERMISSIONS = perms;
-            window.CURRENT_ROLE = roleKey;
-            return perms;
+            savedPerms = savedPerms || rows[0].permissions || null;
+            roleCandidate = roleCandidate || rows[0].role || null;
+            return true;
           }
         } catch {}
+        return false;
+      };
+
+      if (uid) {
+        await tryLoadBy('id', uid);
+      } else if (email) {
+        await tryLoadBy('email', email);
       }
-      // Fallback: buscar por e-mail, caso não haja correspondência por ID
-      if (email) {
-        try {
-          const { data: rowsByEmail } = await supabase
-            .from('users')
-            .select('permissions,role')
-            .eq('email', email)
-            .limit(1);
-          if (Array.isArray(rowsByEmail) && rowsByEmail.length) {
-            const roleKey = toRoleKey(rowsByEmail[0].role);
-            const perms = mergeWithDefaults(rowsByEmail[0].permissions, roleKey);
-            window.CURRENT_PERMISSIONS = perms;
-            window.CURRENT_ROLE = roleKey;
-            return perms;
-          }
-        } catch {}
-      }
-      const roleKey = toRoleKey(roleMeta);
-      const perms = APP_PERMISSIONS_DEFAULT[roleKey] || APP_PERMISSIONS_DEFAULT.vendedor;
-      window.CURRENT_PERMISSIONS = perms;
-      window.CURRENT_ROLE = roleKey || 'vendedor';
-      return perms;
     }
-  } catch {}
-  // Fallback seguro (não admin) se nada for encontrado
-  const perms = APP_PERMISSIONS_DEFAULT.vendedor;
-  window.CURRENT_PERMISSIONS = perms;
-  window.CURRENT_ROLE = 'vendedor';
-  return perms;
+
+    const mergeWithDefaults = (permsObj, roleName) => {
+      try {
+        const roleKey = toRoleKey(roleName);
+        const defaults = APP_PERMISSIONS_DEFAULT[roleKey] || {};
+        const result = { ...defaults };
+        Object.keys(permsObj || {}).forEach((mod) => {
+          const modDefaults = defaults[mod] || {};
+          result[mod] = { ...modDefaults, ...permsObj[mod] };
+        });
+        if (roleKey === 'administrador') {
+          const adminChecklist = { ...(defaults.checklist||{}), ...(permsObj?.checklist||{}) };
+          adminChecklist.view = true;
+          result.checklist = adminChecklist;
+        }
+        return result;
+      } catch {
+        const roleKey = toRoleKey(roleName);
+        return permsObj || (APP_PERMISSIONS_DEFAULT[roleKey] || APP_PERMISSIONS_DEFAULT.vendedor);
+      }
+    };
+
+    const roleKeyFinal = toRoleKey(roleCandidate);
+    const merged = mergeWithDefaults(savedPerms, roleKeyFinal);
+    window.CURRENT_PERMISSIONS = merged;
+    window.CURRENT_ROLE = roleKeyFinal || 'vendedor';
+    return merged;
+  } catch {
+    const perms = APP_PERMISSIONS_DEFAULT.vendedor;
+    window.CURRENT_PERMISSIONS = perms;
+    window.CURRENT_ROLE = 'vendedor';
+    return perms;
+  }
 }
 
 async function canViewPage(page) {
