@@ -161,6 +161,18 @@ async function getCurrentPermissionsCached() {
       const uid = data?.user?.id || null;
       const email = data?.user?.email || null;
       const roleMeta = data?.user?.user_metadata?.role || null;
+      const mergeWithDefaults = (permsObj, roleName) => {
+        try {
+          const defaults = APP_PERMISSIONS_DEFAULT[roleName] || {};
+          const result = { ...defaults };
+          // merge shallow per-module
+          Object.keys(permsObj || {}).forEach((mod) => {
+            const modDefaults = defaults[mod] || {};
+            result[mod] = { ...modDefaults, ...permsObj[mod] };
+          });
+          return result;
+        } catch { return permsObj || (APP_PERMISSIONS_DEFAULT[roleName] || APP_PERMISSIONS_DEFAULT.vendedor); }
+      };
       if (uid) {
         try {
           const { data: rows } = await supabase
@@ -169,7 +181,7 @@ async function getCurrentPermissionsCached() {
             .eq('id', uid)
             .limit(1);
           if (Array.isArray(rows) && rows.length) {
-            const perms = rows[0].permissions || APP_PERMISSIONS_DEFAULT[rows[0].role] || APP_PERMISSIONS_DEFAULT.vendedor;
+            const perms = mergeWithDefaults(rows[0].permissions, rows[0].role);
             window.CURRENT_PERMISSIONS = perms;
             return perms;
           }
@@ -184,7 +196,7 @@ async function getCurrentPermissionsCached() {
             .eq('email', email)
             .limit(1);
           if (Array.isArray(rowsByEmail) && rowsByEmail.length) {
-            const perms = rowsByEmail[0].permissions || APP_PERMISSIONS_DEFAULT[rowsByEmail[0].role] || APP_PERMISSIONS_DEFAULT.vendedor;
+            const perms = mergeWithDefaults(rowsByEmail[0].permissions, rowsByEmail[0].role);
             window.CURRENT_PERMISSIONS = perms;
             return perms;
           }
