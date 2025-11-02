@@ -241,7 +241,8 @@ GRANT ALL ON public.user_sessions TO anon, authenticated;</div>
                         headers: {
                             'Authorization': `Bearer ${window.AUTO_GESTOR_CONFIG.supabaseAnonKey}`,
                             'apikey': window.AUTO_GESTOR_CONFIG.supabaseAnonKey,
-                            'Prefer': 'count=exact'
+                            'Prefer': 'count=exact',
+                            'Accept': 'application/json'
                         }
                     });
 
@@ -304,7 +305,7 @@ GRANT ALL ON public.user_sessions TO anon, authenticated;</div>
                     name: 'Teste Correção RLS',
                     email: 'teste_rls_' + Date.now() + '@autogestorpecas.com',
                     password_hash: 'hash_teste_123',
-                    role: 'Vendedor',
+                    role: 'vendedor',
                     created_at: new Date().toISOString()
                 };
 
