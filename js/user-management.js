@@ -201,13 +201,16 @@ class UserManager {
             // Hash da senha (em produção, isso seria feito no backend)
             const passwordHash = await this.hashPassword(userData.password);
 
+            // Normalizar role para evitar violação de CHECK (ex.: "Tecnico"/"Técnico" -> "tecnico")
+            const safeRole = this.normalizeRole(userData.role);
+
             const newUser = {
                 name: userData.name,
                 email: userData.email,
                 password_hash: passwordHash,
-                role: userData.role,
+                role: safeRole,
                 status: userData.status || 'ativo',
-                permissions: userData.custom_permissions ? userData.custom_permissions : (this.permissions[userData.role] || this.permissions.vendedor),
+                permissions: userData.custom_permissions ? userData.custom_permissions : (this.permissions[safeRole] || this.permissions.vendedor),
                 created_by: this.currentUser?.id
             };
 
@@ -220,7 +223,7 @@ class UserManager {
                         email: userData.email,
                         password: userData.password,
                         email_confirm: true,
-                        user_metadata: { name: userData.name, role: userData.role }
+                        user_metadata: { name: userData.name, role: safeRole }
                     });
                     if (!authErr && authCreate?.user?.id) {
                         newUser.id = authCreate.user.id; // Vincula ID do auth ao registro interno
@@ -276,7 +279,7 @@ class UserManager {
                 console.log('❌ Inserção direta falhou:', directError.message);
             }
 
-            // Abordagem 3: Tentar via função RPC se a inserção direta falhar
+            // Abordagem 3: Tentar via função RPC se a inserção direta falhar por RLS
             if (error && error.message.includes('row-level security')) {
                 console.log('🔄 Tentando via função RPC...');
                 try {
@@ -285,7 +288,7 @@ class UserManager {
                         p_name: newUser.name,
                         p_email: newUser.email,
                         p_password_hash: newUser.password_hash,
-                        p_role: newUser.role,
+                        p_role: safeRole,
                         p_status: newUser.status,
                         p_permissions: newUser.permissions,
                         p_created_by: newUser.created_by
@@ -331,15 +334,20 @@ class UserManager {
 
             // Se ainda há erro, lançar exceção com instruções
             if (error) {
-                const errorMsg = `Erro RLS: ${error.message}\n\n` +
-                    `SOLUÇÕES POSSÍVEIS (uma delas):\n` +
-                    `A) Informar a Service Role Key em Configurações > Integrações para uso em desenvolvimento.\n` +
-                    `B) No Supabase, executar no SQL Editor:\n` +
-                    `   ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;\n` +
-                    `   ALTER TABLE public.users NO FORCE ROW LEVEL SECURITY;\n` +
-                    `   -- opcional: conceder execução às funções de bypass\n` +
-                    `   GRANT EXECUTE ON FUNCTION public.create_user_bypass_rls(text, text, text, text, text, jsonb, uuid) TO anon, authenticated;\n` +
-                    `Depois, tente criar o usuário novamente.`;
+                // Mensagem mais clara quando o erro é de constraint de role
+                if (String(error.message || '').includes('valid_role')) {
+                    const msg = `Falha ao criar usuário: role inválida (${safeRole}).\n` +
+                        `O banco precisa aceitar 'tecnico' na constraint valid_role.\n` +
+                        `Aplique a migração 0015_add_tecnico_role.sql ou execute:\n` +
+                        `  ALTER TABLE public.users DROP CONSTRAINT valid_role;\n` +
+                        `  ALTER TABLE public.users ADD CONSTRAINT valid_role CHECK (role IN ('administrador','gerente','vendedor','tecnico'));`;
+                    throw new Error(msg);
+                }
+                const errorMsg = `Erro ao criar usuário: ${error.message}\n\n` +
+                    `Se for bloqueio por RLS, você pode:\n` +
+                    `- Informar a Service Role Key em Configurações > Integrações (apenas desenvolvimento).\n` +
+                    `- Conceder EXECUTE na função public.create_user_bypass_rls para authenticated/anon.\n` +
+                    `- Ajustar políticas RLS conforme necessário.`;
                 throw new Error(errorMsg);
             }
 
@@ -372,12 +380,14 @@ class UserManager {
                 throw new Error('Supabase não configurado');
             }
 
+            const safeRole = this.normalizeRole(userData.role);
+
             const updateData = {
                 name: userData.name,
                 email: userData.email,
-                role: userData.role,
+                role: safeRole,
                 status: userData.status,
-                permissions: (userData.custom_permissions ?? userData.permissions) || this.permissions[userData.role],
+                permissions: (userData.custom_permissions ?? userData.permissions) || this.permissions[safeRole],
                 updated_at: new Date().toISOString()
             };
 
@@ -401,7 +411,7 @@ class UserManager {
                 const adminClient = window.adminSupabaseClient;
                 if (adminClient && adminClient.auth?.admin?.updateUserById) {
                     const authUpdates = {
-                        user_metadata: { name: userData.name, role: userData.role }
+                        user_metadata: { name: userData.name, role: safeRole }
                     };
                     if (userData.email) authUpdates.email = userData.email;
                     if (userData.password) authUpdates.password = userData.password;
@@ -652,6 +662,36 @@ class UserManager {
             tecnico: 'Técnico'
         };
         return names[role] || role;
+    }
+
+    // Normaliza o valor de role para uma chave válida do sistema
+    normalizeRole(role) {
+        try {
+            const base = String(role || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .trim()
+                .toLowerCase();
+            const map = {
+                administrador: 'administrador',
+                admin: 'administrador',
+                adm: 'administrador',
+                gerente: 'gerente',
+                manager: 'gerente',
+                vendedor: 'vendedor',
+                'vendedor(a)': 'vendedor',
+                tecnico: 'tecnico',
+                'tecnico(a)': 'tecnico',
+                'tecnico_mecanico': 'tecnico',
+                'tecnico mecanico': 'tecnico',
+                'tecnico-mecanico': 'tecnico',
+                'tecnico_mecânico': 'tecnico',
+                'tecnico mecânico': 'tecnico',
+                'técnico': 'tecnico'
+            };
+            const normalized = map[base] || base;
+            return ['administrador','gerente','vendedor','tecnico'].includes(normalized) ? normalized : 'vendedor';
+        } catch { return 'vendedor'; }
     }
 
     getStatusBadgeClass(status) {

@@ -33,6 +33,7 @@
                 <option value="vendedor">Vendedor</option>
                 <option value="gerente">Gerente</option>
                 <option value="administrador">Administrador</option>
+                <option value="tecnico">Técnico</option>
             </select>
         </div>
         
@@ -181,6 +182,17 @@
                     configuracoes: { view: true }
                 },
                 vendedor: {
+                    dashboard: { view: true },
+                    vendas: { view: true, create: true, edit: true },
+                    clientes: { view: true, create: true, edit: true },
+                    produtos: { view: true },
+                    servicos: { view: true, create: true, edit: true },
+                    financeiro: { view: false },
+                    relatorios: { view: false },
+                    usuarios: { view: false },
+                    configuracoes: { view: false }
+                },
+                tecnico: {
                     dashboard: { view: true },
                     vendas: { view: true, create: true, edit: true },
                     clientes: { view: true, create: true, edit: true },
