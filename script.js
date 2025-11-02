@@ -158,6 +158,26 @@ const APP_PERMISSIONS_DEFAULT = {
   }
 };
 
+// Normaliza nome de papel para chave de APP_PERMISSIONS_DEFAULT
+function toRoleKey(role) {
+  try {
+    const base = String(role || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+    const map = {
+      administrador: 'administrador',
+      admin: 'administrador',
+      adm: 'administrador',
+      gerente: 'gerente',
+      manager: 'gerente',
+      vendedor: 'vendedor',
+      'vendedor(a)': 'vendedor',
+      tecnico: 'tecnico',
+      'tecnico(a)': 'tecnico',
+      tecnico_mecanico: 'tecnico'
+    };
+    return map[base] || base;
+  } catch { return 'vendedor'; }
+}
+
 function notifyNoPermission(message) {
   try {
     if (window.userManager && typeof window.userManager.showToast === 'function') {
@@ -182,7 +202,8 @@ async function getCurrentPermissionsCached() {
       const roleMeta = data?.user?.user_metadata?.role || null;
       const mergeWithDefaults = (permsObj, roleName) => {
         try {
-          const defaults = APP_PERMISSIONS_DEFAULT[roleName] || {};
+          const roleKey = toRoleKey(roleName);
+          const defaults = APP_PERMISSIONS_DEFAULT[roleKey] || {};
           const result = { ...defaults };
           // merge shallow per-module
           Object.keys(permsObj || {}).forEach((mod) => {
@@ -190,13 +211,16 @@ async function getCurrentPermissionsCached() {
             result[mod] = { ...modDefaults, ...permsObj[mod] };
           });
           // Garantir que administradores sempre vejam o checklist
-          if (roleName === 'administrador') {
+          if (roleKey === 'administrador') {
             const adminChecklist = { ...(defaults.checklist||{}), ...(permsObj?.checklist||{}) };
             adminChecklist.view = true;
             result.checklist = adminChecklist;
           }
           return result;
-        } catch { return permsObj || (APP_PERMISSIONS_DEFAULT[roleName] || APP_PERMISSIONS_DEFAULT.vendedor); }
+        } catch {
+          const roleKey = toRoleKey(roleName);
+          return permsObj || (APP_PERMISSIONS_DEFAULT[roleKey] || APP_PERMISSIONS_DEFAULT.vendedor);
+        }
       };
       if (uid) {
         try {
@@ -206,8 +230,10 @@ async function getCurrentPermissionsCached() {
             .eq('id', uid)
             .limit(1);
           if (Array.isArray(rows) && rows.length) {
-            const perms = mergeWithDefaults(rows[0].permissions, rows[0].role);
+            const roleKey = toRoleKey(rows[0].role);
+            const perms = mergeWithDefaults(rows[0].permissions, roleKey);
             window.CURRENT_PERMISSIONS = perms;
+            window.CURRENT_ROLE = roleKey;
             return perms;
           }
         } catch {}
@@ -221,27 +247,34 @@ async function getCurrentPermissionsCached() {
             .eq('email', email)
             .limit(1);
           if (Array.isArray(rowsByEmail) && rowsByEmail.length) {
-            const perms = mergeWithDefaults(rowsByEmail[0].permissions, rowsByEmail[0].role);
+            const roleKey = toRoleKey(rowsByEmail[0].role);
+            const perms = mergeWithDefaults(rowsByEmail[0].permissions, roleKey);
             window.CURRENT_PERMISSIONS = perms;
+            window.CURRENT_ROLE = roleKey;
             return perms;
           }
         } catch {}
       }
-      const perms = APP_PERMISSIONS_DEFAULT[roleMeta] || APP_PERMISSIONS_DEFAULT.vendedor;
+      const roleKey = toRoleKey(roleMeta);
+      const perms = APP_PERMISSIONS_DEFAULT[roleKey] || APP_PERMISSIONS_DEFAULT.vendedor;
       window.CURRENT_PERMISSIONS = perms;
+      window.CURRENT_ROLE = roleKey || 'vendedor';
       return perms;
     }
   } catch {}
   // Fallback seguro (não admin) se nada for encontrado
   const perms = APP_PERMISSIONS_DEFAULT.vendedor;
   window.CURRENT_PERMISSIONS = perms;
+  window.CURRENT_ROLE = 'vendedor';
   return perms;
 }
 
 async function canViewPage(page) {
   try {
-    const module = PAGE_TO_MODULE[page] || 'dashboard';
     const perms = await getCurrentPermissionsCached();
+    const module = PAGE_TO_MODULE[page] || 'dashboard';
+    // Administrador sempre tem acesso ao checklist
+    if (page === 'checklist' && window.CURRENT_ROLE === 'administrador') return true;
     return perms?.[module]?.view === true;
   } catch { return true; }
 }
