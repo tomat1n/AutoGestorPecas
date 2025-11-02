@@ -4,11 +4,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Gate de autenticação mínimo
   try {
+    const cfgLS = (()=>{ try { return JSON.parse(localStorage.getItem('cfg')||'{}'); } catch { return {}; } })();
+    const autoCfg = window.AUTO_GESTOR_CONFIG || {};
+    const isValidUrl = (u) => /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(u||'').trim());
+    const isValidKey = (k) => typeof k === 'string' && k.trim().split('.').length === 3;
+    const hasUrlLS = isValidUrl(cfgLS?.cfgSupabaseUrl);
+    const hasKeyLS = isValidKey(cfgLS?.cfgSupabaseAnonKey);
+    const hasUrlAuto = isValidUrl(autoCfg?.supabaseUrl);
+    const hasKeyAuto = isValidKey(autoCfg?.supabaseAnonKey);
+    const hasSupaConfig = (hasUrlLS && hasKeyLS) || (hasUrlAuto && hasKeyAuto);
     const supabase = window.supabaseClient;
-    if (!supabase) {
-      // Sem cliente, levar para login
-      try { window.location.replace('auth.html'); return; } catch {}
-    } else {
+    // Se não há configuração do Supabase, permanecer na página e abrir Configurações
+    if (!hasSupaConfig) {
+      try { localStorage.setItem('cfg.activeTab','integrations'); } catch {}
+    } else if (supabase) {
+      // Com configuração válida, exigir sessão
       const { data } = await supabase.auth.getSession();
       if (!data?.session) {
         try { window.location.replace('auth.html'); return; } catch {}
@@ -27,16 +37,210 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Atualiza cards do dashboard com dados do Supabase
   try {
-    if (window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
+    const supabase = window.supabaseClient;
+    let hasSession = false;
+    if (supabase && supabase.auth?.getSession) {
+      const { data } = await supabase.auth.getSession();
+      hasSession = !!data?.session;
+    }
+    if (hasSession && window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
       await window.dashboardData.updateDashboardCards();
     }
   } catch (error) {
     console.warn('Erro ao atualizar dashboard:', error);
   }
   
-  // Abre Dashboard como padrão
-  navigateTo('dashboard');
+  // Abre seção padrão: Configurações se faltar Supabase, senão Dashboard
+  try {
+    const cfgLS = (()=>{ try { return JSON.parse(localStorage.getItem('cfg')||'{}'); } catch { return {}; } })();
+    const hasUrl = /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfgLS?.cfgSupabaseUrl||'').trim());
+    const hasKey = typeof cfgLS?.cfgSupabaseAnonKey === 'string' && String(cfgLS.cfgSupabaseAnonKey).trim().split('.').length === 3;
+    let defaultPage = (hasUrl && hasKey) ? 'dashboard' : 'config';
+    try { await applyMenuVisibilityByPermissions(); } catch {}
+    try {
+      const ok = await canViewPage(defaultPage);
+      if (!ok) {
+        const ordered = ['checklist','dashboard','pdv','estoque','clientes','fornecedores','receber','pagar','relatorios','config'];
+        for (const p of ordered) {
+          if (await canViewPage(p)) { defaultPage = p; break; }
+        }
+      }
+    } catch {}
+    navigateTo(defaultPage);
+  } catch { navigateTo('dashboard'); }
 });
+
+// ==============================
+// Permissões: utilitários centrais
+// ==============================
+const PAGE_TO_MODULE = {
+  dashboard: 'dashboard',
+  pdv: 'vendas',
+  os: 'vendas', // mapeado para vendas (serviços não possuem módulo próprio)
+  estoque: 'estoque',
+  receber: 'financeiro',
+  pagar: 'financeiro',
+  relatorios: 'relatorios',
+  clientes: 'clientes',
+  fornecedores: 'fornecedores',
+  nf: 'financeiro',
+  config: 'configuracoes',
+  checklist: 'checklist'
+};
+
+const APP_PERMISSIONS_DEFAULT = {
+  administrador: {
+    dashboard: { view: true, edit: true },
+    vendas: { view: true, create: true, edit: true, delete: true },
+    estoque: { view: true, create: true, edit: true, delete: true },
+    financeiro: { view: true, create: true, edit: true, delete: true },
+    clientes: { view: true, create: true, edit: true, delete: true },
+    fornecedores: { view: true, create: true, edit: true, delete: true },
+    relatorios: { view: true, export: true },
+    configuracoes: { view: true, edit: true },
+    usuarios: { view: true, create: true, edit: true, delete: true },
+    checklist: { view: true, create: true, edit: true, delete: true }
+  },
+  gerente: {
+    dashboard: { view: true, edit: true },
+    vendas: { view: true, create: true, edit: true, delete: true },
+    estoque: { view: true, create: true, edit: true, delete: false },
+    financeiro: { view: true, create: false, edit: false, delete: false },
+    clientes: { view: true, create: true, edit: true, delete: false },
+    fornecedores: { view: true, create: true, edit: true, delete: false },
+    relatorios: { view: true, export: true },
+    configuracoes: { view: true, edit: false },
+    usuarios: { view: true, create: true, edit: true, delete: false },
+    checklist: { view: true, create: true, edit: true, delete: false }
+  },
+  vendedor: {
+    dashboard: { view: true, edit: false },
+    vendas: { view: true, create: true, edit: true, delete: false },
+    estoque: { view: true, create: false, edit: false, delete: false },
+    financeiro: { view: false, create: false, edit: false, delete: false },
+    clientes: { view: true, create: true, edit: true, delete: false },
+    fornecedores: { view: true, create: false, edit: false, delete: false },
+    relatorios: { view: false, export: false },
+    configuracoes: { view: false, edit: false },
+    usuarios: { view: false, create: false, edit: false, delete: false },
+    checklist: { view: true, create: true, edit: true, delete: false }
+  },
+  tecnico: {
+    dashboard: { view: false, edit: false },
+    vendas: { view: false, create: false, edit: false, delete: false },
+    estoque: { view: false, create: false, edit: false, delete: false },
+    financeiro: { view: false, create: false, edit: false, delete: false },
+    clientes: { view: false, create: false, edit: false, delete: false },
+    fornecedores: { view: false, create: false, edit: false, delete: false },
+    relatorios: { view: false, export: false },
+    configuracoes: { view: false, edit: false },
+    usuarios: { view: false, create: false, edit: false, delete: false },
+    checklist: { view: true, create: true, edit: true, delete: false }
+  }
+};
+
+function notifyNoPermission(message) {
+  try {
+    if (window.userManager && typeof window.userManager.showToast === 'function') {
+      window.userManager.showToast(message, 'warning');
+      return;
+    }
+  } catch {}
+  alert(message);
+}
+
+async function getCurrentPermissionsCached() {
+  try {
+    if (window.userManager?.currentUser?.permissions) {
+      return window.userManager.currentUser.permissions;
+    }
+    if (window.CURRENT_PERMISSIONS) return window.CURRENT_PERMISSIONS;
+    const supabase = window.supabaseClient;
+    if (supabase && supabase.auth?.getUser) {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id || null;
+      const email = data?.user?.email || null;
+      const roleMeta = data?.user?.user_metadata?.role || null;
+      if (uid) {
+        try {
+          const { data: rows } = await supabase
+            .from('users')
+            .select('permissions,role')
+            .eq('id', uid)
+            .limit(1);
+          if (Array.isArray(rows) && rows.length) {
+            const perms = rows[0].permissions || APP_PERMISSIONS_DEFAULT[rows[0].role] || APP_PERMISSIONS_DEFAULT.vendedor;
+            window.CURRENT_PERMISSIONS = perms;
+            return perms;
+          }
+        } catch {}
+      }
+      // Fallback: buscar por e-mail, caso não haja correspondência por ID
+      if (email) {
+        try {
+          const { data: rowsByEmail } = await supabase
+            .from('users')
+            .select('permissions,role')
+            .eq('email', email)
+            .limit(1);
+          if (Array.isArray(rowsByEmail) && rowsByEmail.length) {
+            const perms = rowsByEmail[0].permissions || APP_PERMISSIONS_DEFAULT[rowsByEmail[0].role] || APP_PERMISSIONS_DEFAULT.vendedor;
+            window.CURRENT_PERMISSIONS = perms;
+            return perms;
+          }
+        } catch {}
+      }
+      const perms = APP_PERMISSIONS_DEFAULT[roleMeta] || APP_PERMISSIONS_DEFAULT.vendedor;
+      window.CURRENT_PERMISSIONS = perms;
+      return perms;
+    }
+  } catch {}
+  // Fallback seguro (não admin) se nada for encontrado
+  const perms = APP_PERMISSIONS_DEFAULT.vendedor;
+  window.CURRENT_PERMISSIONS = perms;
+  return perms;
+}
+
+async function canViewPage(page) {
+  try {
+    const module = PAGE_TO_MODULE[page] || 'dashboard';
+    const perms = await getCurrentPermissionsCached();
+    return perms?.[module]?.view === true;
+  } catch { return true; }
+}
+
+async function applyMenuVisibilityByPermissions() {
+  try {
+    const perms = await getCurrentPermissionsCached();
+    const items = document.querySelectorAll('.menu-item[data-page]');
+    items.forEach((item) => {
+      const page = item.getAttribute('data-page');
+      if (page === 'logout') return; // sempre visível
+      const module = PAGE_TO_MODULE[page] || page;
+      const allowed = perms?.[module]?.view === true;
+      if (!allowed) item.classList.add('hidden'); else item.classList.remove('hidden');
+    });
+
+    const cards = document.querySelectorAll('.quick-card');
+    const pageMap = {
+      'ordem de serviço':'os',
+      'venda (pdv)':'pdv',
+      'estoque':'estoque',
+      'notas fiscais':'nf',
+      'clientes':'clientes',
+      'a receber':'receber',
+      'a pagar':'pagar'
+    };
+    cards.forEach(card => {
+      const key = (card.getAttribute('data-module')||'').toLowerCase();
+      const page = pageMap[key];
+      if (!page) return;
+      const module = PAGE_TO_MODULE[page] || page;
+      const allowed = perms?.[module]?.view === true;
+      if (!allowed) card.classList.add('hidden'); else card.classList.remove('hidden');
+    });
+  } catch (e) { console.warn('Falha ao aplicar visibilidade por permissão:', e); }
+}
 
 function setupMenuActiveState() {
   const items = document.querySelectorAll('.menu-item');
@@ -76,6 +280,16 @@ function setupQuickShortcuts() {
 }
 
 async function navigateTo(page) {
+  // Gate de visualização por permissão
+  if (page !== 'logout') {
+    const allowed = await canViewPage(page);
+    if (!allowed) {
+      const module = PAGE_TO_MODULE[page] || page;
+      notifyNoPermission(`Você não tem permissão para visualizar: ${module}.`);
+      page = 'dashboard';
+    }
+  }
+
   const pdvSection = document.getElementById('pdvSection');
   const osSection = document.getElementById('osSection');
   const inventorySection = document.getElementById('inventorySection');
@@ -419,6 +633,15 @@ function initShoppingCart() {
 }
 
 async function finalizeSale() {
+  // Checar permissão para criar venda
+  try {
+    const perms = await getCurrentPermissionsCached();
+    if (!perms?.vendas?.create) {
+      notifyNoPermission('Você não tem permissão para finalizar vendas.');
+      return;
+    }
+  } catch {}
+
   const cart = window.cart;
   if (!cart || cart.items.length === 0) {
     alert('Carrinho vazio.');
@@ -517,25 +740,16 @@ async function finalizeSale() {
 function initSupabase() {
   let cfgLS = {};
   try { cfgLS = JSON.parse(localStorage.getItem('cfg') || '{}'); } catch {}
+  const autoCfg = window.AUTO_GESTOR_CONFIG || {};
   const isValidUrl = (u) => /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(u||'').trim());
   const isValidKey = (k) => typeof k === 'string' && k.trim().split('.').length === 3;
-  const urlCandidate = cfgLS?.cfgSupabaseUrl;
-  const keyCandidate = cfgLS?.cfgSupabaseAnonKey;
+  const urlCandidate = isValidUrl(cfgLS?.cfgSupabaseUrl) ? cfgLS?.cfgSupabaseUrl : autoCfg?.supabaseUrl;
+  const keyCandidate = isValidKey(cfgLS?.cfgSupabaseAnonKey) ? cfgLS?.cfgSupabaseAnonKey : autoCfg?.supabaseAnonKey;
   const url = (isValidUrl(urlCandidate) ? urlCandidate : '').trim();
   const key = (isValidKey(keyCandidate) ? keyCandidate : '').trim();
   // Guarda cfg atual para diagnósticos/fallbacks
   window.SUPA_CFG = { url, key };
-  // Evitar conflitos com sessões antigas do supabase-js
-  try {
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k) continue;
-      if (k.startsWith('sb-') && k.endsWith('-auth-token')) keysToRemove.push(k);
-      if (k.includes('supabase.auth.token')) keysToRemove.push(k);
-    }
-    keysToRemove.forEach(k => { try { localStorage.removeItem(k); } catch {} });
-  } catch {}
+  // Não limpar tokens de auth aqui para não invalidar sessões persistidas
 
   const supaOptions = { auth: { persistSession: true, autoRefreshToken: false } };
   if (url && key && window.supabase) {
@@ -545,7 +759,7 @@ function initSupabase() {
   }
 
   // Inicializar cliente admin (service_role) se disponível — apenas desenvolvimento
-  const svcCandidate = cfgLS?.cfgSupabaseServiceKey;
+  const svcCandidate = (cfgLS?.cfgSupabaseServiceKey || autoCfg?.supabaseServiceKey || '').trim();
   const serviceKey = (isValidKey(svcCandidate) ? svcCandidate : '').trim();
   if (url && serviceKey && window.supabase) {
     try {
@@ -1308,6 +1522,7 @@ function setupInventoryEvents() {
 
   const saveBtn = document.getElementById('invSaveBtn');
   if (saveBtn) saveBtn.addEventListener('click', async () => {
+    const perms = await getCurrentPermissionsCached();
     const data = getInventoryFormValues();
     if (!data.name) { alert('Informe o nome do produto.'); return; }
 
@@ -1330,6 +1545,12 @@ function setupInventoryEvents() {
     let existing = null;
     if (data.id) existing = s.products.find(p => p.id === data.id);
     if (!existing && data.barcode) existing = s.products.find(p => (p.barcode||'') === data.barcode);
+    // Gate: editar vs criar
+    if (existing) {
+      if (!perms?.estoque?.edit) { notifyNoPermission('Você não tem permissão para editar produtos do estoque.'); return; }
+    } else {
+      if (!perms?.estoque?.create) { notifyNoPermission('Você não tem permissão para criar produtos no estoque.'); return; }
+    }
     let saved = null;
     if (window.supabaseClient) {
       const payload = existing ? { ...existing, ...data, id: existing.id } : data;
@@ -1356,6 +1577,8 @@ function setupInventoryEvents() {
 
   const deleteBtn = document.getElementById('invDeleteBtn');
   if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+    const perms = await getCurrentPermissionsCached();
+    if (!perms?.estoque?.delete) { notifyNoPermission('Você não tem permissão para excluir produtos do estoque.'); return; }
     const s = window.INV_STATE;
     const id = s.selectedProductId;
     if (!id) { alert('Selecione um produto antes de excluir.'); return; }
@@ -1374,6 +1597,8 @@ function setupInventoryEvents() {
 
   const applyBtn = document.getElementById('invApplyMovementBtn');
   if (applyBtn) applyBtn.addEventListener('click', async () => {
+    const perms = await getCurrentPermissionsCached();
+    if (!perms?.estoque?.edit) { notifyNoPermission('Você não tem permissão para movimentar estoque.'); return; }
     const s = window.INV_STATE;
     const id = s.selectedProductId;
     if (!id) { alert('Selecione um produto para movimentar.'); return; }
@@ -1432,3 +1657,32 @@ function setupSidebarToggle() {
     overlay.classList.remove('active');
   });
 }
+
+async function updateHeaderUserName() {
+  try {
+    let name = null;
+    if (window.userManager?.currentUser?.name) {
+      name = window.userManager.currentUser.name;
+    }
+    if (!name) {
+      const supabase = window.supabaseClient;
+      if (supabase && supabase.auth?.getUser) {
+        const { data } = await supabase.auth.getUser();
+        const uid = data?.user?.id || null;
+        const email = data?.user?.email || null;
+        const metaName = data?.user?.user_metadata?.name || data?.user?.user_metadata?.full_name || data?.user?.user_metadata?.profile || null;
+        if (uid) {
+          try {
+            const { data: rows } = await supabase.from('users').select('name').eq('id', uid).limit(1);
+            if (Array.isArray(rows) && rows.length) name = rows[0].name;
+          } catch {}
+        }
+        if (!name) name = metaName || (email ? String(email).split('@')[0] : null);
+      }
+    }
+    const el = document.getElementById('currentUserName') || document.getElementById('userNameBadge');
+    if (el) el.textContent = name || 'Usuário';
+  } catch (e) { console.warn('Falha ao atualizar nome do usuário:', e); }
+}
+
+setTimeout(() => { updateHeaderUserName().catch(()=>{}); }, 800);

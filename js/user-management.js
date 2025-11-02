@@ -26,7 +26,8 @@ class UserManager {
                 fornecedores: { view: true, create: true, edit: true, delete: true },
                 relatorios: { view: true, export: true },
                 configuracoes: { view: true, edit: true },
-                usuarios: { view: true, create: true, edit: true, delete: true }
+                usuarios: { view: true, create: true, edit: true, delete: true },
+                checklist: { view: true, create: true, edit: true, delete: true }
             },
             gerente: {
                 dashboard: { view: true, edit: true },
@@ -37,7 +38,8 @@ class UserManager {
                 fornecedores: { view: true, create: true, edit: true, delete: false },
                 relatorios: { view: true, export: true },
                 configuracoes: { view: true, edit: false },
-                usuarios: { view: true, create: true, edit: true, delete: false }
+                usuarios: { view: true, create: true, edit: true, delete: false },
+                checklist: { view: true, create: true, edit: true, delete: false }
             },
             vendedor: {
                 dashboard: { view: true, edit: false },
@@ -48,25 +50,89 @@ class UserManager {
                 fornecedores: { view: true, create: false, edit: false, delete: false },
                 relatorios: { view: false, export: false },
                 configuracoes: { view: false, edit: false },
-                usuarios: { view: false, create: false, edit: false, delete: false }
+                usuarios: { view: false, create: false, edit: false, delete: false },
+                checklist: { view: true, create: true, edit: true, delete: false }
+            },
+            tecnico: {
+                dashboard: { view: false, edit: false },
+                vendas: { view: false, create: false, edit: false, delete: false },
+                estoque: { view: false, create: false, edit: false, delete: false },
+                financeiro: { view: false, create: false, edit: false, delete: false },
+                clientes: { view: false, create: false, edit: false, delete: false },
+                fornecedores: { view: false, create: false, edit: false, delete: false },
+                relatorios: { view: false, export: false },
+                configuracoes: { view: false, edit: false },
+                usuarios: { view: false, create: false, edit: false, delete: false },
+                checklist: { view: true, create: true, edit: true, delete: false }
             }
         };
     }
 
-    // Carregar usuário atual (simulado - em produção viria da sessão)
+    // Carregar usuário atual: tenta mapear sessão do Supabase ao usuário da tabela
+    // Se não houver sessão/configuração, mantém perfil admin sem id (evita violar FK created_by)
     async loadCurrentUser() {
         try {
-            // Por enquanto, vamos simular um usuário administrador
-            // Usando um UUID válido em vez de '1'
+            const client = window.adminSupabaseClient || window.supabaseClient;
+            if (client && client.auth?.getUser) {
+                const { data: userData } = await client.auth.getUser();
+                const uid = userData?.user?.id || null;
+                const email = userData?.user?.email || null;
+                const roleMeta = userData?.user?.user_metadata?.role || 'vendedor';
+                // Preferir vinculação por auth.uid
+                if (uid) {
+                    try {
+                        const { data } = await client
+                            .from('users')
+                            .select('*')
+                            .eq('id', uid)
+                            .limit(1);
+                        if (Array.isArray(data) && data.length) {
+                            this.currentUser = data[0];
+                            return;
+                        }
+                    } catch (_) { /* tenta por e-mail abaixo */ }
+                }
+                // Fallback: buscar por e-mail
+                if (email) {
+                    try {
+                        const { data } = await client
+                            .from('users')
+                            .select('*')
+                            .eq('email', email)
+                            .limit(1);
+                        if (Array.isArray(data) && data.length) {
+                            this.currentUser = data[0];
+                            return;
+                        }
+                    } catch (_) { /* queda para admin padrão */ }
+                }
+                // Fallback com base no metadata de role, ou vendedor por padrão
+                this.currentUser = {
+                    id: uid || null,
+                    name: userData?.user?.user_metadata?.name || (email || 'Usuário'),
+                    email: email || 'desconhecido@local',
+                    role: roleMeta,
+                    permissions: this.permissions[roleMeta] || this.permissions.vendedor
+                };
+                return;
+            }
+            // Fallback final: perfil vendedor (mínimo) sem id para evitar privilégios indevidos
             this.currentUser = {
-                id: '00000000-0000-4000-8000-000000000001',
-                name: 'Administrador',
-                email: 'admin@autogestorpecas.com',
-                role: 'administrador',
-                permissions: this.permissions.administrador
+                id: null,
+                name: 'Usuário',
+                email: 'usuario@local',
+                role: 'vendedor',
+                permissions: this.permissions.vendedor
             };
         } catch (error) {
             console.error('Erro ao carregar usuário atual:', error);
+            this.currentUser = {
+                id: null,
+                name: 'Usuário',
+                email: 'usuario@local',
+                role: 'vendedor',
+                permissions: this.permissions.vendedor
+            };
         }
     }
 
@@ -118,6 +184,29 @@ class UserManager {
                 permissions: userData.custom_permissions ? userData.custom_permissions : (this.permissions[userData.role] || this.permissions.vendedor),
                 created_by: this.currentUser?.id
             };
+
+            // Primeiro, tentar criar o usuário no Supabase Auth (se Service Role estiver configurado)
+            let createdAuth = false;
+            try {
+                const adminClient = window.adminSupabaseClient;
+                if (adminClient && adminClient.auth?.admin?.createUser) {
+                    const { data: authCreate, error: authErr } = await adminClient.auth.admin.createUser({
+                        email: userData.email,
+                        password: userData.password,
+                        email_confirm: true,
+                        user_metadata: { name: userData.name, role: userData.role }
+                    });
+                    if (!authErr && authCreate?.user?.id) {
+                        newUser.id = authCreate.user.id; // Vincula ID do auth ao registro interno
+                        createdAuth = true;
+                    } else if (authErr) {
+                        console.warn('Falha ao criar usuário de autenticação:', authErr.message);
+                        this.showToast('Aviso: falha ao criar conta de autenticação (' + authErr.message + ')', 'warning');
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro inesperado ao criar usuário de autenticação:', e?.message || e);
+            }
 
             // Tentar múltiplas abordagens para contornar RLS
             let data, error;
@@ -228,6 +317,13 @@ class UserManager {
                 throw new Error(errorMsg);
             }
 
+            // Feedback sobre criação de auth
+            if (!createdAuth) {
+                this.showToast('Usuário interno criado. Atenção: sem Service Role, a conta de login não foi criada.', 'warning');
+            } else {
+                this.showToast('Conta de autenticação criada. O usuário já pode fazer login.', 'success');
+            }
+
             // Log da ação
             await this.logUserActivity('create_user', 'users', data[0].id, {
                 created_user: data[0].name,
@@ -274,6 +370,25 @@ class UserManager {
                 throw error;
             }
 
+            // Sincronizar com Supabase Auth (se Service Role estiver disponível)
+            try {
+                const adminClient = window.adminSupabaseClient;
+                if (adminClient && adminClient.auth?.admin?.updateUserById) {
+                    const authUpdates = {
+                        user_metadata: { name: userData.name, role: userData.role }
+                    };
+                    if (userData.email) authUpdates.email = userData.email;
+                    if (userData.password) authUpdates.password = userData.password;
+                    const { error: authUpdateErr } = await adminClient.auth.admin.updateUserById(userId, authUpdates);
+                    if (authUpdateErr) {
+                        console.warn('Falha ao atualizar usuário no Auth:', authUpdateErr.message);
+                        this.showToast('Aviso: não foi possível atualizar a conta de login (' + authUpdateErr.message + ')', 'warning');
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro inesperado ao sincronizar com Auth:', e?.message || e);
+            }
+
             // Log da ação
             await this.logUserActivity('update_user', 'users', userId, {
                 updated_fields: Object.keys(updateData)
@@ -306,6 +421,20 @@ class UserManager {
 
             if (error) {
                 throw error;
+            }
+
+            // Excluir também no Supabase Auth (se Service Role estiver disponível)
+            try {
+                const adminClient = window.adminSupabaseClient;
+                if (adminClient && adminClient.auth?.admin?.deleteUser) {
+                    const { error: delErr } = await adminClient.auth.admin.deleteUser(userId);
+                    if (delErr) {
+                        console.warn('Falha ao excluir conta de login:', delErr.message);
+                        this.showToast('Aviso: a conta de login não foi excluída (' + delErr.message + ')', 'warning');
+                    }
+                }
+            } catch (e) {
+                console.warn('Erro inesperado ao excluir no Auth:', e?.message || e);
             }
 
             // Log da ação
@@ -366,69 +495,93 @@ class UserManager {
         return this.currentUser.permissions[module]?.[action] === true;
     }
 
-    // Renderizar lista de usuários
+    // Renderizar lista de usuários em tabela responsiva com ações rápidas
     renderUsersList() {
         const container = document.getElementById('usersList');
         if (!container) return;
 
         if (this.users.length === 0) {
             container.innerHTML = `
-                <div class="text-center py-4">
-                    <p class="text-gray-500">Nenhum usuário encontrado</p>
+                <div class="users-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th style="width:140px;">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td colspan="5" style="color:#6c757d; padding:20px;">Nenhum usuário encontrado</td></tr>
+                    </tbody>
+                  </table>
                 </div>
             `;
             return;
         }
 
-        const usersHTML = this.users.map(user => `
-            <div class="user-card bg-white rounded-lg shadow-sm border p-4 mb-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span class="text-blue-600 font-semibold">${user.name.charAt(0).toUpperCase()}</span>
-                        </div>
-                        <div>
-                            <h4 class="font-semibold text-gray-900">${this.escapeHtml(user.name)}</h4>
-                            <p class="text-sm text-gray-500">${this.escapeHtml(user.email)}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 text-xs rounded-full ${this.getRoleBadgeClass(user.role)}">
-                            ${this.getRoleDisplayName(user.role)}
-                        </span>
-                        <span class="px-2 py-1 text-xs rounded-full ${this.getStatusBadgeClass(user.status)}">
-                            ${this.getStatusDisplayName(user.status)}
-                        </span>
-                        <div class="flex space-x-1">
-                            ${this.hasPermission('usuarios', 'edit') ? `
-                                <button onclick="userManager.editUser('${user.id}')" 
-                                        class="p-1 text-blue-600 hover:bg-blue-50 rounded">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                </button>
-                            ` : ''}
-                            ${this.hasPermission('usuarios', 'delete') && user.id !== this.currentUser?.id ? `
-                                <button onclick="userManager.confirmDeleteUser('${user.id}', '${this.escapeHtml(user.name)}')" 
-                                        class="p-1 text-red-600 hover:bg-red-50 rounded">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                    </svg>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3 text-xs text-gray-500">
-                    Criado em: ${new Date(user.created_at).toLocaleDateString('pt-BR')}
-                    ${user.last_login ? `• Último login: ${new Date(user.last_login).toLocaleDateString('pt-BR')}` : ''}
-                </div>
-            </div>
-        `).join('');
+        const rows = this.users.map(user => {
+            const roleBadge = `<span class="role-badge ${user.role}">${this.getRoleDisplayName(user.role)}</span>`;
+            const statusBadge = `<span class="status-badge ${user.status}">${this.getStatusDisplayName(user.status)}</span>`;
 
-        container.innerHTML = usersHTML;
+            const editBtn = this.hasPermission('usuarios', 'edit') ? `
+              <button class="btn-icon edit" title="Editar" onclick="userManager.editUser('${user.id}')">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            ` : '';
+
+            const deleteBtn = (this.hasPermission('usuarios', 'delete') && user.id !== this.currentUser?.id) ? `
+              <button class="btn-icon delete" title="Excluir" onclick="userManager.confirmDeleteUser('${user.id}', '${this.escapeHtml(user.name)}')">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            ` : '';
+
+            return `
+              <tr class="user-row">
+                <td>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:32px; height:32px; border-radius:50%; background:#e3f2fd; color:#1976d2; display:flex; align-items:center; justify-content:center; font-weight:600;">
+                      ${this.escapeHtml(user.name?.charAt(0)?.toUpperCase() || '?')}
+                    </div>
+                    <div>
+                      <div style="font-weight:600; color:#343a40;">${this.escapeHtml(user.name)}</div>
+                      <div style="font-size:12px; color:#6c757d;">${this.escapeHtml(user.email)}</div>
+                    </div>
+                  </div>
+                </td>
+                <td>${this.escapeHtml(user.email)}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td>
+                  <div class="action-buttons">
+                    ${editBtn}
+                    ${deleteBtn}
+                  </div>
+                </td>
+              </tr>
+            `;
+        }).join('');
+
+        container.innerHTML = `
+          <div class="users-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Perfil</th>
+                  <th>Status</th>
+                  <th style="width:140px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          </div>
+        `;
     }
 
     // Atualizar estatísticas de usuários
@@ -469,7 +622,8 @@ class UserManager {
         const names = {
             administrador: 'Administrador',
             gerente: 'Gerente',
-            vendedor: 'Vendedor'
+            vendedor: 'Vendedor',
+            tecnico: 'Técnico'
         };
         return names[role] || role;
     }
@@ -498,12 +652,56 @@ class UserManager {
         return div.innerHTML;
     }
 
+    // Sistema de toasts de feedback
+    createToastContainer() {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        return container;
+    }
+
+    showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer') || this.createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        // Animação de entrada
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+        // Remover após tempo
+        setTimeout(() => {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+        }, 3000);
+        toast.addEventListener('transitionend', () => {
+            if (toast.classList.contains('hide')) {
+                toast.remove();
+            }
+        });
+    }
+
     // Eventos da interface
     setupEventListeners() {
         // Botão de adicionar usuário
         const addUserBtn = document.getElementById('cfgNewUserCreateBtn');
         if (addUserBtn) {
-            addUserBtn.addEventListener('click', () => this.openUserModal());
+            if (!this.hasPermission('usuarios', 'create')) {
+                addUserBtn.disabled = true;
+                addUserBtn.title = 'Sem permissão para criar usuários';
+            }
+            addUserBtn.addEventListener('click', () => {
+                if (!this.hasPermission('usuarios', 'create')) {
+                    this.showToast('Você não tem permissão para criar usuários.', 'warning');
+                    return;
+                }
+                this.openUserModal();
+            });
         }
 
         // Botões de fechar modal de usuário
@@ -547,6 +745,17 @@ class UserManager {
 
     // Abrir modal de usuário
     openUserModal(userId = null) {
+        if (userId) {
+            if (!this.hasPermission('usuarios', 'edit')) {
+                this.showToast('Você não tem permissão para editar usuários.', 'warning');
+                return;
+            }
+        } else {
+            if (!this.hasPermission('usuarios', 'create')) {
+                this.showToast('Você não tem permissão para criar usuários.', 'warning');
+                return;
+            }
+        }
         this.currentEditingUserId = userId;
         const modal = document.getElementById('cfgUserModal');
         const form = document.getElementById('userForm');
@@ -593,6 +802,13 @@ class UserManager {
     
     // Abrir modal de permissões personalizadas
     openCustomPermissionsModal() {
+        // Gate: somente quem pode editar/criar usuários pode ajustar permissões personalizadas
+        const isEditing = !!this.currentEditingUserId;
+        const canEditPerms = isEditing ? this.hasPermission('usuarios', 'edit') : this.hasPermission('usuarios', 'create');
+        if (!canEditPerms) {
+            this.showToast('Você não tem permissão para ajustar permissões do usuário.', 'warning');
+            return;
+        }
         const modal = document.getElementById('customPermissionsModal');
         const title = document.getElementById('customPermissionsTitle');
         
@@ -682,13 +898,20 @@ class UserManager {
     
     // Salvar permissões personalizadas
     saveCustomPermissions() {
+        // Gate: somente quem pode editar/criar usuários pode salvar permissões
+        const isEditing = !!this.currentEditingUserId;
+        const canEditPerms = isEditing ? this.hasPermission('usuarios', 'edit') : this.hasPermission('usuarios', 'create');
+        if (!canEditPerms) {
+            this.showToast('Você não tem permissão para salvar permissões deste usuário.', 'warning');
+            return;
+        }
         const permissions = this.collectCustomPermissions();
         
         // Aqui você pode implementar a lógica para salvar as permissões
         // Por exemplo, armazenar em uma variável temporária ou enviar para o servidor
         this.tempCustomPermissions = permissions;
         
-        alert('Permissões personalizadas salvas com sucesso!');
+        this.showToast('Permissões personalizadas salvas com sucesso!', 'success');
         this.closeCustomPermissionsModal();
     }
 
@@ -769,8 +992,13 @@ class UserManager {
         return permissions;
     }
 
-    // Abrir modal de permissões por role
+  // Abrir modal de permissões por role
   openRolePermissionsModal(role) {
+    // Gate: somente quem pode editar configurações pode abrir esse modal
+    if (!this.hasPermission('configuracoes', 'edit')) {
+      this.showToast('Você não tem permissão para editar permissões por perfil.', 'warning');
+      return;
+    }
     const modal = document.getElementById('rolePermissionsModal');
     const title = document.getElementById('rolePermissionsTitle');
     
@@ -836,6 +1064,10 @@ class UserManager {
   // Salvar permissões do role
   async saveRolePermissions() {
     if (!this.currentEditingRole) return;
+    if (!this.hasPermission('configuracoes', 'edit')) {
+      this.showToast('Você não tem permissão para salvar permissões por perfil.', 'warning');
+      return;
+    }
 
     try {
       const permissions = {};
@@ -858,12 +1090,12 @@ class UserManager {
       // Salvar no localStorage (ou enviar para servidor)
       localStorage.setItem('userPermissions', JSON.stringify(this.permissions));
 
-      alert('Permissões atualizadas com sucesso!');
+      this.showToast('Permissões atualizadas com sucesso!', 'success');
       this.closeRolePermissionsModal();
       
     } catch (error) {
       console.error('Erro ao salvar permissões:', error);
-      alert('Erro ao salvar permissões: ' + error.message);
+      this.showToast('Erro ao salvar permissões: ' + error.message, 'error');
     }
   }
 
@@ -872,7 +1104,8 @@ class UserManager {
     const roleNames = {
       'administrador': 'Administrador',
       'gerente': 'Gerente',
-      'vendedor': 'Vendedor'
+      'vendedor': 'Vendedor',
+      'tecnico': 'Técnico'
     };
     return roleNames[role] || role;
   }
@@ -901,12 +1134,12 @@ class UserManager {
 
         // Validações
         if (!userData.name || !userData.email || !userData.role) {
-            alert('Por favor, preencha todos os campos obrigatórios.');
+            this.showToast('Por favor, preencha todos os campos obrigatórios.', 'warning');
             return;
         }
 
         if (!this.currentEditingUserId && !userData.password) {
-            alert('A senha é obrigatória para novos usuários.');
+            this.showToast('A senha é obrigatória para novos usuários.', 'warning');
             return;
         }
 
@@ -916,6 +1149,18 @@ class UserManager {
         submitBtn.disabled = true;
 
         try {
+            // Gate: checar permissão de acordo com operação
+            if (this.currentEditingUserId) {
+                if (!this.hasPermission('usuarios', 'edit')) {
+                    this.showToast('Você não tem permissão para editar usuários.', 'warning');
+                    return;
+                }
+            } else {
+                if (!this.hasPermission('usuarios', 'create')) {
+                    this.showToast('Você não tem permissão para criar usuários.', 'warning');
+                    return;
+                }
+            }
             let result;
             if (this.currentEditingUserId) {
                 result = await this.updateUser(this.currentEditingUserId, userData);
@@ -925,15 +1170,15 @@ class UserManager {
 
             if (result.success) {
                 this.closeUserModal();
-                alert(this.currentEditingUserId ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!');
+                this.showToast(this.currentEditingUserId ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!', 'success');
             } else {
-                alert('Erro: ' + result.error);
+                this.showToast('Erro: ' + result.error, 'error');
             }
         } catch (error) {
-            alert('Erro inesperado: ' + error.message);
+            this.showToast('Erro inesperado: ' + error.message, 'error');
         } finally {
-            submitBtn.textContent = originalText;
-            submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          submitBtn.disabled = false;
         }
     }
 
@@ -955,20 +1200,97 @@ class UserManager {
 
     // Editar usuário
     editUser(userId) {
+        if (!this.hasPermission('usuarios', 'edit')) {
+            this.showToast('Você não tem permissão para editar usuários.', 'warning');
+            return;
+        }
         this.openUserModal(userId);
     }
 
     // Confirmar exclusão de usuário
     confirmDeleteUser(userId, userName) {
-        if (confirm(`Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`)) {
-            this.deleteUser(userId).then(result => {
-                if (result.success) {
-                    alert('Usuário excluído com sucesso!');
-                } else {
-                    alert('Erro ao excluir usuário: ' + result.error);
-                }
-            });
+        if (!this.hasPermission('usuarios', 'delete')) {
+            this.showToast('Você não tem permissão para excluir usuários.', 'warning');
+            return;
         }
+        // Abre modal customizado se existir; caso contrário usa confirm padrão
+        const modal = document.getElementById('confirmDeleteModal');
+        if (modal) {
+            this.openConfirmDeleteModal(userId, userName);
+        } else {
+            if (confirm(`Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`)) {
+                this.deleteUser(userId).then(result => {
+                    if (result.success) {
+                        this.showToast('Usuário excluído com sucesso!', 'success');
+                        this.renderUsersList();
+                        this.updateUserStats();
+                    } else {
+                        this.showToast('Erro ao excluir usuário: ' + result.error, 'error');
+                    }
+                });
+            }
+        }
+    }
+
+    // Abrir modal de confirmação de exclusão
+    openConfirmDeleteModal(userId, userName) {
+        const modal = document.getElementById('confirmDeleteModal');
+        const messageEl = document.getElementById('confirmDeleteMessage');
+        const cancelBtn = document.getElementById('confirmDeleteCancel');
+        const confirmBtn = document.getElementById('confirmDeleteConfirm');
+        const closeX = document.getElementById('confirmDeleteCloseX');
+
+        if (!modal || !messageEl || !cancelBtn || !confirmBtn) return;
+
+        this.pendingDeleteUserId = userId;
+        messageEl.textContent = `Tem certeza que deseja excluir o usuário "${userName}"? Esta ação não pode ser desfeita.`;
+
+        // Limpar handlers anteriores
+        cancelBtn.onclick = null;
+        confirmBtn.onclick = null;
+        modal.onclick = null;
+
+        cancelBtn.onclick = () => this.closeConfirmDeleteModal();
+        confirmBtn.onclick = () => this.performDeleteUser();
+        if (closeX) closeX.onclick = () => this.closeConfirmDeleteModal();
+
+        // Fechar ao clicar fora do conteúdo
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                this.closeConfirmDeleteModal();
+            }
+        };
+
+        modal.classList.add('active');
+    }
+
+    performDeleteUser() {
+        if (!this.hasPermission('usuarios', 'delete')) {
+            this.showToast('Você não tem permissão para excluir usuários.', 'warning');
+            this.closeConfirmDeleteModal();
+            return;
+        }
+        if (!this.pendingDeleteUserId) return;
+        const userId = this.pendingDeleteUserId;
+        this.deleteUser(userId).then(result => {
+            if (result.success) {
+                this.showToast('Usuário excluído com sucesso!', 'success');
+                this.renderUsersList();
+                this.updateUserStats();
+            } else {
+                this.showToast('Erro ao excluir usuário: ' + result.error, 'error');
+            }
+            this.closeConfirmDeleteModal();
+        }).catch(err => {
+            this.showToast('Erro ao excluir usuário: ' + err.message, 'error');
+            this.closeConfirmDeleteModal();
+        });
+    }
+
+    closeConfirmDeleteModal() {
+        const modal = document.getElementById('confirmDeleteModal');
+        if (modal) modal.classList.remove('active');
+        this.pendingDeleteUserId = null;
     }
 
     // Filtrar usuários por texto
@@ -1020,7 +1342,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // Conectar botão de novo usuário
             const newUserBtn = document.getElementById('newUserBtn');
             if (newUserBtn) {
-                newUserBtn.onclick = () => window.userManager.openUserModal();
+                if (!window.userManager.hasPermission('usuarios', 'create')) {
+                    newUserBtn.disabled = true;
+                    newUserBtn.title = 'Sem permissão para criar usuários';
+                }
+                newUserBtn.onclick = () => {
+                    if (!window.userManager.hasPermission('usuarios', 'create')) {
+                        window.userManager.showToast('Você não tem permissão para criar usuários.', 'warning');
+                        return;
+                    }
+                    window.userManager.openUserModal();
+                };
             }
             
             console.log('Sistema de usuários inicializado e conectado');

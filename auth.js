@@ -182,9 +182,17 @@
     catch(err){ setFeedback(suFeedback, err?.message || 'Erro no Facebook OAuth', 'error'); }
   });
 
-  // Fluxo de recuperação: se voltou com token de recuperação
+  // Fluxo de recuperação e verificação de sessão com proteção de configuração
   (async function handleRecovery(){
-    const client = createClient(true);
+    let client = null;
+    try {
+      client = createClient(true);
+    } catch (err) {
+      const fb = document.getElementById('loginFeedback');
+      if (fb) { setFeedback(fb, 'Configure Supabase URL e Anon Key em Configurações para entrar.', 'error'); }
+      // Sem config, permanecer na tela de autenticação sem redirecionar
+      return;
+    }
     const hash = window.location.hash || '';
     if(/type=password_recovery|type=recovery/i.test(hash)){
       activateForm('recoveryForm');
@@ -205,9 +213,11 @@
         finally { reBtn.classList.remove('loading'); reBtn.disabled = false; }
       });
     } else {
-      // Se usuário já logado, ir para index
-      const { data } = await client.auth.getSession();
-      if(data?.session) { window.location.href = redirectIndex; }
+      try {
+        // Se usuário já logado, ir para index
+        const { data } = await client.auth.getSession();
+        if(data?.session) { window.location.href = redirectIndex; }
+      } catch(e) { /* Sem sessão ou falha, permanecer na tela de login */ }
     }
   })();
 })();

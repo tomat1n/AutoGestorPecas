@@ -156,7 +156,21 @@
             window.AUTO_GESTOR_CONFIG.supabaseAnonKey
         );
 
-        let registeredCount = 0;
+        // Logout local sem chamadas de rede (evita ERR_ABORTED no preview)
+        function safeLocalSignOut() {
+            try {
+                const url = window.AUTO_GESTOR_CONFIG.supabaseUrl || '';
+                const match = url.match(/https?:\/\/([^.]+)\.supabase\.co/i);
+                const ref = match ? match[1] : null;
+                if (ref) {
+                    localStorage.removeItem(`sb-${ref}-auth-token`);
+                }
+            } catch (e) {
+                console.warn('Falha ao limpar sessão local:', e?.message || e);
+            }
+        }
+
+        var registeredCount = 0;
         const totalUsers = 3;
 
         function log(message, type = 'info') {
@@ -212,8 +226,8 @@
                             throw new Error(`Usuário existe mas senha incorreta: ${loginError.message}`);
                         }
 
-                        // Fazer logout
-                        await supabase.auth.signOut();
+                        // Logout local sem rede
+                        safeLocalSignOut();
                         
                         updateStatus(userId, 'success', 'Já existe');
                         log(`✅ Usuário ${email} já existe e login funciona!`, 'success');
@@ -229,9 +243,9 @@
                     log(`✅ Usuário ${email} registrado com sucesso!`, 'success');
                     registeredCount++;
                     
-                    // Se não precisa confirmar email, fazer logout
+                    // Se não precisa confirmar email, fazer logout local
                     if (data.session) {
-                        await supabase.auth.signOut();
+                        safeLocalSignOut();
                     }
                     
                     return true;
@@ -332,8 +346,8 @@
                     log(`✅ Login OK: ${user.email}`, 'success');
                     successCount++;
                     
-                    // Fazer logout
-                    await supabase.auth.signOut();
+                    // Logout local sem rede
+                    safeLocalSignOut();
                     
                 } catch (error) {
                     log(`❌ Login falhou: ${user.email} - ${error.message}`, 'error');

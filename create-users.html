@@ -224,9 +224,19 @@
                 log('✅ Login do administrador funcionando!', 'success');
                 log(`Usuário logado: ${data.user.email}`, 'success');
                 
-                // Fazer logout
-                await supabase.auth.signOut();
-                log('🚪 Logout realizado.', 'info');
+                // Logout local sem rede para evitar ERR_ABORTED
+                try {
+                    const url = window.AUTO_GESTOR_CONFIG.supabaseUrl || '';
+                    const match = url.match(/https?:\/\/([^.]+)\.supabase\.co/i);
+                    const ref = match ? match[1] : null;
+                    if (ref) {
+                        localStorage.removeItem(`sb-${ref}-auth-token`);
+                    }
+                    log('🚪 Logout local realizado.', 'info');
+                } catch (e) {
+                    console.warn('Falha ao limpar sessão local:', e?.message || e);
+                    log('ℹ️ Logout local concluído com avisos.', 'info');
+                }
                 
             } catch (error) {
                 log(`❌ Erro no login: ${error.message}`, 'error');
