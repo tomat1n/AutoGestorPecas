@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch (e) { console.warn('Falha ao verificar autenticação:', e); }
 
+  // Aplicar visibilidade por permissões o quanto antes para evitar flash
+  try { await applyMenuVisibilityByPermissions(); } catch {}
+
   // Ativa menu e navegação
   setupMenuActiveState();
   // Ações de header e atualização de data/hora
@@ -43,7 +46,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const { data } = await supabase.auth.getSession();
       hasSession = !!data?.session;
     }
-    if (hasSession && window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
+    const canDashboard = await canViewPage('dashboard');
+    const financeSection = document.querySelector('.finance-cards');
+    if (!canDashboard && financeSection) financeSection.classList.add('hidden');
+    if (hasSession && canDashboard && window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
       await window.dashboardData.updateDashboardCards();
     }
   } catch (error) {
@@ -251,6 +257,14 @@ async function applyMenuVisibilityByPermissions() {
       const allowed = perms?.[module]?.view === true;
       if (!allowed) card.classList.add('hidden'); else card.classList.remove('hidden');
     });
+
+    // Finance cards (dashboard metrics) visíveis apenas se dashboard for permitido
+    const financeSection = document.querySelector('.finance-cards');
+    const canDashboard = perms?.dashboard?.view === true;
+    if (financeSection) {
+      if (!canDashboard) financeSection.classList.add('hidden');
+      else financeSection.classList.remove('hidden');
+    }
   } catch (e) { console.warn('Falha ao aplicar visibilidade por permissão:', e); }
 }
 
