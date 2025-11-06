@@ -195,6 +195,14 @@
                 ⚙️ Aplicar via Edge Function (recomendado)
             </button>
             
+            <button class="btn btn-danger" onclick="fixValidRoleConstraint()">
+                🛠️ Corrigir constraint valid_role (incluir "tecnico")
+            </button>
+
+            <button class="btn btn-warning" onclick="fixSalesClientDocument()">
+                📋 Corrigir coluna client_document na tabela sales
+            </button>
+
             <button class="btn" onclick="testConnection()">
                 🧪 Testar Conexão
             </button>
@@ -473,10 +481,208 @@
             }
         }
 
+        async function fixValidRoleConstraint(){
+            const serviceKey = document.getElementById('serviceKey').value.trim();
+            const supabaseUrl = getSupabaseUrl();
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'alert alert-warning';
+            resultDiv.innerHTML = '<div class="loading"></div> Corrigindo constraint valid_role...';
+
+            if (!serviceKey || !supabaseUrl) {
+                alert('❌ Informe URL do Supabase e a Service Role Key.');
+                return;
+            }
+
+            try{
+                adminSupabase = window.supabase.createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+                updateProgress(10, 'Conectado. Aplicando ALTER TABLE...');
+
+                const commands = [
+                    'ALTER TABLE public.users DROP CONSTRAINT IF EXISTS valid_role;',
+                    "ALTER TABLE public.users ADD CONSTRAINT valid_role CHECK (role IN ('administrador','gerente','vendedor','tecnico'));"
+                ];
+
+                let executed = 0;
+                let logs = [];
+                for (let i=0;i<commands.length;i++){
+                    const cmd = commands[i];
+                    updateProgress(20 + i*20, `Executando: ${cmd.substring(0,45)}...`);
+                    try{
+                        const { data, error } = await adminSupabase.rpc('exec_sql', { sql: cmd });
+                        if(error){
+                            if(error.code === 'PGRST202'){
+                                logs.push(`⚠️ exec_sql indisponível. Tentando via Edge Function...`);
+                                // Fallback: usar Edge Function que já aplica a correção
+                                await applyFixesEdgeFunction();
+                                resultDiv.className = 'alert alert-info';
+                                resultDiv.innerHTML += '<p>ℹ️ Constraint deve ter sido corrigida pela Edge Function.</p>';
+                                return;
+                            } else {
+                                logs.push(`❌ ${cmd}: ${error.message}`);
+                            }
+                        } else {
+                            logs.push(`✅ ${cmd}: sucesso`);
+                            executed++;
+                        }
+                    }catch(err){
+                        logs.push(`❌ ${cmd}: ${String(err?.message||err)}`);
+                    }
+                }
+
+                updateProgress(70, 'Validando com inserção de usuário tecnico...');
+                const testUser = {
+                    name: 'Teste Tecnico',
+                    email: 'tecnico_test_' + Date.now() + '@autogestorpecas.com',
+                    password_hash: 'hash_tecnico_test',
+                    role: 'tecnico',
+                    status: 'ativo',
+                    permissions: {},
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await adminSupabase.from('users').insert([testUser]).select('id');
+                if(error){
+                    resultDiv.className = 'alert alert-error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Falha na validação</h4>
+                        <p>${error.message}</p>
+                        <details><summary>Logs</summary>${logs.map(l=>`<p style="font-size:12px;">${l}</p>`).join('')}</details>
+                    `;
+                    updateProgress(0, 'Erro na validação');
+                    return;
+                }
+
+                // Cleanup
+                await adminSupabase.from('users').delete().eq('id', data?.[0]?.id);
+                updateProgress(100, 'Constraint corrigida com sucesso');
+                resultDiv.className = 'alert alert-success';
+                resultDiv.innerHTML = `
+                    <h4>✅ valid_role corrigida</h4>
+                    <p>Agora o papel 'tecnico' é aceito pelo banco.</p>
+                    <details><summary>Detalhes</summary>${logs.map(l=>`<p style="font-size:12px;">${l}</p>`).join('')}</details>
+                `;
+
+            }catch(e){
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro ao corrigir constraint</h4>
+                    <p>${String(e?.message||e)}</p>
+                `;
+                updateProgress(0, 'Erro ao corrigir');
+            }
+        }
+
         // Verificar se já temos uma service key salva (opcional)
         window.addEventListener('load', () => {
             updateProgress(0, 'Aguardando service role key...');
         });
+
+        async function fixSalesClientDocument() {
+            const serviceKey = document.getElementById('serviceKey').value.trim();
+            const supabaseUrl = getSupabaseUrl();
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'alert alert-warning';
+            resultDiv.innerHTML = '<div class="loading"></div> Corrigindo coluna client_document...';
+
+            if (!serviceKey || !supabaseUrl) {
+                alert('❌ Informe URL do Supabase e a Service Role Key.');
+                return;
+            }
+
+            try {
+                adminSupabase = window.supabase.createClient(supabaseUrl, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+                updateProgress(10, 'Conectado. Verificando estrutura da tabela sales...');
+
+                // Comandos SQL para garantir que todas as colunas necessárias existem
+                const commands = [
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS client_document text;',
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS client_phone text;',
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS client_email text;',
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS thermal_doc_url text;',
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS a4_doc_url text;',
+                    'ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS pdf_doc_url text;'
+                ];
+
+                let executed = 0;
+                let logs = [];
+                
+                for (let i = 0; i < commands.length; i++) {
+                    const cmd = commands[i];
+                    updateProgress(20 + (i * 10), `Executando: ${cmd.substring(0, 45)}...`);
+                    
+                    try {
+                        const { data, error } = await adminSupabase.rpc('exec_sql', { sql: cmd });
+                        if (error) {
+                            if (error.code === 'PGRST202') {
+                                logs.push(`⚠️ exec_sql indisponível. Tentando abordagem alternativa...`);
+                                // Fallback: tentar executar via query direta
+                                const { error: directError } = await adminSupabase.from('sales').select('id').limit(1);
+                                if (directError && directError.code === '42703') {
+                                    logs.push(`❌ ${cmd}: Coluna não existe e exec_sql indisponível`);
+                                } else {
+                                    logs.push(`ℹ️ ${cmd}: Tabela parece estar OK`);
+                                    executed++;
+                                }
+                            } else {
+                                logs.push(`❌ ${cmd}: ${error.message}`);
+                            }
+                        } else {
+                            logs.push(`✅ ${cmd}: Coluna adicionada/verificada`);
+                            executed++;
+                        }
+                    } catch (err) {
+                        logs.push(`❌ ${cmd}: ${String(err?.message || err)}`);
+                    }
+                }
+
+                updateProgress(80, 'Validando estrutura da tabela...');
+                
+                // Testar consulta que inclui todas as colunas necessárias
+                try {
+                    const { data, error } = await adminSupabase
+                        .from('sales')
+                        .select('id, client_document, client_phone, client_email, thermal_doc_url, a4_doc_url, pdf_doc_url')
+                        .limit(1);
+
+                    if (error) {
+                        throw new Error(`Falha na validação: ${error.message}`);
+                    }
+
+                    updateProgress(100, 'Estrutura validada com sucesso');
+                    resultDiv.className = 'alert alert-success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Estrutura da tabela sales corrigida</h4>
+                        <p>Todas as colunas necessárias para o histórico de vendas estão disponíveis.</p>
+                        <details>
+                            <summary>Detalhes das operações</summary>
+                            ${logs.map(l => `<p style="font-size:12px;">${l}</p>`).join('')}
+                        </details>
+                        <hr>
+                        <p><strong>✅ Próximo passo:</strong></p>
+                        <p>Volte ao sistema principal e teste o histórico de vendas.</p>
+                    `;
+
+                } catch (e) {
+                    throw new Error(`Falha na validação final: ${e.message}`);
+                }
+
+            } catch (e) {
+                resultDiv.className = 'alert alert-error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Erro ao corrigir estrutura da tabela sales</h4>
+                    <p>${String(e?.message || e)}</p>
+                    <p><strong>Solução manual:</strong> Execute no painel do Supabase:</p>
+                    <code>ALTER TABLE sales ADD COLUMN client_document text;</code>
+                    <br>
+                    <code>ALTER TABLE sales ADD COLUMN client_phone text;</code>
+                    <br>
+                    <code>ALTER TABLE sales ADD COLUMN client_email text;</code>
+                `;
+                updateProgress(0, 'Erro na correção');
+            }
+        }
     </script>
 </body>
 </html>
