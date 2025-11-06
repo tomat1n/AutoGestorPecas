@@ -585,6 +585,14 @@ function closeSalesHistoryModal() {
   }
 }
 
+// Fechar modal de detalhes da venda
+function closeSalesDetailsModal() {
+  const modal = document.getElementById('salesDetailsModal');
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
 // Configurar navegação dos cards do dashboard
 function setupDashboardNavigation() {
   // Card de Vendas no Mês -> Histórico de Vendas
@@ -802,10 +810,88 @@ function updateSalesStats(sales) {
 }
 
 // Ver detalhes da venda
-function viewSaleDetails(saleId) {
-  // Implementar visualização detalhada da venda
-  console.log('Visualizando venda:', saleId);
-  alert(`Visualizando detalhes da venda ${saleId}`);
+async function viewSaleDetails(saleId) {
+  try {
+    console.log('Carregando detalhes da venda:', saleId);
+    
+    const supabase = window.supabaseClient;
+    if (!supabase) throw new Error('Cliente Supabase não inicializado');
+    
+    // Buscar dados completos da venda
+    const { data: sale, error } = await supabase
+      .from('sales')
+      .select(`
+        id,
+        created_at,
+        client_name,
+        client_document,
+        client_phone,
+        client_email,
+        subtotal,
+        discount,
+        total,
+        payment_method,
+        sale_items (name, quantity, unit_price, total),
+        thermal_doc_url,
+        a4_doc_url,
+        pdf_doc_url
+      `)
+      .eq('id', saleId)
+      .single();
+    
+    if (error) throw error;
+    if (!sale) throw new Error('Venda não encontrada');
+    
+    // Formatar dados da venda
+    const saleDate = new Date(sale.created_at);
+    const formattedDate = saleDate.toLocaleDateString('pt-BR');
+    const formattedTime = saleDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    // Preencher o modal com os dados
+    document.getElementById('saleDetailsId').textContent = sale.id;
+    document.getElementById('saleDetailsDate').textContent = `${formattedDate} às ${formattedTime}`;
+    document.getElementById('saleDetailsClient').textContent = sale.client_name || 'Cliente não informado';
+    document.getElementById('saleDetailsDocument').textContent = sale.client_document || 'Não informado';
+    document.getElementById('saleDetailsPhone').textContent = sale.client_phone || 'Não informado';
+    document.getElementById('saleDetailsEmail').textContent = sale.client_email || 'Não informado';
+    document.getElementById('saleDetailsPayment').textContent = sale.payment_method || 'Não informado';
+    document.getElementById('saleDetailsSubtotal').textContent = `R$ ${parseFloat(sale.subtotal || 0).toFixed(2)}`;
+    document.getElementById('saleDetailsDiscount').textContent = `R$ ${parseFloat(sale.discount || 0).toFixed(2)}`;
+    document.getElementById('saleDetailsTotal').textContent = `R$ ${parseFloat(sale.total || 0).toFixed(2)}`;
+    
+    // Preencher itens da venda
+    const itemsTable = document.getElementById('saleDetailsItems');
+    itemsTable.innerHTML = '';
+    
+    if (sale.sale_items && sale.sale_items.length > 0) {
+      sale.sale_items.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.quantity}</td>
+          <td>R$ ${parseFloat(item.unit_price || 0).toFixed(2)}</td>
+          <td>R$ ${parseFloat(item.total || 0).toFixed(2)}</td>
+        `;
+        itemsTable.appendChild(row);
+      });
+    } else {
+      const row = document.createElement('tr');
+      row.innerHTML = '<td colspan="4" style="text-align: center; color: #6c757d;">Nenhum item encontrado</td>';
+      itemsTable.appendChild(row);
+    }
+    
+    // Configurar botões de impressão
+    const printReceiptBtn = document.getElementById('printReceiptBtn');
+    printReceiptBtn.onclick = () => printSaleReceipt(saleId);
+    
+    // Mostrar o modal
+    const modal = document.getElementById('salesDetailsModal');
+    modal.classList.add('active');
+    
+  } catch (error) {
+    console.error('Erro ao carregar detalhes da venda:', error);
+    alert('Erro ao carregar detalhes da venda: ' + error.message);
+  }
 }
 
 // Imprimir recibo da venda (térmica)
