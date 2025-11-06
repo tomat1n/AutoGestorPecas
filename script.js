@@ -63,8 +63,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const financeSection = document.querySelector('.finance-cards');
     if (!canDashboard && financeSection) financeSection.classList.add('hidden');
     if (hasSession && canDashboard && window.dashboardData && typeof window.dashboardData.updateDashboardCards === 'function') {
-      await window.dashboardData.updateDashboardCards();
-    }
+    await window.dashboardData.updateDashboardCards();
+    // Configurar navegação dos cards após carregar dados
+    setupDashboardNavigation();
+  }
   } catch (error) {
     console.warn('Erro ao atualizar dashboard:', error);
   }
@@ -517,6 +519,644 @@ function initPDVOnce() {
   setupPDVEvents();
   // Render inicial do grid do PDV
   try { renderPDVProducts?.(); } catch (_) {}
+  
+  // Setup do histórico de vendas
+  setupSalesHistoryEvents();
+}
+
+// Configurar eventos do histórico de vendas
+function setupSalesHistoryEvents() {
+  const btnSalesHistory = document.getElementById('btnSalesHistory');
+  if (btnSalesHistory) {
+    btnSalesHistory.addEventListener('click', openSalesHistoryModal);
+  }
+  
+  // Configurar filtros
+  const periodFilter = document.getElementById('salesPeriodFilter');
+  const salesSearch = document.getElementById('salesSearch');
+  
+  if (periodFilter) {
+    periodFilter.addEventListener('change', function() {
+      const customDateRange = document.getElementById('customDateRange');
+      const customDateRangeEnd = document.getElementById('customDateRangeEnd');
+      if (this.value === 'custom') {
+        customDateRange.style.display = 'block';
+        customDateRangeEnd.style.display = 'block';
+      } else {
+        customDateRange.style.display = 'none';
+        customDateRangeEnd.style.display = 'none';
+      }
+      loadSalesHistory();
+    });
+  }
+  
+  if (salesSearch) {
+    salesSearch.addEventListener('input', debounce(loadSalesHistory, 300));
+  }
+}
+
+// Debounce para pesquisa
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
+// Abrir modal de histórico de vendas
+function openSalesHistoryModal() {
+  const modal = document.getElementById('salesHistoryModal');
+  if (modal) {
+    modal.style.display = 'block';
+    loadSalesHistory();
+  }
+}
+
+// Fechar modal de histórico de vendas
+function closeSalesHistoryModal() {
+  const modal = document.getElementById('salesHistoryModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+// Configurar navegação dos cards do dashboard
+function setupDashboardNavigation() {
+  // Card de Vendas no Mês -> Histórico de Vendas
+  const vendasMesCard = document.querySelector('[data-card="vendas-mes"]');
+  if (vendasMesCard) {
+    vendasMesCard.style.cursor = 'pointer';
+    vendasMesCard.addEventListener('click', function() {
+      // Navegar para a seção de PDV e abrir histórico
+      navigateToSection('pdv');
+      setTimeout(() => {
+        openSalesHistoryModal();
+      }, 300);
+    });
+  }
+  
+  // Card de Margem Bruta -> Relatórios Financeiros
+  const margemBrutaCard = document.querySelector('[data-card="margem-bruta"]');
+  if (margemBrutaCard) {
+    margemBrutaCard.style.cursor = 'pointer';
+    margemBrutaCard.addEventListener('click', function() {
+      navigateToSection('reports');
+      // Focar na aba de relatórios financeiros
+      setTimeout(() => {
+        const financeTab = document.querySelector('[data-tab="financial"]');
+        if (financeTab) financeTab.click();
+      }, 300);
+    });
+  }
+  
+  // Card de Despesas -> Contas a Pagar
+  const despesasCard = document.querySelector('[data-card="despesas-mes"]');
+  if (despesasCard) {
+    despesasCard.style.cursor = 'pointer';
+    despesasCard.addEventListener('click', function() {
+      navigateToSection('accounts-payable');
+    });
+  }
+  
+  // Card de Vendas no Ano -> Relatórios de Vendas
+  const vendasAnoCard = document.querySelector('[data-card="vendas-ano"]');
+  if (vendasAnoCard) {
+    vendasAnoCard.style.cursor = 'pointer';
+    vendasAnoCard.addEventListener('click', function() {
+      navigateToSection('reports');
+      // Focar na aba de relatórios de vendas
+      setTimeout(() => {
+        const salesTab = document.querySelector('[data-tab="sales"]');
+        if (salesTab) salesTab.click();
+      }, 300);
+    });
+  }
+}
+
+// Navegar para seção específica
+function navigateToSection(section) {
+  const menuItem = document.querySelector(`[data-page="${section}"]`);
+  if (menuItem) {
+    menuItem.click();
+  }
+}
+
+// Carregar histórico de vendas
+async function loadSalesHistory() {
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) {
+      throw new Error('Cliente Supabase não inicializado');
+    }
+    
+    const periodFilter = document.getElementById('salesPeriodFilter');
+    const searchTerm = document.getElementById('salesSearch')?.value || '';
+    
+    let query = supabase
+      .from('sales')
+      .select(`
+        id,
+        created_at,
+        client_name,
+        client_document,
+        total,
+        payment_method,
+        status,
+        sale_items (name, quantity, unit_price)
+      `)
+      .order('created_at', { ascending: false });
+    
+    // Aplicar filtro de período
+    if (periodFilter && periodFilter.value !== 'custom') {
+      const now = new Date();
+      let startDate;
+      
+      switch (periodFilter.value) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate.toISOString());
+      }
+    } else if (periodFilter?.value === 'custom') {
+      const startDate = document.getElementById('startDate')?.value;
+      const endDate = document.getElementById('endDate')?.value;
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate + 'T00:00:00');
+      }
+      if (endDate) {
+        query = query.lte('created_at', endDate + 'T23:59:59');
+      }
+    }
+    
+    // Aplicar filtro de busca
+    if (searchTerm) {
+      query = query.or(`client_name.ilike.%${searchTerm}%,client_document.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`);
+    }
+    
+    const { data: sales, error } = await query;
+    
+    if (error) throw error;
+    
+    renderSalesHistory(sales || []);
+    updateSalesStats(sales || []);
+    
+  } catch (error) {
+    console.error('Erro ao carregar histórico de vendas:', error);
+    const salesList = document.getElementById('salesHistoryList');
+    if (salesList) {
+      salesList.innerHTML = `
+        <tr>
+          <td colspan="7" style="padding: 20px; text-align: center; color: #dc3545;">
+            <i class="fa-solid fa-exclamation-triangle"></i> Erro ao carregar histórico
+          </td>
+        </tr>
+      `;
+    }
+  }
+}
+
+// Renderizar lista de vendas
+function renderSalesHistory(sales) {
+  const salesList = document.getElementById('salesHistoryList');
+  if (!salesList) return;
+  
+  if (sales.length === 0) {
+    salesList.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding: 20px; text-align: center; color: #666;">
+          <i class="fa-solid fa-search"></i> Nenhuma venda encontrada
+        </td>
+      </tr>
+    `;
+    return;
+  }
+  
+  salesList.innerHTML = sales.map(sale => {
+    const saleDate = new Date(sale.created_at);
+    const formattedDate = saleDate.toLocaleDateString('pt-BR');
+    const formattedTime = saleDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    const itemsCount = sale.sale_items?.length || 0;
+    const total = parseFloat(sale.total || 0);
+    
+    return `
+      <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px;">
+          <div style="font-weight: 500;">${formattedDate}</div>
+          <div style="font-size: 12px; color: #666;">${formattedTime}</div>
+        </td>
+        <td style="padding: 10px; font-family: monospace; font-size: 12px;">${sale.id.substring(0, 8)}...</td>
+        <td style="padding: 10px;">
+          <div style="font-weight: 500;">${sale.client_name || 'Cliente não informado'}</div>
+          <div style="font-size: 12px; color: #666;">${sale.client_document || ''}</div>
+        </td>
+        <td style="padding: 10px; text-align: center;">${itemsCount}</td>
+        <td style="padding: 10px; font-weight: 600;">${formatCurrency(total)}</td>
+        <td style="padding: 10px;">
+          <span style="padding: 4px 8px; border-radius: 12px; background: #e8f5e8; color: #2e7d32; font-size: 12px;">
+            ${sale.payment_method || 'N/A'}
+          </span>
+        </td>
+        <td style="padding: 10px;">
+          <button class="btn btn-sm btn-primary" onclick="viewSaleDetails('${sale.id}')" title="Ver detalhes">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+          <button class="btn btn-sm btn-secondary" onclick="printSaleReceipt('${sale.id}')" title="Imprimir">
+            <i class="fa-solid fa-print"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Atualizar estatísticas de vendas
+function updateSalesStats(sales) {
+  const totalSales = sales.length;
+  const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.total || 0), 0);
+  const averageSale = totalSales > 0 ? totalAmount / totalSales : 0;
+  const totalItems = sales.reduce((sum, sale) => sum + (sale.sale_items?.length || 0), 0);
+  
+  document.getElementById('totalSalesCount').textContent = totalSales;
+  document.getElementById('totalSalesAmount').textContent = formatCurrency(totalAmount);
+  document.getElementById('averageSaleAmount').textContent = formatCurrency(averageSale);
+  document.getElementById('totalItemsSold').textContent = totalItems;
+}
+
+// Ver detalhes da venda
+function viewSaleDetails(saleId) {
+  // Implementar visualização detalhada da venda
+  console.log('Visualizando venda:', saleId);
+  alert(`Visualizando detalhes da venda ${saleId}`);
+}
+
+// Imprimir recibo da venda (térmica)
+async function printSaleReceipt(saleId) {
+  try {
+    const supabase = window.supabaseClient;
+    if (!supabase) throw new Error('Cliente Supabase não inicializado');
+    
+    // Buscar dados completos da venda
+    const { data: sale, error } = await supabase
+      .from('sales')
+      .select(`
+        id,
+        created_at,
+        client_name,
+        client_document,
+        total,
+        discount,
+        subtotal,
+        payment_method,
+        sale_items (name, quantity, unit_price, total)
+      `)
+      .eq('id', saleId)
+      .single();
+    
+    if (error) throw error;
+    if (!sale) throw new Error('Venda não encontrada');
+    
+    // Gerar conteúdo do recibo térmico
+    const receiptContent = generateThermalReceipt(sale);
+    
+    // Abrir impressão térmica
+    printThermalReceipt(receiptContent);
+    
+  } catch (error) {
+    console.error('Erro ao imprimir recibo:', error);
+    alert('Erro ao imprimir recibo: ' + error.message);
+  }
+}
+
+// Gerar conteúdo para recibo térmico
+function generateThermalReceipt(sale) {
+  const saleDate = new Date(sale.created_at);
+  const formattedDate = saleDate.toLocaleDateString('pt-BR');
+  const formattedTime = saleDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  
+  let content = `
+================================
+        D'CAR AUTO PEÇAS        
+================================
+Data: ${formattedDate} ${formattedTime}
+Venda: ${sale.id.substring(0, 8)}
+--------------------------------
+`;
+  
+  if (sale.client_name) {
+    content += `Cliente: ${sale.client_name}\n`;
+    if (sale.client_document) {
+      content += `Documento: ${sale.client_document}\n`;
+    }
+    content += '--------------------------------\n';
+  }
+  
+  // Itens da venda
+  sale.sale_items.forEach((item, index) => {
+    content += `${item.quantity}x ${item.name.substring(0, 20)}\n`;
+    content += `   R$ ${parseFloat(item.unit_price || 0).toFixed(2)} = R$ ${parseFloat(item.total || 0).toFixed(2)}\n`;
+  });
+  
+  content += `
+--------------------------------
+Subtotal: R$ ${parseFloat(sale.subtotal || 0).toFixed(2)}
+Desconto: R$ ${parseFloat(sale.discount || 0).toFixed(2)}
+TOTAL: R$ ${parseFloat(sale.total || 0).toFixed(2)}
+--------------------------------
+Pagamento: ${sale.payment_method || 'Não informado'}
+================================
+        OBRIGADO VOLTE SEMPRE!  
+================================
+`;
+  
+  return content;
+}
+
+// Imprimir recibo térmico
+function printThermalReceipt(content) {
+  // Usar impressão térmica via navegador ou API de impressão
+  const printWindow = window.open('', '_blank', 'width=320,height=600');
+  if (!printWindow) {
+    // Fallback: imprimir na impressora padrão
+    window.print();
+    return;
+  }
+  
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Recibo Térmico</title>
+      <style>
+        @media print {
+          body { 
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            width: 280px;
+            margin: 0;
+            padding: 10px;
+            line-height: 1.2;
+          }
+          .no-print { display: none; }
+        }
+        body { 
+          font-family: 'Courier New', monospace;
+          font-size: 12px;
+          width: 280px;
+          margin: 0;
+          padding: 10px;
+          line-height: 1.2;
+          white-space: pre-wrap;
+        }
+      </style>
+    </head>
+    <body>
+      <pre>${content}</pre>
+      <div class="no-print" style="margin-top: 20px;">
+        <button onclick="window.print()">Imprimir</button>
+        <button onclick="window.close()">Fechar</button>
+      </div>
+    </body>
+    </html>
+  `);
+  
+  printWindow.document.close();
+}
+
+// Exportar histórico para PDF
+async function exportSalesToPDF() {
+  try {
+    const periodFilter = document.getElementById('salesPeriodFilter');
+    const searchTerm = document.getElementById('salesSearch')?.value || '';
+    
+    // Buscar vendas com os filtros atuais
+    const supabase = window.supabaseClient;
+    if (!supabase) throw new Error('Cliente Supabase não inicializado');
+    
+    let query = supabase
+      .from('sales')
+      .select(`
+        id,
+        created_at,
+        client_name,
+        client_document,
+        total,
+        payment_method,
+        sale_items (name, quantity, unit_price)
+      `)
+      .order('created_at', { ascending: false });
+    
+    // Aplicar filtros (mesma lógica do loadSalesHistory)
+    if (periodFilter && periodFilter.value !== 'custom') {
+      const now = new Date();
+      let startDate;
+      
+      switch (periodFilter.value) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+          break;
+        case 'month':
+          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate.toISOString());
+      }
+    } else if (periodFilter?.value === 'custom') {
+      const startDate = document.getElementById('startDate')?.value;
+      const endDate = document.getElementById('endDate')?.value;
+      
+      if (startDate) {
+        query = query.gte('created_at', startDate + 'T00:00:00');
+      }
+      if (endDate) {
+        query = query.lte('created_at', endDate + 'T23:59:59');
+      }
+    }
+    
+    if (searchTerm) {
+      query = query.or(`client_name.ilike.%${searchTerm}%,client_document.ilike.%${searchTerm}%,id.ilike.%${searchTerm}%`);
+    }
+    
+    const { data: sales, error } = await query;
+    if (error) throw error;
+    
+    // Gerar PDF
+    generateSalesPDF(sales || [], periodFilter?.value, searchTerm);
+    
+  } catch (error) {
+    console.error('Erro ao exportar PDF:', error);
+    alert('Erro ao exportar PDF: ' + error.message);
+  }
+}
+
+// Gerar PDF do histórico de vendas
+function generateSalesPDF(sales, period, searchTerm) {
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) {
+    alert('Biblioteca de PDF não carregada. Use a impressão do navegador.');
+    window.print();
+    return;
+  }
+  
+  const pdf = new jsPDF();
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const margin = 15;
+  let y = margin;
+  
+  // Cabeçalho
+  pdf.setFontSize(16);
+  pdf.setFont('helvetica', 'bold');
+  pdf.text('Relatório de Vendas - D\'Car Auto Peças', pageWidth / 2, y, { align: 'center' });
+  y += 10;
+  
+  pdf.setFontSize(10);
+  pdf.setFont('helvetica', 'normal');
+  const now = new Date();
+  pdf.text(`Gerado em: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR')}`, pageWidth / 2, y, { align: 'center' });
+  y += 8;
+  
+  // Filtros aplicados
+  if (period || searchTerm) {
+    let filterText = 'Filtros: ';
+    if (period) filterText += `Período: ${getPeriodLabel(period)}, `;
+    if (searchTerm) filterText += `Busca: "${searchTerm}"`;
+    
+    pdf.text(filterText, margin, y);
+    y += 8;
+  }
+  
+  // Estatísticas
+  const totalSales = sales.length;
+  const totalAmount = sales.reduce((sum, sale) => sum + parseFloat(sale.total || 0), 0);
+  const averageSale = totalSales > 0 ? totalAmount / totalSales : 0;
+  
+  pdf.text(`Total de Vendas: ${totalSales} | Valor Total: ${formatCurrency(totalAmount)} | Média por Venda: ${formatCurrency(averageSale)}`, margin, y);
+  y += 15;
+  
+  // Tabela de vendas
+  if (sales.length > 0) {
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    
+    // Cabeçalho da tabela
+    pdf.text('Data', margin, y);
+    pdf.text('Venda', margin + 30, y);
+    pdf.text('Cliente', margin + 60, y);
+    pdf.text('Valor', margin + 130, y);
+    pdf.text('Pagamento', margin + 160, y);
+    y += 6;
+    
+    // Linha separadora
+    pdf.line(margin, y, pageWidth - margin, y);
+    y += 8;
+    
+    pdf.setFont('helvetica', 'normal');
+    
+    // Itens da tabela
+    sales.forEach((sale, index) => {
+      if (y > 250) {
+        pdf.addPage();
+        y = margin;
+      }
+      
+      const saleDate = new Date(sale.created_at);
+      const formattedDate = saleDate.toLocaleDateString('pt-BR');
+      
+      pdf.text(formattedDate, margin, y);
+      pdf.text(sale.id.substring(0, 8), margin + 30, y);
+      pdf.text((sale.client_name || 'Cliente não informado').substring(0, 20), margin + 60, y);
+      pdf.text(formatCurrency(parseFloat(sale.total || 0)), margin + 130, y);
+      pdf.text(sale.payment_method || 'N/A', margin + 160, y);
+      
+      y += 6;
+    });
+  } else {
+    pdf.text('Nenhuma venda encontrada com os filtros aplicados.', margin, y);
+  }
+  
+  // Salvar PDF
+  const fileName = `relatorio_vendas_${now.toISOString().split('T')[0]}.pdf`;
+  pdf.save(fileName);
+}
+
+// Obter label do período
+function getPeriodLabel(period) {
+  const labels = {
+    'today': 'Hoje',
+    'week': 'Esta Semana',
+    'month': 'Este Mês',
+    'year': 'Este Ano',
+    'custom': 'Personalizado'
+  };
+  return labels[period] || period;
+}
+
+// Imprimir relatório (A4)
+function printSalesReport() {
+  // Usar impressão padrão do navegador para relatório A4
+  window.print();
+}
+
+// Compartilhar via WhatsApp
+function shareViaWhatsApp() {
+  const periodFilter = document.getElementById('salesPeriodFilter');
+  const searchTerm = document.getElementById('salesSearch')?.value || '';
+  
+  // Gerar mensagem para WhatsApp
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('pt-BR');
+  const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  
+  let message = `*Relatório de Vendas - D'Car Auto Peças*\n`;
+  message += `Gerado em: ${formattedDate} ${formattedTime}\n\n`;
+  
+  if (periodFilter && periodFilter.value !== 'custom') {
+    message += `*Período:* ${getPeriodLabel(periodFilter.value)}\n`;
+  } else if (periodFilter?.value === 'custom') {
+    const startDate = document.getElementById('startDate')?.value;
+    const endDate = document.getElementById('endDate')?.value;
+    if (startDate && endDate) {
+      message += `*Período:* ${startDate} até ${endDate}\n`;
+    }
+  }
+  
+  if (searchTerm) {
+    message += `*Busca:* "${searchTerm}"\n`;
+  }
+  
+  message += `\n*Para visualizar o relatório completo em PDF, clique no botão "Exportar PDF" no histórico de vendas.*`;
+  
+  // Codificar mensagem para URL
+  const encodedMessage = encodeURIComponent(message);
+  
+  // Abrir WhatsApp
+  window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
 }
 
 function setupPDVEvents() {
@@ -581,6 +1221,18 @@ function setupPDVEvents() {
       }
     });
   }
+
+  // Clique na área da busca (incluindo a lupa) foca o input
+  try {
+    document.querySelectorAll('.search-box').forEach(box => {
+      box.addEventListener('click', (ev) => {
+        // Evita interferir se o clique for em um botão (ex.: leitor de código de barras)
+        if (ev.target.closest('button')) return;
+        const input = box.querySelector('input, textarea');
+        if (input) input.focus();
+      });
+    });
+  } catch (_) {}
 
   // Categorias
   const catBtns = document.querySelectorAll('#categories .category');
@@ -931,6 +1583,13 @@ function setupOSEvents() {
     await searchServices(term);
   }, 300));
 
+  // Busca de serviços no PDV (campo específico do PDV)
+  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
+  if (pdvServiceSearch) pdvServiceSearch.addEventListener('input', debounce(async (e) => {
+    const term = e.target.value.trim();
+    await searchPDVServices(term);
+  }, 300));
+
   // Busca peças
   const partSearch = document.getElementById('partSearch');
   if (partSearch) partSearch.addEventListener('input', debounce(async (e) => {
@@ -956,6 +1615,34 @@ function fmtBRL(v) { return new Intl.NumberFormat('pt-BR', { style: 'currency', 
 
 async function searchServices(term) {
   const resultsEl = document.getElementById('serviceResults');
+  if (!resultsEl) return;
+  resultsEl.innerHTML = '';
+  if (!term || term.length < 2) return;
+  const supabase = window.supabaseClient;
+  if (!supabase) return;
+  const { data } = await supabase
+    .from('services')
+    .select('*')
+    .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
+    .eq('is_active', true)
+    .limit(20);
+  (data||[]).forEach(svc => {
+    const card = document.createElement('div');
+    card.className = 'os-result-card';
+    card.innerHTML = `
+      <div class="os-result-title">${svc.name}</div>
+      <div class="os-result-price">${fmtBRL(svc.price||0)}</div>
+      <div class="os-result-add"><button class="btn btn-primary">Adicionar</button></div>
+    `;
+    const btn = card.querySelector('.btn');
+    if (btn) btn.addEventListener('click', () => addService({ id: svc.id, name: svc.name, price: Number(svc.price||0) }, 1));
+    resultsEl.appendChild(card);
+  });
+}
+
+// Busca de serviços para o PDV (resultados aparecem no painel do PDV)
+async function searchPDVServices(term) {
+  const resultsEl = document.getElementById('pdvServiceResults');
   if (!resultsEl) return;
   resultsEl.innerHTML = '';
   if (!term || term.length < 2) return;
