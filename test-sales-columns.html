@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Colunas Sales - AutoGestor</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Colunas da Tabela Sales</h1>
+    
+    <div class="form-group">
+        <label for="serviceKey">Service Role Key (opcional):</label>
+        <input type="password" id="serviceKey" placeholder="Cole a service_role key aqui..." style="width: 300px;">
+    </div>
+    
+    <button onclick="testSalesColumns()">🧪 Testar Colunas da Tabela Sales</button>
+    
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script>
+        async function testSalesColumns() {
+            const resultDiv = document.getElementById('result');
+            const serviceKey = document.getElementById('serviceKey').value.trim();
+            
+            resultDiv.innerHTML = '<div class="loading">🔍 Testando colunas...</div>';
+            
+            try {
+                // Usar service key se fornecida, senão usar anon key
+                let supabase;
+                if (serviceKey) {
+                    supabase = window.supabase.createClient(
+                        window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                        serviceKey,
+                        { auth: { persistSession: false } }
+                    );
+                } else {
+                    supabase = window.supabase.createClient(
+                        window.AUTO_GESTOR_CONFIG.supabaseUrl,
+                        window.AUTO_GESTOR_CONFIG.supabaseAnonKey,
+                        { auth: { persistSession: false } }
+                    );
+                }
+
+                // Testar se a tabela sales existe
+                resultDiv.innerHTML += '<p>📋 Verificando se a tabela sales existe...</p>';
+                
+                const { data: tableCheck, error: tableError } = await supabase
+                    .from('sales')
+                    .select('id')
+                    .limit(1);
+
+                if (tableError) {
+                    if (tableError.code === '42P01') {
+                        throw new Error('❌ A tabela sales NÃO existe no banco de dados!');
+                    } else {
+                        throw new Error(`❌ Erro ao acessar tabela sales: ${tableError.message}`);
+                    }
+                }
+
+                resultDiv.innerHTML += '<p class="success">✅ Tabela sales existe!</p>';
+
+                // Testar colunas específicas
+                const columnsToTest = [
+                    'client_document', 'client_phone', 'client_email',
+                    'thermal_doc_url', 'a4_doc_url', 'pdf_doc_url'
+                ];
+
+                let results = [];
+                
+                for (const column of columnsToTest) {
+                    try {
+                        // Tentar selecionar a coluna específica
+                        const { error } = await supabase
+                            .from('sales')
+                            .select(column)
+                            .limit(1);
+
+                        if (error && error.code === '42703') {
+                            results.push(`❌ Coluna <strong>${column}</strong> NÃO existe`);
+                        } else if (error) {
+                            results.push(`⚠️ Coluna <strong>${column}</strong>: ${error.message}`);
+                        } else {
+                            results.push(`✅ Coluna <strong>${column}</strong> existe`);
+                        }
+                    } catch (err) {
+                        results.push(`⚠️ Coluna <strong>${column}</strong>: ${err.message}`);
+                    }
+                }
+
+                // Resultado final
+                resultDiv.innerHTML += `
+                    <h3>📊 Resultado do Teste:</h3>
+                    ${results.map(r => `<p>${r}</p>`).join('')}
+                    
+                    <h3>🎯 Próximos Passos:</h3>
+                    <p>Se alguma coluna estiver faltando:</p>
+                    <ol>
+                        <li>Use a página <strong>supabase-admin.html</strong></li>
+                        <li>Cole sua <strong>Service Role Key</strong></li>
+                        <li>Clique em "📋 Corrigir coluna client_document na tabela sales"</li>
+                    </ol>
+                    
+                    <p><strong>OU</strong></p>
+                    
+                    <p>Execute manualmente no painel do Supabase (SQL Editor):</p>
+                    <pre>
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS client_document text;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS client_phone text;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS client_email text;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS thermal_doc_url text;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS a4_doc_url text;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS pdf_doc_url text;
+                    </pre>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML += `<p class="error">${error.message}</p>`;
+                
+                if (error.message.includes('tabela sales NÃO existe')) {
+                    resultDiv.innerHTML += `
+                        <h3>🚨 SOLUÇÃO URGENTE:</h3>
+                        <p>A tabela sales precisa ser criada. Execute no SQL Editor do Supabase:</p>
+                        <pre>
+-- Execute a migração 0003_pdv_sales_services.sql
+-- Ou execute manualmente:
+
+CREATE TABLE IF NOT EXISTS sales (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id),
+    client_name TEXT,
+    client_document TEXT,
+    client_phone TEXT,
+    client_email TEXT,
+    subtotal DECIMAL(10,2),
+    discount DECIMAL(10,2),
+    total DECIMAL(10,2),
+    payment_method TEXT,
+    status TEXT DEFAULT 'completed',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    thermal_doc_url TEXT,
+    a4_doc_url TEXT,
+    pdf_doc_url TEXT
+);
+                        </pre>
+                    `;
+                }
+            }
+        }
+
+        // Executar teste automaticamente
+        setTimeout(testSalesColumns, 1000);
+    </script>
+</body>
+</html>

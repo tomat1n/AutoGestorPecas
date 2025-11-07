@@ -105,6 +105,7 @@ const PAGE_TO_MODULE = {
   dashboard: 'dashboard',
   pdv: 'vendas',
   os: 'vendas', // mapeado para vendas (serviços não possuem módulo próprio)
+  servicos: 'vendas', // mapeado para vendas (serviços fazem parte do módulo de vendas)
   estoque: 'estoque',
   receber: 'financeiro',
   pagar: 'financeiro',
@@ -402,8 +403,9 @@ async function navigateTo(page) {
   const nfSection = document.getElementById('nfSection');
   const settingsSection = document.getElementById('configSection') || document.getElementById('config-section');
   const checklistSection = document.getElementById('checklistSection');
+  const servicosSection = document.getElementById('servicesSection');
 
-  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection];
+  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection, servicosSection];
   sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
 
   const quickSection = document.querySelector('.quick-section');
@@ -418,7 +420,7 @@ async function navigateTo(page) {
       break;
     case 'pdv':
       if (pdvSection) pdvSection.classList.remove('hidden');
-      try { initPDVOnce?.(); } catch {}
+      try { await initPDVOnce?.(); } catch {}
       break;
     case 'os':
       if (osSection) osSection.classList.remove('hidden');
@@ -460,13 +462,17 @@ async function navigateTo(page) {
       if (settingsSection) settingsSection.classList.remove('hidden');
       try { initSettingsOnce?.(); } catch {}
       break;
+    case 'servicos':
+      if (servicosSection) servicosSection.classList.remove('hidden');
+      try { initServicesOnce?.(); } catch {}
+      break;
     case 'logout':
       try { await window.supabaseClient?.auth?.signOut?.(); } catch (e) { console.warn('Falha ao sair:', e); }
       try { window.location.replace('auth.html'); return; } catch {}
       return;
     default:
       if (pdvSection) pdvSection.classList.remove('hidden');
-      try { initPDVOnce?.(); } catch {}
+      try { await initPDVOnce?.(); } catch {}
   }
 
   // Persistir página atual para evitar salto ao atualizar (F5)
@@ -512,16 +518,46 @@ function setupDateTimeUpdater(){
 
 // PDV init único e carrinho
 let PDV_INITIALIZED = false;
-function initPDVOnce() {
-  if (PDV_INITIALIZED) return;
-  PDV_INITIALIZED = true;
-  initShoppingCart();
-  setupPDVEvents();
-  // Render inicial do grid do PDV
-  try { renderPDVProducts?.(); } catch (_) {}
-  
-  // Setup do histórico de vendas
-  setupSalesHistoryEvents();
+async function initPDVOnce() {
+  console.log('Inicializando PDV...');
+  // Configuração de handlers e carrinho apenas uma vez
+  if (!PDV_INITIALIZED) {
+    PDV_INITIALIZED = true;
+    initShoppingCart();
+    setupPDVEvents();
+    setupSalesHistoryEvents();
+    console.log('PDV handlers e carrinho configurados (one-time).');
+  }
+
+  // Garantir que os produtos estejam carregados antes de renderizar o PDV
+  if (!window.INV_STATE || !Array.isArray(window.INV_STATE.products) || window.INV_STATE.products.length === 0) {
+    console.log('Produtos não encontrados no INV_STATE, carregando do Supabase...');
+    try {
+      const loaded = await loadInventoryFromSupabase();
+      console.log('Produtos carregados do Supabase:', loaded ? loaded.length : 0);
+      console.log('Dados carregados:', loaded);
+      if (Array.isArray(loaded) && loaded.length > 0) {
+        window.INV_STATE = window.INV_STATE || {};
+        window.INV_STATE.products = loaded;
+        console.log('Produtos atribuídos ao INV_STATE');
+      } else {
+        console.log('Nenhum produto carregado ou array vazio; mantendo estado atual.');
+      }
+    } catch (error) {
+      console.error('Falha ao carregar produtos do Supabase para o PDV:', error);
+    }
+  } else {
+    console.log('Produtos já carregados no INV_STATE:', window.INV_STATE.products.length);
+  }
+
+  // Sempre tentar renderizar os produtos ao abrir a aba PDV
+  try {
+    console.log('Chamando renderPDVProducts...');
+    renderPDVProducts?.();
+  } catch (error) {
+    console.error('Erro ao chamar renderPDVProducts:', error);
+  }
+  console.log('PDV inicialização/render concluídos.');
 }
 
 // Configurar eventos do histórico de vendas
@@ -586,10 +622,19 @@ function closeSalesHistoryModal() {
 }
 
 // Fechar modal de detalhes da venda
-function closeSalesDetailsModal() {
-  const modal = document.getElementById('salesDetailsModal');
+function closeSaleDetailsModal() {
+  const modal = document.getElementById('saleDetailsModal');
   if (modal) {
     modal.classList.remove('active');
+  }
+}
+
+// Imprimir recibo a partir do modal de detalhes
+function printSaleReceiptFromDetails() {
+  if (window.currentSaleId) {
+    printSaleReceipt(window.currentSaleId);
+  } else {
+    alert('Nenhuma venda selecionada para impressão');
   }
 }
 
@@ -848,19 +893,17 @@ async function viewSaleDetails(saleId) {
     const formattedTime = saleDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     
     // Preencher o modal com os dados
-    document.getElementById('saleDetailsId').textContent = sale.id;
-    document.getElementById('saleDetailsDate').textContent = `${formattedDate} às ${formattedTime}`;
-    document.getElementById('saleDetailsClient').textContent = sale.client_name || 'Cliente não informado';
-    document.getElementById('saleDetailsDocument').textContent = sale.client_document || 'Não informado';
-    document.getElementById('saleDetailsPhone').textContent = sale.client_phone || 'Não informado';
-    document.getElementById('saleDetailsEmail').textContent = sale.client_email || 'Não informado';
-    document.getElementById('saleDetailsPayment').textContent = sale.payment_method || 'Não informado';
-    document.getElementById('saleDetailsSubtotal').textContent = `R$ ${parseFloat(sale.subtotal || 0).toFixed(2)}`;
-    document.getElementById('saleDetailsDiscount').textContent = `R$ ${parseFloat(sale.discount || 0).toFixed(2)}`;
-    document.getElementById('saleDetailsTotal').textContent = `R$ ${parseFloat(sale.total || 0).toFixed(2)}`;
+    document.getElementById('saleDetailId').textContent = sale.id;
+    document.getElementById('saleDetailDate').textContent = `${formattedDate} às ${formattedTime}`;
+    document.getElementById('saleDetailClient').textContent = sale.client_name || 'Cliente não informado';
+    document.getElementById('saleDetailDocument').textContent = sale.client_document || 'Não informado';
+    document.getElementById('saleDetailPayment').textContent = sale.payment_method || 'Não informado';
+    document.getElementById('saleDetailSubtotal').textContent = `R$ ${parseFloat(sale.subtotal || 0).toFixed(2)}`;
+    document.getElementById('saleDetailDiscount').textContent = `R$ ${parseFloat(sale.discount || 0).toFixed(2)}`;
+    document.getElementById('saleDetailTotal').textContent = `R$ ${parseFloat(sale.total || 0).toFixed(2)}`;
     
     // Preencher itens da venda
-    const itemsTable = document.getElementById('saleDetailsItems');
+    const itemsTable = document.getElementById('saleDetailItems');
     itemsTable.innerHTML = '';
     
     if (sale.sale_items && sale.sale_items.length > 0) {
@@ -880,13 +923,18 @@ async function viewSaleDetails(saleId) {
       itemsTable.appendChild(row);
     }
     
-    // Configurar botões de impressão
-    const printReceiptBtn = document.getElementById('printReceiptBtn');
-    printReceiptBtn.onclick = () => printSaleReceipt(saleId);
+    // Configurar botões de impressão - removido pois já está configurado no HTML
+    
+    // Armazenar o ID da venda atual para uso no botão de impressão
+    window.currentSaleId = saleId;
     
     // Mostrar o modal
-    const modal = document.getElementById('salesDetailsModal');
-    modal.classList.add('active');
+    const modal = document.getElementById('saleDetailsModal');
+    if (modal) {
+      modal.classList.add('active');
+    } else {
+      console.error('Modal de detalhes da venda não encontrado');
+    }
     
   } catch (error) {
     console.error('Erro ao carregar detalhes da venda:', error);
@@ -1333,9 +1381,16 @@ function setupPDVEvents() {
 
 // Renderização dos produtos do PDV
 function renderPDVProducts() {
+  console.log('Executando renderPDVProducts...');
   const s = window.INV_STATE;
   const grid = document.getElementById('productsGrid');
-  if (!s || !grid) return;
+  console.log('INV_STATE:', s);
+  console.log('productsGrid:', grid);
+  console.log('Produtos disponíveis:', s?.products?.length || 0);
+  if (!s || !grid) {
+    console.log('INV_STATE ou grid não encontrados, saindo...');
+    return;
+  }
   const q = (document.getElementById('productSearch')?.value || '').trim().toLowerCase();
   const activeCat = document.querySelector('#categories .category.active')?.getAttribute('data-cat') || 'Todos';
 

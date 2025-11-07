@@ -60,16 +60,33 @@ function clearServiceForm() {
 
 async function loadServicesFromSupabase() {
   const supabase = window.supabaseClient;
-  if (!supabase) return;
+  if (!supabase) {
+    console.warn('Supabase client não disponível');
+    return;
+  }
   try {
+    console.log('Carregando serviços do Supabase...');
     const { data, error } = await supabase
       .from('services')
       .select('*')
-      .order('updated_at', { ascending: false });
-    if (error) { console.warn('Erro ao carregar serviços:', error); return; }
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('Erro ao carregar serviços:', error);
+      return;
+    }
+    
+    console.log('Dados brutos do Supabase:', data);
+    console.log('Número de serviços carregados:', data?.length || 0);
+    
     window.SERV_STATE.services = (data || []).map(mapDbToAppService);
+    console.log('Serviços mapeados:', window.SERV_STATE.services);
+    
     renderServicesList();
-  } catch (e) { console.warn('Falha loadServicesFromSupabase:', e); }
+    populateCategoryFilter(); // Atualizar o filtro de categorias
+  } catch (e) {
+    console.warn('Falha loadServicesFromSupabase:', e);
+  }
 }
 
 async function saveService() {
@@ -108,24 +125,106 @@ function showServiceDetails(s) {
   setServiceFormValues(s || {});
 }
 
+function populateCategoryFilter() {
+  const categorySelect = document.getElementById('servFilterCategory');
+  if (!categorySelect) return;
+  
+  // Obter categorias únicas dos serviços
+  const categories = [...new Set(window.SERV_STATE.services
+    .filter(s => s.category && s.category.trim())
+    .map(s => s.category.trim())
+    .sort()
+  )];
+  
+  // Manter a opção "Todas as categorias" e adicionar novas
+  const currentValue = categorySelect.value;
+  categorySelect.innerHTML = '<option value="">Todas as categorias</option>';
+  
+  categories.forEach(category => {
+    const option = document.createElement('option');
+    option.value = category;
+    option.textContent = category;
+    categorySelect.appendChild(option);
+  });
+  
+  // Restaurar o valor selecionado se ainda existir
+  if (currentValue && categories.includes(currentValue)) {
+    categorySelect.value = currentValue;
+  }
+}
+
 function renderServicesList() {
+  console.log('Renderizando lista de serviços...');
   const grid = document.getElementById('servicesGrid');
-  if (!grid) return;
+  if (!grid) {
+    console.warn('Elemento servicesGrid não encontrado');
+    return;
+  }
+  
   const q = (document.getElementById('servSearch')?.value || '').trim().toLowerCase();
+  const categoryFilter = document.getElementById('servFilterCategory')?.value || '';
+  const statusFilter = document.getElementById('servFilterStatus')?.value || '';
+  
   let items = (window.SERV_STATE.services || []).slice();
-  if (q) items = items.filter(s => (s.name||'').toLowerCase().includes(q) || (s.description||'').toLowerCase().includes(q) || (s.category||'').toLowerCase().includes(q));
+  
+  // Aplicar filtros
+  if (q) {
+    items = items.filter(s => 
+      (s.name||'').toLowerCase().includes(q) || 
+      (s.description||'').toLowerCase().includes(q) || 
+      (s.category||'').toLowerCase().includes(q)
+    );
+  }
+  
+  if (categoryFilter) {
+    items = items.filter(s => (s.category||'').toLowerCase() === categoryFilter.toLowerCase());
+  }
+  
+  if (statusFilter === 'active') {
+    items = items.filter(s => s.is_active);
+  } else if (statusFilter === 'inactive') {
+    items = items.filter(s => !s.is_active);
+  }
+  
+  console.log('Serviços para renderizar:', items.length);
+  
   grid.innerHTML = '';
+  
+  if (items.length === 0) {
+    grid.innerHTML = `
+      <div class="no-services">
+        <p>📋 ${q || categoryFilter || statusFilter ? 'Nenhum serviço encontrado' : 'Nenhum serviço cadastrado'}</p>
+        <small>${q || categoryFilter || statusFilter ? 'Tente ajustar os filtros de pesquisa' : 'Clique em "Novo Serviço" para adicionar o primeiro serviço'}</small>
+      </div>
+    `;
+    return;
+  }
+  
   items.forEach(s => {
     const card = document.createElement('div');
     card.className = 'product-card';
+    
+    // Ícone baseado na primeira letra do nome
+    const firstLetter = (s.name || '').charAt(0).toUpperCase() || 'S';
+    
     card.innerHTML = `
-      <div class="product-image">${`<i class=\"fa-solid fa-wrench\"></i>`}</div>
-      <div class="product-name">${s.name || '—'}</div>
-      <div class="product-price">${fmtBRL(s.price||0)}</div>
-      <div class="product-add"><button class="btn btn-secondary">Editar</button></div>
+      <div class="service-image">
+        ${firstLetter}
+        ${!s.is_active ? '<span class="service-inactive-badge">INATIVO</span>' : ''}
+      </div>
+      <div class="product-info">
+        <h4 class="product-name" title="${s.name || '—'}">${s.name || '—'}</h4>
+        ${s.category ? `<span class="product-category">${s.category}</span>` : ''}
+        ${s.description ? `<p class="product-description" title="${s.description}">${s.description}</p>` : ''}
+        <span class="product-price">${fmtBRL(s.price||0)}</span>
+      </div>
+      <div class="product-actions">
+        <button class="btn btn-primary btn-sm" title="Editar serviço" onclick="event.stopPropagation(); showServiceDetails(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+          <i class="fa-solid fa-edit"></i> Editar
+        </button>
+      </div>
     `;
-    const btn = card.querySelector('.btn');
-    if (btn) btn.addEventListener('click', (e) => { e.stopPropagation(); showServiceDetails(s); });
+    
     card.addEventListener('click', () => showServiceDetails(s));
     grid.appendChild(card);
   });
@@ -140,10 +239,24 @@ function setupServicesEvents() {
   if (clearBtn) clearBtn.addEventListener('click', (e) => { e.preventDefault(); clearServiceForm(); });
   const delBtn = document.getElementById('servDeleteBtn');
   if (delBtn) delBtn.addEventListener('click', (e) => { e.preventDefault(); deleteService(); });
+  
+  const categoryFilter = document.getElementById('servFilterCategory');
+  if (categoryFilter) {
+    categoryFilter.addEventListener('change', renderServicesList);
+  }
+  
+  const statusFilter = document.getElementById('servFilterStatus');
+  if (statusFilter) {
+    statusFilter.addEventListener('change', renderServicesList);
+  }
 }
 
 function initServicesOnce() {
-  if (SERVICES_INITIALIZED) return;
+  console.log('Inicializando serviços...');
+  if (SERVICES_INITIALIZED) {
+    console.log('Serviços já inicializados');
+    return;
+  }
   SERVICES_INITIALIZED = true;
   try { setupServicesEvents(); } catch (e) { console.warn('Falha setupServicesEvents:', e); }
   try { loadServicesFromSupabase(); } catch (e) { console.warn('Falha loadServices:', e); }

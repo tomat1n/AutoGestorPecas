@@ -864,6 +864,39 @@ class UserManager {
         document.addEventListener('keydown', this.handleEscapeKeyUser);
     }
 
+    // Preencher formulário de usuário no modo edição
+    populateUserForm(user) {
+        try {
+            const nameEl = document.getElementById('userName');
+            const emailEl = document.getElementById('userEmail');
+            const roleEl = document.getElementById('userRole');
+            const statusEl = document.getElementById('userStatus');
+            const passwordEl = document.getElementById('userPassword');
+
+            if (nameEl) nameEl.value = user.name || '';
+            if (emailEl) emailEl.value = user.email || '';
+            if (roleEl) roleEl.value = this.normalizeRole(user.role);
+            if (statusEl) statusEl.value = user.status || 'ativo';
+            if (passwordEl) {
+                // Nunca pré-preencher senha em modo edição
+                passwordEl.value = '';
+                passwordEl.placeholder = 'Deixe em branco para manter atual';
+                passwordEl.required = false;
+            }
+
+            // Se o usuário tiver permissões personalizadas, aplicar ao modal quando aberto
+            if (user.custom_permissions) {
+                this.loadCustomPermissions(user.custom_permissions);
+            } else if (user.permissions) {
+                // Aplicar permissões atuais do usuário como base
+                this.loadCustomPermissions(user.permissions);
+            }
+        } catch (e) {
+            console.error('Erro ao preencher formulário do usuário:', e);
+            this.showToast('Erro ao carregar dados para edição do usuário.', 'error');
+        }
+    }
+
     // Alternar seção de permissões personalizadas (REMOVIDO - agora é modal separado)
     
     // Abrir modal de permissões personalizadas

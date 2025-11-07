@@ -28,6 +28,9 @@ function buildFixSql(): string[] {
     'ALTER TABLE public.users NO FORCE ROW LEVEL SECURITY;',
     'ALTER TABLE public.user_activity_log NO FORCE ROW LEVEL SECURITY;',
     'ALTER TABLE public.user_sessions NO FORCE ROW LEVEL SECURITY;',
+    // Ensure valid_role constraint includes tecnico
+    'ALTER TABLE public.users DROP CONSTRAINT IF EXISTS valid_role;',
+    "ALTER TABLE public.users ADD CONSTRAINT valid_role CHECK (role IN ('administrador','gerente','vendedor','tecnico'));",
     // Drop policies by expected names (idempotent)
     'DROP POLICY IF EXISTS "users_select_policy" ON public.users;',
     'DROP POLICY IF EXISTS "users_insert_policy" ON public.users;',
@@ -77,8 +80,24 @@ async function testAnonInsert() {
   const { data, error } = await supabase.from('users').insert(testRow).select('id')
   if (error) return { ok: false, error }
 
+  // Also test role 'tecnico' to validate constraint fix
+  const emailTec = `fix_role_tecnico_${Date.now()}@example.com`
+  const tecnicoRow = {
+    id: crypto.randomUUID(),
+    name: 'FixRole Tecnico Test',
+    email: emailTec,
+    password_hash: 'test_hash',
+    role: 'tecnico',
+    status: 'ativo',
+    permissions: {},
+    created_at: new Date().toISOString(),
+  }
+  const { data: tecData, error: tecError } = await supabase.from('users').insert(tecnicoRow).select('id')
+  if (tecError) return { ok: false, error: tecError }
+
   // Cleanup: try delete with anon to verify full access
   await supabase.from('users').delete().eq('email', email)
+  await supabase.from('users').delete().eq('email', emailTec)
   return { ok: true, data }
 }
 

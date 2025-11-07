@@ -488,6 +488,83 @@
         </div>
       </div>
 
+      <!-- Modal de Detalhes da Venda -->
+      <div class="app-modal" id="saleDetailsModal">
+        <div class="modal-content" style="max-width: 800px;">
+          <div class="modal-header">
+            <h3>Detalhes da Venda</h3>
+            <button class="btn btn-secondary" onclick="closeSaleDetailsModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div class="sale-details-container">
+              <div class="sale-info-grid">
+                <div class="sale-info-item">
+                  <label>ID da Venda:</label>
+                  <span id="saleDetailId">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Data/Hora:</label>
+                  <span id="saleDetailDate">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Cliente:</label>
+                  <span id="saleDetailClient">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Documento:</label>
+                  <span id="saleDetailDocument">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Pagamento:</label>
+                  <span id="saleDetailPayment">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Subtotal:</label>
+                  <span id="saleDetailSubtotal">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Desconto:</label>
+                  <span id="saleDetailDiscount">-</span>
+                </div>
+                <div class="sale-info-item">
+                  <label>Total:</label>
+                  <span id="saleDetailTotal" style="font-weight: bold; color: #2e7d32;">-</span>
+                </div>
+              </div>
+              
+              <div class="sale-items-section">
+                <h4 style="margin: 20px 0 10px 0; color: #333;">Itens da Venda</h4>
+                <div class="sale-items-table-container">
+                  <table class="sale-items-table">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Quantidade</th>
+                        <th>Preço Unit.</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="saleDetailItems">
+                      <tr>
+                        <td colspan="4" style="text-align: center; padding: 20px; color: #666;">
+                          <i class="fa-solid fa-spinner fa-spin"></i> Carregando itens...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-secondary" id="printReceiptBtn" onclick="printSaleReceiptFromDetails()">
+              <i class="fa-solid fa-print"></i> Imprimir Recibo
+            </button>
+            <button class="btn" onclick="closeSaleDetailsModal()">Fechar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Carrinho -->
         <div class="pdv-right">
           <div class="cart-panel">
@@ -739,6 +816,16 @@
             <div class="search-box">
               <input type="text" id="servSearch" class="product-search" placeholder="Buscar por nome ou categoria..." />
               <i class="fa-solid fa-search search-icon"></i>
+            </div>
+            <div class="inv-filters" style="margin-top: 10px;">
+              <select id="servFilterCategory">
+                <option value="">Todas as categorias</option>
+              </select>
+              <select id="servFilterStatus">
+                <option value="">Todos os status</option>
+                <option value="active">Ativos</option>
+                <option value="inactive">Inativos</option>
+              </select>
             </div>
             <div class="products-grid" id="servicesGrid"></div>
           </div>
