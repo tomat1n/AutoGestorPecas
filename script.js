@@ -50,6 +50,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupDateTimeUpdater();
   // Atalhos rápidos
   setupQuickShortcuts();
+  // Leitor de código de barras (QuaggaJS + modal)
+  try { setupBarcodeScannerModule(); } catch (e) { console.warn('Falha ao configurar módulo de leitor:', e); }
   
   // Atualiza cards do dashboard com dados do Supabase
   try {
@@ -97,6 +99,91 @@ document.addEventListener('DOMContentLoaded', async () => {
     navigateTo(defaultPage);
   } catch { navigateTo('dashboard'); }
 });
+
+// ==============================
+// Módulo: Leitor de Código de Barras (QuaggaJS)
+// ==============================
+function setupBarcodeScannerModule() {
+  // Garante objeto global com API simples para iniciar/parar e callback de detecção
+  const modal = document.getElementById('barcodeScannerModal');
+  const viewport = document.getElementById('barcode-scanner-viewport');
+  const closeBtn = modal?.querySelector('.btn-close-scanner');
+
+  const openModal = () => { try { modal?.classList.add('active'); } catch {} };
+  const closeModal = () => { try { modal?.classList.remove('active'); } catch {} };
+
+  function start() {
+    try {
+      if (!window.Quagga) throw new Error('Biblioteca QuaggaJS não carregada');
+      openModal();
+      const targetEl = viewport || modal || document.body;
+      window.Quagga.init({
+        inputStream: {
+          type: 'LiveStream',
+          target: targetEl,
+          constraints: {
+            facingMode: 'environment', // câmera traseira em dispositivos móveis
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        },
+        locator: { patchSize: 'medium', halfSample: true },
+        decoder: {
+          readers: [
+            'ean_reader', 'ean_8_reader',
+            'code_128_reader', 'code_39_reader', 'code_39_vin_reader',
+            'upc_reader', 'upc_e_reader',
+            'codabar_reader'
+          ]
+        },
+        locate: true
+      }, (err) => {
+        if (err) {
+          console.error('Quagga init error:', err);
+          alert('Não foi possível acessar a câmera. Verifique permissões do navegador.');
+          closeModal();
+          return;
+        }
+        try { window.Quagga.start(); } catch (e) { console.error('Falha ao iniciar Quagga:', e); }
+      });
+
+      // Registra detecção
+      window.Quagga.onDetected((result) => {
+        try {
+          const code = result?.codeResult?.code || result?.code || '';
+          // Tolerância: só aciona para códigos com 6+ dígitos/caracteres
+          if (!code || String(code).length < 6) return;
+          if (typeof window.barcodeScanner?.onDetected === 'function') {
+            try { window.barcodeScanner.onDetected(result); } catch (e) { console.warn('onDetected lançou erro:', e); }
+          }
+        } finally {
+          try { stop(); } catch {}
+        }
+      });
+    } catch (e) {
+      console.error('Falha ao iniciar leitor:', e);
+      alert('Leitor de código de barras indisponível: ' + (e?.message || e));
+      closeModal();
+    }
+  }
+
+  function stop() {
+    try { window.Quagga?.stop?.(); } catch {}
+    closeModal();
+  }
+
+  // Expõe API global
+  window.barcodeScanner = {
+    onDetected: null,
+    startBarcodeScanner: start,
+    stopBarcodeScanner: stop
+  };
+
+  // Botão de fechar do modal
+  if (closeBtn) closeBtn.addEventListener('click', () => { try { stop(); } catch {} });
+  // Fechar com ESC
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { try { stop(); } catch {} } });
+}
 
 // ==============================
 // Permissões: utilitários centrais
@@ -1354,6 +1441,35 @@ function setupPDVEvents() {
         else doRender();
       }
     });
+    // Focar o campo por padrão ao abrir o PDV para facilitar uso de leitores USB
+    setTimeout(() => { try { searchInput.focus(); } catch {} }, 200);
+  }
+
+  // Leitor de código de barras no PDV (câmera)
+  const pdvScanBtn = document.getElementById('barcodeScannerBtn');
+  if (pdvScanBtn) {
+    pdvScanBtn.addEventListener('click', () => {
+      if (window.barcodeScanner) {
+        window.barcodeScanner.onDetected = (result) => {
+          const code = result?.codeResult?.code || '';
+          if (code) {
+            const s = window.INV_STATE;
+            const prod = s?.products?.find(p => String(p.barcode || '') === String(code));
+            if (prod) {
+              window.addToCart(prod, 1);
+              try { searchInput?.value && (searchInput.value = code); } catch {}
+            } else {
+              // Preenche a busca com o código para o usuário localizar manualmente
+              try { if (searchInput) { searchInput.value = code; renderPDVProducts?.(); } } catch {}
+              alert('Produto não encontrado para o código: ' + code);
+            }
+          }
+        };
+        window.barcodeScanner.startBarcodeScanner();
+      } else {
+        alert('Leitor de código de barras indisponível.');
+      }
+    });
   }
 
   // Clique na área da busca (incluindo a lupa) foca o input
@@ -2452,6 +2568,20 @@ function setupInventoryEvents() {
       alert('Leitor de código de barras indisponível.');
     }
   });
+
+  // Suporte a leitores USB (wedge): Enter no campo de código abre detalhes
+  const invBarcodeInput = document.getElementById('invBarcode');
+  if (invBarcodeInput) {
+    invBarcodeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const code = (invBarcodeInput.value || '').trim();
+        if (!code) return;
+        const found = window.INV_STATE?.products?.find(p => String(p.barcode || '') === code);
+        if (found) showInventoryProductDetails(found);
+        else alert('Produto não encontrado para o código: ' + code);
+      }
+    });
+  }
 
   const saveBtn = document.getElementById('invSaveBtn');
   if (saveBtn) saveBtn.addEventListener('click', async () => {
