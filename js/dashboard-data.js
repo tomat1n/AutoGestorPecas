@@ -155,42 +155,40 @@ async function getMonthExpenses() {
         const startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
         const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
         
-        // Buscar despesas pagas do mês
+        // Buscar todas as despesas registradas no mês (não filtra por status)
         const { data: expensesData, error: expensesError } = await supabase
             .from('expenses')
             .select('amount, expense_date')
             .gte('expense_date', startDate)
-            .lte('expense_date', endDate)
-            .eq('status', 'paid');
+            .lte('expense_date', endDate);
             
         if (expensesError) throw expensesError;
         
-        // Buscar pagamentos de contas a pagar realizados no mês
-        const { data: paymentsData, error: paymentsError } = await supabase
-            .from('payable_payments')
-            .select('payment_value, payment_date')
-            .gte('payment_date', startDate)
-            .lte('payment_date', endDate);
+        // Buscar contas a pagar que entraram no mês (pela data de emissão)
+        const { data: apEnteredData, error: apEnteredError } = await supabase
+            .from('accounts_payable')
+            .select('original_value, issue_date')
+            .gte('issue_date', startDate)
+            .lte('issue_date', endDate);
 
-        if (paymentsError) {
-            console.warn('Erro ao buscar pagamentos de contas a pagar:', paymentsError);
-            // Continuar apenas com despesas se pagamentos falharem
+        if (apEnteredError) {
+            console.warn('Erro ao buscar contas a pagar do mês:', apEnteredError);
         }
 
         // Calcular total das despesas (tabela expenses)
         const totalExpenses = expensesData.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
 
-        // Calcular total pago em contas a pagar no mês (tabela payable_payments)
-        const totalPayables = paymentsData ? paymentsData.reduce((sum, pay) => sum + parseFloat(pay.payment_value || 0), 0) : 0;
+        // Calcular total de contas a pagar que entraram no mês (tabela accounts_payable)
+        const totalPayablesEntered = (apEnteredData || []).reduce((sum, ap) => sum + parseFloat(ap.original_value || 0), 0);
         
-        const grandTotal = totalExpenses + totalPayables;
-        const totalCount = expensesData.length + (paymentsData ? paymentsData.length : 0);
+        const grandTotal = totalExpenses + totalPayablesEntered;
+        const totalCount = expensesData.length + ((apEnteredData || []).length);
         
         return {
             value: grandTotal,
             count: totalCount,
             expenses: totalExpenses,
-            payables: totalPayables,
+            payables: totalPayablesEntered,
             formatted: formatCurrency(grandTotal)
         };
     } catch (error) {
@@ -207,6 +205,70 @@ function formatCurrency(value) {
         style: 'currency',
         currency: 'BRL'
     }).format(value || 0);
+}
+
+/**
+ * Alerta de próximos vencimentos (<=7 dias) para Contas a Pagar
+ */
+async function getPayablesDueAlert() {
+    try {
+        const supabase = window.supabaseClient;
+        if (!supabase) {
+            throw new Error('Cliente Supabase não inicializado');
+        }
+
+        const { data, error } = await supabase
+            .from('accounts_payable')
+            .select('due_date, status, original_value, paid_value')
+            .neq('status', 'paid')
+            .order('due_date', { ascending: true });
+
+        if (error) throw error;
+
+        const now = new Date();
+        const items = (data || []).filter(a => {
+            const remaining = Math.max(0, parseFloat(a.original_value || 0) - parseFloat(a.paid_value || 0));
+            return remaining > 0 && a.due_date;
+        }).map(a => ({
+            ...a,
+            daysUntil: Math.ceil((new Date(a.due_date) - now) / 86400000)
+        }));
+
+        if (!items.length) {
+            return { show: false, badgeClass: 'badge-success', icon: 'fa-solid fa-check-circle', text: 'OK', title: 'Sem vencimentos nos próximos 7 dias' };
+        }
+
+        const overdueCount = items.filter(i => i.daysUntil < 0).length;
+        const dueSoon = items.filter(i => i.daysUntil >= 0 && i.daysUntil <= 7);
+        const minDays = items.reduce((min, i) => Math.min(min, i.daysUntil), Infinity);
+
+        if (overdueCount > 0) {
+            return {
+                show: true,
+                badgeClass: 'badge-danger',
+                icon: 'fa-solid fa-exclamation-triangle',
+                text: `${overdueCount} vencida${overdueCount > 1 ? 's' : ''}`,
+                title: 'Há contas vencidas'
+            };
+        }
+
+        if (dueSoon.length > 0) {
+            const isHigh = minDays <= 3;
+            return {
+                show: true,
+                badgeClass: isHigh ? 'badge-danger' : 'badge-warning',
+                icon: isHigh ? 'fa-solid fa-exclamation-triangle' : 'fa-solid fa-calendar-week',
+                text: minDays === 0 ? 'vence hoje' : `vence em ${minDays} dia${minDays > 1 ? 's' : ''}`,
+                title: 'Próximo vencimento em até 7 dias'
+            };
+        }
+
+        // Sem itens nos próximos 7 dias
+        return { show: false, badgeClass: 'badge-success', icon: 'fa-solid fa-check-circle', text: 'OK', title: 'Sem vencimentos nos próximos 7 dias' };
+    } catch (error) {
+        console.warn('Erro ao buscar alerta de vencimentos:', error);
+        return { show: false, badgeClass: 'badge-warning', icon: 'fa-solid fa-info-circle', text: '—', title: 'Falha ao verificar vencimentos' };
+    }
 }
 
 /**
@@ -262,12 +324,13 @@ async function updateDashboardCards() {
         });
         
         // Buscar dados em paralelo
-        const [yearSales, monthSales, grossMargin, monthExpenses, totalPayables] = await Promise.all([
+        const [yearSales, monthSales, grossMargin, monthExpenses, totalPayables, payablesAlert] = await Promise.all([
             getYearSales(),
             getMonthSales(),
             getMonthGrossMargin(),
             getMonthExpenses(),
-            getTotalPayables()
+            getTotalPayables(),
+            getPayablesDueAlert()
         ]);
         
         // Atualizar cards com dados reais
@@ -276,13 +339,25 @@ async function updateDashboardCards() {
         updateCard('margem-bruta', `${grossMargin.formatted} (${grossMargin.percentageFormatted})`);
         updateCard('despesas-mes', monthExpenses.formatted);
         updateCard('total-a-pagar', totalPayables.formatted);
+
+        // Renderizar alerta de vencimento no card Total a Pagar
+        const alertEl = document.querySelector('[data-card="total-a-pagar"] .right .trend');
+        if (alertEl) {
+            if (payablesAlert && payablesAlert.show) {
+                alertEl.innerHTML = `<span class="badge ${payablesAlert.badgeClass}" title="${payablesAlert.title}"><i class="${payablesAlert.icon}"></i> ${payablesAlert.text}</span>`;
+            } else {
+                // Sem alerta nos próximos 7 dias – opcionalmente exibir OK
+                alertEl.innerHTML = `<span class="badge badge-success" title="Sem vencimentos nos próximos 7 dias"><i class="fa-solid fa-check-circle"></i> OK</span>`;
+            }
+        }
         
         console.log('Dashboard atualizado com sucesso:', {
             yearSales: yearSales.formatted,
             monthSales: monthSales.formatted,
             grossMargin: grossMargin.formatted,
             monthExpenses: monthExpenses.formatted,
-            totalPayables: totalPayables.formatted
+            totalPayables: totalPayables.formatted,
+            payablesAlert
         });
         
     } catch (error) {
@@ -312,6 +387,7 @@ window.dashboardData = {
     getMonthGrossMargin,
     getMonthExpenses,
     getTotalPayables,
+    getPayablesDueAlert,
     updateDashboardCards,
     updateCard,
     formatCurrency
