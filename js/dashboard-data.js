@@ -165,24 +165,23 @@ async function getMonthExpenses() {
             
         if (expensesError) throw expensesError;
         
-        // Buscar contas a pagar pagas do mês
-        const { data: payablesData, error: payablesError } = await supabase
-            .from('accounts_payable')
-            .select('paid_value, paid_date')
-            .gte('paid_date', startDate)
-            .lte('paid_date', endDate)
-            .eq('status', 'paid');
-            
-        if (payablesError) {
-            console.warn('Erro ao buscar contas a pagar:', payablesError);
-            // Continuar apenas com despesas se contas a pagar falharem
+        // Buscar pagamentos de contas a pagar realizados no mês
+        const { data: paymentsData, error: paymentsError } = await supabase
+            .from('payable_payments')
+            .select('payment_value, payment_date')
+            .gte('payment_date', startDate)
+            .lte('payment_date', endDate);
+
+        if (paymentsError) {
+            console.warn('Erro ao buscar pagamentos de contas a pagar:', paymentsError);
+            // Continuar apenas com despesas se pagamentos falharem
         }
-        
-        // Calcular total das despesas
+
+        // Calcular total das despesas (tabela expenses)
         const totalExpenses = expensesData.reduce((sum, expense) => sum + parseFloat(expense.amount || 0), 0);
-        
-        // Calcular total das contas a pagar pagas
-        const totalPayables = payablesData ? payablesData.reduce((sum, payable) => sum + parseFloat(payable.paid_value || 0), 0) : 0;
+
+        // Calcular total pago em contas a pagar no mês (tabela payable_payments)
+        const totalPayables = paymentsData ? paymentsData.reduce((sum, pay) => sum + parseFloat(pay.payment_value || 0), 0) : 0;
         
         const grandTotal = totalExpenses + totalPayables;
         const totalCount = expensesData.length + (payablesData ? payablesData.length : 0);

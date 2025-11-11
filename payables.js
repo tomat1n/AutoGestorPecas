@@ -213,10 +213,10 @@
           <td><span class="status-badge status-${a.status}">${mapStatusLabel(a.status)}</span></td>
           <td>${mapPriorityLabel(a.priority)}</td>
           <td>
-            <button class="btn btn-secondary btn-edit"><i class="fa-solid fa-edit"></i></button>
-            <button class="btn btn-success btn-pay"><i class="fa-solid fa-money-bill-wave"></i></button>
-            <button class="btn btn-warning btn-reminder"><i class="fa-solid fa-bell"></i></button>
-            <button class="btn btn-danger btn-delete"><i class="fa-solid fa-trash"></i></button>
+            <button class="btn btn-secondary btn-edit" title="Editar conta"><i class="fa-solid fa-edit"></i></button>
+            <button class="btn btn-success btn-pay" title="Registrar pagamento"><i class="fa-solid fa-money-bill-wave"></i></button>
+            <button class="btn btn-warning btn-reminder" title="Criar lembrete"><i class="fa-solid fa-bell"></i></button>
+            <button class="btn btn-danger btn-delete" title="Excluir conta"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>`;
     }).join('');
@@ -322,7 +322,7 @@
   function toDB(a){ const ymd=d=>d?new Date(d).toISOString().slice(0,10):null; const days=a.due_date?Math.ceil((new Date(a.due_date)-new Date())/86400000):null; return { supplier_id:a.supplier_id||null, supplier_name:a.supplier_name, description:a.description, original_value:Number(a.original_value||0), paid_value:Number(a.paid_value||0), due_date:ymd(a.due_date), issue_date:ymd(a.issue_date), document_number:a.document_number||null, category:a.category||'compra', priority:a.priority||'medium', status:a.status||'pending', observations:a.observations||null, days_until_due:days, paid_date:ymd(a.paid_date), payment_method:a.payment_method||null, payment_observations:a.payment_observations||null, updated_at:new Date().toISOString() }; }
   async function upsertAccountSupabase(a,isUpdate){ const payload=toDB(a); if(isUpdate){ await supabase.from('accounts_payable').update(payload).eq('id',a.id); return { id:a.id }; } else { const { data } = await supabase.from('accounts_payable').insert(payload).select('id').single(); return data||null; } }
   async function deleteAccountSupabase(id){ await supabase.from('accounts_payable').delete().eq('id',id); }
-  async function savePaymentSupabase(p){ const ymd=d=>d?new Date(d).toISOString().slice(0,10):null; const payload={ account_id:p.account_id, payment_value:Number(p.payment_value||0), payment_date:ymd(p.payment_date), payment_method:p.payment_method||null, receipt_number:p.receipt_number||null, observations:p.observations||null }; await supabase.from('payments').insert(payload); }
+  async function savePaymentSupabase(p){ const ymd=d=>d?new Date(d).toISOString().slice(0,10):null; const payload={ account_id:p.account_id, payment_value:Number(p.payment_value||0), payment_date:ymd(p.payment_date), payment_method:p.payment_method||null, receipt_number:p.receipt_number||null, observations:p.observations||null }; await supabase.from('payable_payments').insert(payload); }
 
   function exportCSV(items){ if(!Array.isArray(items)||!items.length){ alert('Nada para exportar.'); return; } const headers=['Fornecedor','Descrição','Original','Pago','Restante','Vencimento','Emissão','Documento','Categoria','Prioridade','Status']; const rows=items.map(a=>[ a.supplier_name, a.description, Number(a.original_value||0).toFixed(2), Number(a.paid_value||0).toFixed(2), Math.max(0, Number(a.original_value||0)-Number(a.paid_value||0)).toFixed(2), fmtDate(a.due_date), fmtDate(a.issue_date), a.document_number||'', a.category||'', mapPriorityLabel(a.priority), mapStatusLabel(a.status) ]); const csv=[headers,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'\"')}"`).join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='contas_a_pagar.csv'; a.click(); URL.revokeObjectURL(url); }
   function debounced(fn,ms){ let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),ms); }; }
