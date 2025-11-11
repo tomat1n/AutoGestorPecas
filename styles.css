@@ -238,7 +238,7 @@ body.overlay-active .overlay { display: block; }
 .pdv-header h2 { margin: 0; font-weight: 600; font-size: 18px; }
 .pdv-header-actions { display: flex; gap: 10px; }
 
-.pdv-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; }
+.pdv-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; align-items: start; }
 .pdv-left, .pdv-right { display: flex; flex-direction: column; gap: 14px; }
 
 .search-box { position: relative; display: flex; align-items: center; }
@@ -606,7 +606,7 @@ body.overlay-active .overlay { display: block; }
   margin-top: 16px;
 }
 
-.product-card {
+.services-section .product-card {
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
