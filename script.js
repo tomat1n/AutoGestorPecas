@@ -560,7 +560,33 @@ async function navigateTo(page) {
       try { initServicesOnce?.(); } catch {}
       break;
     case 'logout':
-      try { await window.supabaseClient?.auth?.signOut?.(); } catch (e) { console.warn('Falha ao sair:', e); }
+      try {
+        const supabase = window.supabaseClient;
+        if (supabase?.auth) {
+          // Apenas tenta logout se houver sessão
+          try {
+            const { data } = await supabase.auth.getSession();
+            const hasSession = !!data?.session;
+            if (hasSession) {
+              try {
+                // Escopo global para limpar todas as sessões; erros de abort são inofensivos
+                await supabase.auth.signOut({ scope: 'global' });
+              } catch (err) {
+                const msg = String(err?.message || err || '').toLowerCase();
+                if (msg.includes('abort') || msg.includes('err_aborted')) {
+                  console.warn('Logout abortado pela navegação; ignorando.');
+                } else {
+                  console.warn('Falha ao sair:', err);
+                }
+              }
+              // Pequeno atraso para permitir que eventos de auth sejam processados
+              await new Promise(r => setTimeout(r, 150));
+            }
+          } catch (err) {
+            console.warn('Falha ao verificar sessão para logout:', err);
+          }
+        }
+      } catch (e) { console.warn('Falha ao sair (wrapper):', e); }
       try { window.location.replace('auth.html'); return; } catch {}
       return;
     default:
