@@ -1916,7 +1916,7 @@ function setupOSEvents() {
     await searchPDVServices(term);
   }, 300));
   // Popular lista inicial de serviços no PDV
-  try { await searchPDVServices(''); } catch {}
+  try { searchPDVServices(''); } catch {}
 
   // Busca peças
   const partSearch = document.getElementById('partSearch');
