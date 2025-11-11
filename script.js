@@ -1617,11 +1617,13 @@ class ShoppingCart {
     const price = Number(product.price || 0);
     const name = product.name || 'Produto';
     const barcode = product.barcode || '';
+    const type = product.type || 'product';
+    const description = product.description || '';
     const existing = this.items.find(i => i.id === id);
     if (existing) {
       existing.quantity += quantity;
     } else {
-      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '' });
+      this.items.push({ id, name, price, quantity, barcode, image_url: product.image_url || '', type, description });
     }
     this.save();
     this.render();
@@ -1706,6 +1708,8 @@ function initShoppingCart() {
       alert('Estoque insuficiente para adicionar mais unidades.');
       return;
     }
+    // Garantir tipo padrão
+    if (!product.type) product.type = 'product';
     window.cart.add(product, allowed);
   };
   window.cart.render();
@@ -1911,6 +1915,8 @@ function setupOSEvents() {
     const term = e.target.value.trim();
     await searchPDVServices(term);
   }, 300));
+  // Popular lista inicial de serviços no PDV
+  try { await searchPDVServices(''); } catch {}
 
   // Busca peças
   const partSearch = document.getElementById('partSearch');
@@ -1967,15 +1973,26 @@ async function searchPDVServices(term) {
   const resultsEl = document.getElementById('pdvServiceResults');
   if (!resultsEl) return;
   resultsEl.innerHTML = '';
-  if (!term || term.length < 2) return;
   const supabase = window.supabaseClient;
   if (!supabase) return;
-  const { data } = await supabase
-    .from('services')
-    .select('*')
-    .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
-    .eq('is_active', true)
-    .limit(20);
+  let data = [];
+  if (term && term.length >= 2) {
+    const resp = await supabase
+      .from('services')
+      .select('*')
+      .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
+      .eq('is_active', true)
+      .limit(20);
+    data = resp.data || [];
+  } else {
+    const resp = await supabase
+      .from('services')
+      .select('*')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+      .limit(20);
+    data = resp.data || [];
+  }
   (data||[]).forEach(svc => {
     const card = document.createElement('div');
     card.className = 'os-result-card';
@@ -1985,7 +2002,7 @@ async function searchPDVServices(term) {
       <div class="os-result-add"><button class="btn btn-primary">Adicionar</button></div>
     `;
     const btn = card.querySelector('.btn');
-    if (btn) btn.addEventListener('click', () => addService({ id: svc.id, name: svc.name, price: Number(svc.price||0) }, 1));
+    if (btn) btn.addEventListener('click', () => window.addToCart({ id: svc.id, name: svc.name, price: Number(svc.price||0), type: 'service', description: svc.description || '' }, 1));
     resultsEl.appendChild(card);
   });
 }
