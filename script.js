@@ -1558,6 +1558,17 @@ function setupPDVEvents() {
       try { renderPDVProducts?.(); } catch (_) {}
     });
   });
+
+  // Busca de serviços no PDV (campo específico do PDV)
+  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
+  if (pdvServiceSearch) {
+    pdvServiceSearch.addEventListener('input', debounce(async (e) => {
+      const term = e.target.value.trim();
+      await searchPDVServices(term);
+    }, 300));
+    // Popular lista inicial de serviços no PDV ao abrir PDV
+    try { searchPDVServices(''); } catch {}
+  }
 }
 
 // Renderização dos produtos do PDV
@@ -1909,14 +1920,7 @@ function setupOSEvents() {
     await searchServices(term);
   }, 300));
 
-  // Busca de serviços no PDV (campo específico do PDV)
-  const pdvServiceSearch = document.getElementById('pdvServiceSearch');
-  if (pdvServiceSearch) pdvServiceSearch.addEventListener('input', debounce(async (e) => {
-    const term = e.target.value.trim();
-    await searchPDVServices(term);
-  }, 300));
-  // Popular lista inicial de serviços no PDV
-  try { searchPDVServices(''); } catch {}
+  // (removido) Busca de serviços do PDV será configurada no setupPDVEvents
 
   // Busca peças
   const partSearch = document.getElementById('partSearch');
