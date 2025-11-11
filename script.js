@@ -1834,7 +1834,7 @@ function initSupabase() {
   window.SUPA_CFG = { url, key };
   // Não limpar tokens de auth aqui para não invalidar sessões persistidas
 
-  const supaOptions = { auth: { persistSession: true, autoRefreshToken: false } };
+  const supaOptions = { auth: { persistSession: true, autoRefreshToken: true } };
   if (url && key && window.supabase) {
     window.supabaseClient = window.supabase.createClient(url, key, supaOptions);
   } else {
@@ -1974,29 +1974,77 @@ async function searchPDVServices(term) {
   if (!resultsEl) return;
   resultsEl.innerHTML = '';
   const supabase = window.supabaseClient;
-  if (!supabase) return;
+  const adminClient = window.adminSupabaseClient || null;
   let data = [];
+  let hadError = false;
   try {
-    if (term && term.length >= 1) {
-      const resp = await supabase
-        .from('services')
-        .select('*')
-        .or(`name.ilike.%${term}%,category.ilike.%${term}%,description.ilike.%${term}%`)
-        .eq('is_active', true)
-        .order('name', { ascending: true })
-        .limit(20);
-      data = resp.data || [];
-    } else {
-      const resp = await supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('name', { ascending: true })
-        .limit(20);
-      data = resp.data || [];
+    if (supabase) {
+      if (term && term.length >= 1) {
+        const resp = await supabase
+          .from('services')
+          .select('*')
+          .or(`name.ilike.%${term}%,category.ilike.%${term}%,description.ilike.%${term}%`)
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .limit(20);
+        hadError = !!resp.error;
+        data = resp.data || [];
+      } else {
+        const resp = await supabase
+          .from('services')
+          .select('*')
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .limit(20);
+        hadError = !!resp.error;
+        data = resp.data || [];
+      }
     }
   } catch (e) {
-    console.error('Falha ao buscar serviços do PDV:', e);
+    hadError = true;
+    console.error('Falha ao buscar serviços do PDV (anon):', e);
+  }
+  // Fallback com cliente admin se disponível
+  if ((!data || data.length === 0) && adminClient) {
+    try {
+      if (term && term.length >= 1) {
+        const resp = await adminClient
+          .from('services')
+          .select('*')
+          .or(`name.ilike.%${term}%,category.ilike.%${term}%,description.ilike.%${term}%`)
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .limit(20);
+        data = resp.data || [];
+      } else {
+        const resp = await adminClient
+          .from('services')
+          .select('*')
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .limit(20);
+        data = resp.data || [];
+      }
+    } catch (e) {
+      console.warn('Falha ao buscar com cliente admin:', e);
+    }
+  }
+  // Fallback ao cache local (SERV_STATE) se ainda vazio
+  if (!data || data.length === 0) {
+    const cache = (window.SERV_STATE?.services || []).filter(s => s && s.is_active);
+    let local = [];
+    if (term && term.length >= 1) {
+      const t = term.toLowerCase();
+      local = cache.filter(s => (
+        (s.name||'').toLowerCase().includes(t) ||
+        (s.category||'').toLowerCase().includes(t) ||
+        (s.description||'').toLowerCase().includes(t)
+      ));
+    } else {
+      local = cache.slice();
+    }
+    local.sort((a,b) => (a.name||'').localeCompare(b.name||''));
+    data = local.map(s => ({ id: s.id, name: s.name, description: s.description, price: Number(s.price||0) }));
   }
   if (!data || data.length === 0) {
     const empty = document.createElement('div');
