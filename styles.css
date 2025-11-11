@@ -261,6 +261,7 @@ body.overlay-active .overlay { display: block; }
 /* PDV: garantir espaço para a lupa no campo de busca de serviços */
 #pdvServiceSearch.product-search { padding-left: 52px; }
 #partSearch.product-search { padding-left: 52px; }
+#apSearch.product-search { padding-left: 52px; }
 
 /* Modal do leitor */
 .barcode-scanner-modal { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.9); z-index: 10000; align-items: center; justify-content: center; }
@@ -1126,7 +1127,7 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 .ap-summary { margin-bottom: 16px; }
 .ap-summary .card { border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
 
-.ap-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; height: calc(100vh - 200px); }
+.ap-grid { display: grid; grid-template-columns: 1fr; gap: 20px; height: auto; }
 .ap-left, .ap-right { display: flex; flex-direction: column; gap: 14px; }
 .ap-card { background: #fff; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); padding: 16px; }
 .ap-card h3 { margin: 0 0 12px; font-weight: 600; font-size: 16px; }

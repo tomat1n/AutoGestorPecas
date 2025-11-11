@@ -1567,56 +1567,6 @@
       </div>
 
       <div class="ap-grid">
-        <div class="ap-left">
-          <div class="ap-card">
-            <h3>Listagem de Contas</h3>
-            <div class="ap-filters">
-              <div class="form-group">
-                <div class="search-box">
-                  <i class="fa-solid fa-search search-icon"></i>
-                  <input type="text" id="apSearch" class="product-search" placeholder="Buscar conta..." />
-                </div>
-              </div>
-              <div class="form-group">
-                <select id="apFilterStatus">
-                  <option value="">Todos</option>
-                  <option value="pending">Pendentes</option>
-                  <option value="overdue">Vencidas</option>
-                  <option value="partial">Parcial</option>
-                  <option value="paid">Pagas</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <select id="apFilterPriority">
-                  <option value="">Todas Prioridades</option>
-                  <option value="low">Baixa</option>
-                  <option value="medium">Média</option>
-                  <option value="high">Alta</option>
-                </select>
-              </div>
-              <div class="form-group"><input type="date" id="apFilterStart" /></div>
-              <div class="form-group"><input type="date" id="apFilterEnd" /></div>
-            </div>
-            <table class="ap-table" id="apTable">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Fornecedor</th>
-                  <th>Descrição</th>
-                  <th>Original</th>
-                  <th>Pago</th>
-                  <th>Restante</th>
-                  <th>Vencimento</th>
-                  <th>Dias</th>
-                  <th>Status</th>
-                  <th>Prioridade</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody id="apTableBody"></tbody>
-            </table>
-          </div>
-        </div>
         <div class="ap-right">
           <div class="ap-card">
             <h3>Cadastro / Edição</h3>
@@ -1694,6 +1644,56 @@
                 <button type="button" class="btn btn-secondary" id="apWhatsBtn"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
               </div>
             </form>
+          </div>
+        </div>
+        <div class="ap-left">
+          <div class="ap-card">
+            <h3>Listagem de Contas</h3>
+            <div class="ap-filters">
+              <div class="form-group">
+                <div class="search-box">
+                  <input type="text" id="apSearch" class="product-search" placeholder="Buscar conta..." />
+                  <i class="fa-solid fa-search search-icon"></i>
+                </div>
+              </div>
+              <div class="form-group">
+                <select id="apFilterStatus">
+                  <option value="">Todos</option>
+                  <option value="pending">Pendentes</option>
+                  <option value="overdue">Vencidas</option>
+                  <option value="partial">Parcial</option>
+                  <option value="paid">Pagas</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <select id="apFilterPriority">
+                  <option value="">Todas Prioridades</option>
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+              <div class="form-group"><input type="date" id="apFilterStart" /></div>
+              <div class="form-group"><input type="date" id="apFilterEnd" /></div>
+            </div>
+            <table class="ap-table" id="apTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Fornecedor</th>
+                  <th>Descrição</th>
+                  <th>Original</th>
+                  <th>Pago</th>
+                  <th>Restante</th>
+                  <th>Vencimento</th>
+                  <th>Dias</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="apTableBody"></tbody>
+            </table>
           </div>
         </div>
       </div>
