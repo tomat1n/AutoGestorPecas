@@ -258,6 +258,8 @@ body.overlay-active .overlay { display: block; }
 
 /* OS: garantir espaço para a lupa nos campos de busca de Serviços e Peças */
 #serviceSearch.product-search { padding-left: 52px; }
+/* PDV: garantir espaço para a lupa no campo de busca de serviços */
+#pdvServiceSearch.product-search { padding-left: 52px; }
 #partSearch.product-search { padding-left: 52px; }
 
 /* Modal do leitor */

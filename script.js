@@ -1976,22 +1976,34 @@ async function searchPDVServices(term) {
   const supabase = window.supabaseClient;
   if (!supabase) return;
   let data = [];
-  if (term && term.length >= 2) {
-    const resp = await supabase
-      .from('services')
-      .select('*')
-      .or(`name.ilike.%${term}%,category.ilike.%${term}%`)
-      .eq('is_active', true)
-      .limit(20);
-    data = resp.data || [];
-  } else {
-    const resp = await supabase
-      .from('services')
-      .select('*')
-      .eq('is_active', true)
-      .order('name', { ascending: true })
-      .limit(20);
-    data = resp.data || [];
+  try {
+    if (term && term.length >= 1) {
+      const resp = await supabase
+        .from('services')
+        .select('*')
+        .or(`name.ilike.%${term}%,category.ilike.%${term}%,description.ilike.%${term}%`)
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .limit(20);
+      data = resp.data || [];
+    } else {
+      const resp = await supabase
+        .from('services')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+        .limit(20);
+      data = resp.data || [];
+    }
+  } catch (e) {
+    console.error('Falha ao buscar serviços do PDV:', e);
+  }
+  if (!data || data.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'os-result-empty';
+    empty.textContent = term && term.length ? 'Nenhum serviço encontrado.' : 'Nenhum serviço ativo cadastrado.';
+    resultsEl.appendChild(empty);
+    return;
   }
   (data||[]).forEach(svc => {
     const card = document.createElement('div');
