@@ -851,6 +851,34 @@ function setupDashboardNavigation() {
       }, 300);
     });
   }
+
+  // Card de Total a Pagar -> Contas a Pagar (sem filtros, todas as contas)
+  const totalAPagarCard = document.querySelector('[data-card="total-a-pagar"]');
+  if (totalAPagarCard) {
+    totalAPagarCard.style.cursor = 'pointer';
+    totalAPagarCard.addEventListener('click', function() {
+      navigateToSection('pagar');
+      setTimeout(() => {
+        const startEl = document.getElementById('apFilterStart');
+        const endEl = document.getElementById('apFilterEnd');
+        const statusEl = document.getElementById('apFilterStatus');
+        const searchEl = document.getElementById('apSearch');
+        if (startEl) startEl.value = '';
+        if (endEl) endEl.value = '';
+        if (statusEl) statusEl.value = '';
+        if (searchEl) searchEl.value = '';
+        ;['apFilterStart','apFilterEnd','apFilterStatus'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.dispatchEvent(new Event('change'));
+        });
+        if (searchEl) searchEl.dispatchEvent(new Event('input'));
+        const listHeader = document.querySelector('#payablesSection .ap-left h3');
+        if (listHeader) {
+          try { listHeader.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+        }
+      }, 300);
+    });
+  }
   
   // Card de Vendas no Ano -> Relatórios de Vendas
   const vendasAnoCard = document.querySelector('[data-card="vendas-ano"]');

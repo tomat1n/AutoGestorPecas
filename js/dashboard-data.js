@@ -210,6 +210,39 @@ function formatCurrency(value) {
 }
 
 /**
+ * Busca total a pagar (saldo restante) de todas as contas criadas
+ */
+async function getTotalPayables() {
+    try {
+        const supabase = window.supabaseClient;
+        if (!supabase) {
+            throw new Error('Cliente Supabase não inicializado');
+        }
+
+        const { data, error } = await supabase
+            .from('accounts_payable')
+            .select('original_value, paid_value');
+
+        if (error) throw error;
+
+        const totalRemaining = (data || []).reduce((sum, acc) => {
+            const original = parseFloat(acc.original_value || 0);
+            const paid = parseFloat(acc.paid_value || 0);
+            return sum + Math.max(0, original - paid);
+        }, 0);
+
+        return {
+            value: totalRemaining,
+            count: (data || []).length,
+            formatted: formatCurrency(totalRemaining)
+        };
+    } catch (error) {
+        console.error('Erro ao buscar total a pagar:', error);
+        return { value: 0, count: 0, formatted: 'R$ 0,00' };
+    }
+}
+
+/**
  * Atualiza todos os cards do dashboard
  */
 async function updateDashboardCards() {
@@ -219,7 +252,8 @@ async function updateDashboardCards() {
             { id: 'vendas-ano', text: 'Carregando...' },
             { id: 'vendas-mes', text: 'Carregando...' },
             { id: 'margem-bruta', text: 'Carregando...' },
-            { id: 'despesas-mes', text: 'Carregando...' }
+            { id: 'despesas-mes', text: 'Carregando...' },
+            { id: 'total-a-pagar', text: 'Carregando...' }
         ];
         
         cards.forEach(card => {
@@ -228,11 +262,12 @@ async function updateDashboardCards() {
         });
         
         // Buscar dados em paralelo
-        const [yearSales, monthSales, grossMargin, monthExpenses] = await Promise.all([
+        const [yearSales, monthSales, grossMargin, monthExpenses, totalPayables] = await Promise.all([
             getYearSales(),
             getMonthSales(),
             getMonthGrossMargin(),
-            getMonthExpenses()
+            getMonthExpenses(),
+            getTotalPayables()
         ]);
         
         // Atualizar cards com dados reais
@@ -240,19 +275,21 @@ async function updateDashboardCards() {
         updateCard('vendas-mes', monthSales.formatted);
         updateCard('margem-bruta', `${grossMargin.formatted} (${grossMargin.percentageFormatted})`);
         updateCard('despesas-mes', monthExpenses.formatted);
+        updateCard('total-a-pagar', totalPayables.formatted);
         
         console.log('Dashboard atualizado com sucesso:', {
             yearSales: yearSales.formatted,
             monthSales: monthSales.formatted,
             grossMargin: grossMargin.formatted,
-            monthExpenses: monthExpenses.formatted
+            monthExpenses: monthExpenses.formatted,
+            totalPayables: totalPayables.formatted
         });
         
     } catch (error) {
         console.error('Erro ao atualizar dashboard:', error);
         
         // Mostrar erro nos cards
-        ['vendas-ano', 'vendas-mes', 'margem-bruta', 'despesas-mes'].forEach(cardId => {
+        ['vendas-ano', 'vendas-mes', 'margem-bruta', 'despesas-mes', 'total-a-pagar'].forEach(cardId => {
             updateCard(cardId, 'Erro ao carregar');
         });
     }
@@ -274,6 +311,7 @@ window.dashboardData = {
     getMonthSales,
     getMonthGrossMargin,
     getMonthExpenses,
+    getTotalPayables,
     updateDashboardCards,
     updateCard,
     formatCurrency
