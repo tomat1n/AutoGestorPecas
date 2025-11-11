@@ -184,7 +184,7 @@ async function getMonthExpenses() {
         const totalPayables = paymentsData ? paymentsData.reduce((sum, pay) => sum + parseFloat(pay.payment_value || 0), 0) : 0;
         
         const grandTotal = totalExpenses + totalPayables;
-        const totalCount = expensesData.length + (payablesData ? payablesData.length : 0);
+        const totalCount = expensesData.length + (paymentsData ? paymentsData.length : 0);
         
         return {
             value: grandTotal,
