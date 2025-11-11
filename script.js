@@ -46,6 +46,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Aplicar visibilidade por permissões o quanto antes para evitar flash
   try { await applyMenuVisibilityByPermissions(); } catch {}
+  // Fallback: se permissões não foram aplicadas, evitar esconder tudo
+  try {
+    const applied = document.body.getAttribute('data-permissions-applied') === 'true';
+    if (!applied) {
+      document.querySelectorAll('.menu-item[data-page]').forEach((item) => {
+        if (item.getAttribute('data-page') !== 'logout') item.classList.remove('hidden');
+      });
+      const financeSectionEarly = document.querySelector('.finance-cards');
+      if (financeSectionEarly) financeSectionEarly.classList.remove('hidden');
+      const quickSectionEarly = document.querySelector('.quick-section');
+      if (quickSectionEarly) quickSectionEarly.classList.remove('hidden');
+    }
+  } catch {}
 
   // Ativa menu e navegação
   setupMenuActiveState();
@@ -383,10 +396,20 @@ async function getCurrentPermissionsCached() {
 
 async function canViewPage(page) {
   try {
+    // Garantir reconhecimento de admin pelo e-mail, caso metadados não estejam disponíveis
+    try {
+      const { data } = await (window.supabaseClient?.auth?.getUser?.() || Promise.resolve({ data: undefined }));
+      const email = data?.user?.email?.toLowerCase();
+      if (email === 'dcar@autogestorpecas.com' && window.CURRENT_ROLE !== 'administrador') {
+        window.CURRENT_ROLE = 'administrador';
+      }
+    } catch {}
     const perms = await getCurrentPermissionsCached();
     const module = PAGE_TO_MODULE[page] || 'dashboard';
     // Administrador sempre tem acesso ao checklist
     if (page === 'checklist' && window.CURRENT_ROLE === 'administrador') return true;
+    // Administrador sempre pode ver Configurações
+    if (page === 'config' && window.CURRENT_ROLE === 'administrador') return true;
     return perms?.[module]?.view === true;
   } catch { return true; }
 }
