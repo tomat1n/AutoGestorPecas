@@ -344,6 +344,12 @@ async function getCurrentPermissionsCached() {
           const adminChecklist = { ...(defaults.checklist||{}), ...(permsObj?.checklist||{}) };
           adminChecklist.view = true;
           result.checklist = adminChecklist;
+
+          // Administrador deve sempre ter acesso às configurações
+          const adminConfig = { ...(defaults.configuracoes||{}), ...(permsObj?.configuracoes||{}) };
+          adminConfig.view = true;
+          adminConfig.edit = true;
+          result.configuracoes = adminConfig;
         }
         return result;
       } catch {
