@@ -27,15 +27,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hasKeyAuto = isValidKey(autoCfg?.supabaseAnonKey);
     const hasSupaConfig = (hasUrlLS && hasKeyLS) || (hasUrlAuto && hasKeyAuto);
     const supabase = window.supabaseClient;
-    // Se não há configuração do Supabase, permanecer na página e abrir Configurações
+    // Se não há configuração do Supabase, tentar preencher automaticamente a partir de AUTO_GESTOR_CONFIG
     if (!hasSupaConfig) {
-      try { localStorage.setItem('cfg.activeTab','integrations'); } catch {}
+      try {
+        if (hasUrlAuto && hasKeyAuto) {
+          const merged = { ...(cfgLS||{}), cfgSupabaseUrl: autoCfg.supabaseUrl, cfgSupabaseAnonKey: autoCfg.supabaseAnonKey };
+          localStorage.setItem('cfg', JSON.stringify(merged));
+          // Inicializa imediatamente com as configs automáticas
+          try { initSupabase?.(); } catch {}
+        }
+        localStorage.setItem('cfg.activeTab','integrations');
+      } catch {}
     } else if (supabase) {
-      // Com configuração válida, exigir sessão
-      const { data } = await supabase.auth.getSession();
-      if (!data?.session) {
-        try { window.location.replace('auth.html'); return; } catch {}
-      }
+      // Com configuração válida, não exigir sessão; permitir uso anônimo
+      try { await supabase.auth.getSession(); } catch {}
     }
   } catch (e) { console.warn('Falha ao verificar autenticação:', e); }
 
@@ -76,9 +81,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Abre seção padrão: Configurações se faltar Supabase, senão Dashboard
   try {
     const cfgLS = (()=>{ try { return JSON.parse(localStorage.getItem('cfg')||'{}'); } catch { return {}; } })();
-    const hasUrl = /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(cfgLS?.cfgSupabaseUrl||'').trim());
-    const hasKey = typeof cfgLS?.cfgSupabaseAnonKey === 'string' && String(cfgLS.cfgSupabaseAnonKey).trim().split('.').length === 3;
-    let defaultPage = (hasUrl && hasKey) ? 'dashboard' : 'config';
+    const isValidUrl = (u) => /^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(String(u||'').trim());
+    const isValidKey = (k) => typeof k === 'string' && k.trim().split('.').length === 3;
+    const hasUrl = isValidUrl(cfgLS?.cfgSupabaseUrl||'');
+    const hasKey = isValidKey(cfgLS?.cfgSupabaseAnonKey||'');
+    const autoCfg = window.AUTO_GESTOR_CONFIG || {};
+    const hasUrlAuto = isValidUrl(autoCfg?.supabaseUrl||'');
+    const hasKeyAuto = isValidKey(autoCfg?.supabaseAnonKey||'');
+    let defaultPage = ((hasUrl && hasKey) || (hasUrlAuto && hasKeyAuto)) ? 'dashboard' : 'config';
     try {
       const lastPage = localStorage.getItem('lastPage');
       if (hasUrl && hasKey && lastPage) {
