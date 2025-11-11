@@ -4,6 +4,8 @@
   const fmtDate=d=>{if(!d)return'—';const dt=typeof d==='string'?new Date(d):d;return dt.toLocaleDateString('pt-BR');};
   const id=()=> (window.crypto&&crypto.randomUUID)?crypto.randomUUID():'ap_'+Math.random().toString(36).slice(2,10);
   const addDays=(dt,n)=>{const d=new Date(dt);d.setDate(d.getDate()+n);return d;};
+  const toYMD = d => { const dt = new Date(d); const m = String(dt.getMonth()+1).padStart(2,'0'); const day = String(dt.getDate()).padStart(2,'0'); return `${dt.getFullYear()}-${m}-${day}`; };
+  const daysUntil = date => { if(!date) return null; const d = new Date(date); const today = new Date(); const ms = toYMD(d) - toYMD(today); const diffDays = Math.floor((d - today)/(1000*60*60*24)); return diffDays; };
 
   window.initPayablesOnce=function(){
     if(initialized) return; initialized=true;
@@ -13,6 +15,8 @@
     const el={
       apExportBtn:document.getElementById('apExportBtn'),
       apNewPaymentBtn:document.getElementById('apNewPaymentBtn'),
+      apOpenReminderBtn:document.getElementById('apOpenReminderBtn'),
+      apAlertBar:document.getElementById('apAlertBar'),
       apSumPending:document.getElementById('apSumPending'),
       apSumOverdue:document.getElementById('apSumOverdue'),
       apSumPaid:document.getElementById('apSumPaid'),
@@ -49,9 +53,17 @@
       payReceiptNumber:document.getElementById('payReceiptNumber'),
       payObs:document.getElementById('payObs'),
       savePaymentBtn:document.getElementById('savePaymentBtn'),
+      // Reminder modal
+      apReminderModal:document.getElementById('apReminderModal'),
+      closeApReminderModal:document.getElementById('closeApReminderModal'),
+      saveApReminderSettings:document.getElementById('saveApReminderSettings'),
+      apReminder7:document.getElementById('apReminder7'),
+      apReminder3:document.getElementById('apReminder3'),
+      apReminder1:document.getElementById('apReminder1'),
+      apReminderDue:document.getElementById('apReminderDue'),
     };
 
-    const S = window.AP_STATE = window.AP_STATE || { accounts:[], payments:[], selectedId:null };
+    const S = window.AP_STATE = window.AP_STATE || { accounts:[], payments:[], selectedId:null, reminderSettings:{ days7:true, days3:true, days1:true, due:true } };
     if(supabase){ loadAPSupabase(el,S).catch(err=>console.warn('Supabase load AP error',err)); }
     seedDemoIfEmpty(S);
     bindHeader(el,S); bindFilters(el,S); bindForm(el,S); bindModal(el,S);
@@ -70,6 +82,7 @@
   function bindHeader(el,S){
     el.apExportBtn?.addEventListener('click',()=>exportCSV(S.accounts));
     el.apNewPaymentBtn?.addEventListener('click',()=>openPaymentModal(el,S));
+    el.apOpenReminderBtn?.addEventListener('click',()=>openReminderModal(el,S));
   }
 
   function bindFilters(el,S){
@@ -117,9 +130,20 @@
   function bindModal(el,S){
     el.closePaymentModal?.addEventListener('click',()=>closePaymentModal(el));
     el.savePaymentBtn?.addEventListener('click',()=>savePayment(el,S));
+    el.closeApReminderModal?.addEventListener('click',()=>closeReminderModal(el));
+    el.saveApReminderSettings?.addEventListener('click',()=>{
+      S.reminderSettings = {
+        days7: !!el.apReminder7?.checked,
+        days3: !!el.apReminder3?.checked,
+        days1: !!el.apReminder1?.checked,
+        due: !!el.apReminderDue?.checked,
+      };
+      alert('Preferências de lembrete salvas.');
+      closeReminderModal(el);
+    });
   }
 
-  function renderAll(el,S){ renderSummary(el,S); renderTable(el,S); fillPaymentAccounts(el,S); }
+  function renderAll(el,S){ renderSummary(el,S); renderAlertsBar(el,S); renderTable(el,S); fillPaymentAccounts(el,S); }
 
   function renderSummary(el,S){
     const today=new Date(),weekEnd=addDays(today,7);
@@ -135,6 +159,24 @@
     el.apSumOverdue&&(el.apSumOverdue.textContent=String(overdueCount));
     el.apSumPaid&&(el.apSumPaid.textContent=String(paidCount));
     el.apSumWeekDue&&(el.apSumWeekDue.textContent=String(weekDueCount));
+  }
+
+  function renderAlertsBar(el,S){
+    if(!el.apAlertBar) return;
+    const today = new Date();
+    let overdue = 0, due7 = 0, future = 0;
+    S.accounts.forEach(a=>{
+      const remaining = Math.max(0, Number(a.original_value||0)-Number(a.paid_value||0));
+      if (a.status==='paid' || remaining<=0) return;
+      const d = new Date(a.due_date);
+      const diff = Math.floor((d - today)/(1000*60*60*24));
+      if (diff < 0) overdue += 1; else if (diff <= 7) due7 += 1; else future += 1;
+    });
+    el.apAlertBar.innerHTML = `
+      ${overdue>0?`<div class="ap-alert warning-high"><i class="fa-solid fa-exclamation-triangle"></i> ${overdue} vencidas</div>`:''}
+      ${due7>0?`<div class="ap-alert warning-medium"><i class="fa-solid fa-calendar-week"></i> ${due7} vencem em ≤7 dias</div>`:''}
+      ${future>0?`<div class="ap-alert warning-low"><i class="fa-solid fa-info-circle"></i> ${future} próximas</div>`:''}
+    `;
   }
 
   function applyFilters(el,S){
@@ -156,8 +198,10 @@
     const rows=applyFilters(el,S).map((a,idx)=>{
       const remaining=Math.max(0, Number(a.original_value||0)-Number(a.paid_value||0));
       const isOverdue=(a.status!=='paid') && (new Date(a.due_date) < new Date());
+      const diffDays = a.status==='paid' ? null : Math.floor((new Date(a.due_date) - new Date())/(1000*60*60*24));
+      const rowClass = diffDays==null ? '' : (diffDays<0 ? 'vencida' : (diffDays<=7 ? 'proxima' : ''));
       return `
-        <tr data-id="${a.id}">
+        <tr class="conta-row ${rowClass}" data-id="${a.id}">
           <td>${idx+1}</td>
           <td>${a.supplier_name}</td>
           <td>${a.description}</td>
@@ -165,15 +209,18 @@
           <td>${fmtBRL(a.paid_value)}</td>
           <td>${fmtBRL(remaining)}</td>
           <td>${fmtDate(a.due_date)} ${isOverdue?'<span class="badge badge-danger">Vencida</span>':''}</td>
-          <td>${mapStatusLabel(a.status)}</td>
+          <td>${diffDays==null?'—':diffDays}</td>
+          <td><span class="status-badge status-${a.status}">${mapStatusLabel(a.status)}</span></td>
           <td>${mapPriorityLabel(a.priority)}</td>
           <td>
-            <button class="btn btn-secondary btn-edit">Editar</button>
-            <button class="btn btn-success btn-pay">Pagar</button>
+            <button class="btn btn-secondary btn-edit"><i class="fa-solid fa-edit"></i></button>
+            <button class="btn btn-success btn-pay"><i class="fa-solid fa-money-bill-wave"></i></button>
+            <button class="btn btn-warning btn-reminder"><i class="fa-solid fa-bell"></i></button>
+            <button class="btn btn-danger btn-delete"><i class="fa-solid fa-trash"></i></button>
           </td>
         </tr>`;
     }).join('');
-    el.apTableBody&&(el.apTableBody.innerHTML=rows||'<tr><td colspan="10" style="text-align:center;color:#777;">Nenhuma conta encontrada.</td></tr>');
+    el.apTableBody&&(el.apTableBody.innerHTML=rows||'<tr><td colspan="11" style="text-align:center;color:#777;">Nenhuma conta encontrada.</td></tr>');
     attachRowEvents(el,S);
   }
 
@@ -181,8 +228,22 @@
     el.apTableBody?.querySelectorAll('tr').forEach(tr=>{
       const rid=tr.getAttribute('data-id'); const acc=S.accounts.find(a=>a.id===rid);
       const btnEdit=tr.querySelector('.btn-edit'); const btnPay=tr.querySelector('.btn-pay');
+      const btnReminder=tr.querySelector('.btn-reminder'); const btnDelete=tr.querySelector('.btn-delete');
+      tr.addEventListener('click', (e)=>{
+        if ((e.target.closest && e.target.closest('button'))) return; // ignore clicks on action buttons
+        el.apTableBody?.querySelectorAll('tr').forEach(r=>r.classList.remove('selected'));
+        tr.classList.add('selected'); S.selectedId = rid;
+        setFormData(el, acc);
+      });
       btnEdit?.addEventListener('click',()=>{ S.selectedId=rid; setFormData(el,acc); });
       btnPay?.addEventListener('click',()=>{ S.selectedId=rid; openPaymentModal(el,S,rid); });
+      btnReminder?.addEventListener('click',()=>{ S.selectedId=rid; openReminderModal(el,S,rid); });
+      btnDelete?.addEventListener('click',async()=>{
+        if(!confirm('Excluir esta conta?')) return;
+        S.accounts = S.accounts.filter(a=>a.id!==rid);
+        if (supabase){ await deleteAccountSupabase(rid).catch(err=>console.warn('Supabase delete',err)); }
+        renderAll(el,S);
+      });
     });
   }
 
@@ -202,6 +263,9 @@
     el.paymentModal?.classList.add('active');
   }
   function closePaymentModal(el){ el.paymentModal?.classList.remove('active'); }
+
+  function openReminderModal(el,S){ el.apReminderModal?.classList.add('active'); }
+  function closeReminderModal(el){ el.apReminderModal?.classList.remove('active'); }
 
   async function savePayment(el,S){
     const accountId=el.payAccountSelect?.value||S.selectedId;

@@ -1114,3 +1114,64 @@ input:checked + .toggle-slider:before { transform: translateX(30px); }
 
 @media (max-width: 992px) { .suppliers-grid { grid-template-columns: 1fr; } }
 @media (max-width: 576px) { .form-row { grid-template-columns: 1fr; } .inv-filters { grid-template-columns: 1fr; } }
+
+/* =====================
+   Contas a Pagar (AP)
+   ====================== */
+.payables-section { padding: 20px; }
+.ap-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.ap-header h2 { font-weight: 600; }
+.ap-header .ap-header-actions .btn { margin-left: 8px; border-radius: 8px; transition: all 0.3s; }
+
+.ap-summary { margin-bottom: 16px; }
+.ap-summary .card { border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+
+.ap-grid { display: grid; grid-template-columns: 1fr 400px; gap: 20px; height: calc(100vh - 200px); }
+.ap-left, .ap-right { display: flex; flex-direction: column; gap: 14px; }
+.ap-card { background: #fff; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); padding: 16px; }
+.ap-card h3 { margin: 0 0 12px; font-weight: 600; font-size: 16px; }
+
+.ap-filters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 12px; }
+.ap-filters .form-group { min-width: 160px; }
+
+.ap-alert-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ap-alert { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+.ap-alert.warning-high { background: #fee2e2; color: #991b1b; border-left: 4px solid var(--danger); }
+.ap-alert.warning-medium { background: #fff3cd; color: #663c00; border-left: 4px solid var(--warning); }
+.ap-alert.warning-low { background: #e0f2f7; color: #0c5460; border-left: 4px solid #17A2B8; }
+
+.ap-table { width: 100%; border-collapse: collapse; }
+.ap-table th, .ap-table td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+.ap-table thead th { background: #f8f9fd; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+.ap-table tbody tr:hover { background: #fafafa; }
+.ap-table tbody tr.selected { background: #e7f1ff; }
+.ap-table tbody tr.vencida { background: #fff5f5; }
+.ap-table tbody tr.proxima { background: #fffbea; }
+
+.badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+.badge-warning { background: #fff3cd; color: #856404; }
+.badge-success { background: #d4edda; color: #155724; }
+.badge-danger { background: #f8d7da; color: #721c24; }
+.badge-secondary { background: #e9ecef; color: #495057; }
+
+.status-badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 12px; font-weight: 600; }
+.status-badge.status-pending { background: #fff3cd; color: #856404; }
+.status-badge.status-overdue { background: #f8d7da; color: #721c24; }
+.status-badge.status-partial { background: #e2e3e5; color: #383d41; }
+.status-badge.status-paid { background: #d4edda; color: #155724; }
+
+.amount { font-weight: 700; }
+.amount.pending { color: var(--warning); }
+.amount.overdue { color: var(--danger); }
+.amount.paid { color: var(--success); }
+
+.btn-info { background: #17A2B8; color: #fff; }
+.btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+.btn[disabled] { opacity: 0.6; cursor: not-allowed; box-shadow: none; transform: none; }
+
+@media (max-width: 1200px) { .ap-grid { grid-template-columns: 1fr; height: auto; } }
+@media (max-width: 768px) {
+  .ap-filters { grid-template-columns: 1fr; }
+  .ap-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .form-row { grid-template-columns: 1fr; }
+}

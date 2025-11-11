@@ -1509,8 +1509,11 @@
         <div class="ap-header-actions">
           <button class="btn btn-primary" id="apExportBtn"><i class="fa-solid fa-file-export"></i> Exportar</button>
           <button class="btn btn-success" id="apNewPaymentBtn"><i class="fa-solid fa-plus"></i> Novo Pagamento</button>
+          <button class="btn btn-info" id="apOpenReminderBtn"><i class="fa-solid fa-bell"></i> Lembretes</button>
         </div>
       </div>
+
+      <div class="ap-alert-bar" id="apAlertBar"></div>
 
       <div class="finance-cards ap-summary">
         <div class="card card-blue">
@@ -1568,7 +1571,12 @@
           <div class="ap-card">
             <h3>Listagem de Contas</h3>
             <div class="ap-filters">
-              <div class="form-group"><input type="text" id="apSearch" class="product-search" placeholder="Buscar por fornecedor, descrição ou documento..." /></div>
+              <div class="form-group">
+                <div class="search-box">
+                  <i class="fa-solid fa-search search-icon"></i>
+                  <input type="text" id="apSearch" class="product-search" placeholder="Buscar conta..." />
+                </div>
+              </div>
               <div class="form-group">
                 <select id="apFilterStatus">
                   <option value="">Todos</option>
@@ -1599,6 +1607,7 @@
                   <th>Pago</th>
                   <th>Restante</th>
                   <th>Vencimento</th>
+                  <th>Dias</th>
                   <th>Status</th>
                   <th>Prioridade</th>
                   <th>Ações</th>
@@ -1729,6 +1738,27 @@
           </div>
           <div class="modal-actions">
             <button class="btn btn-success" id="savePaymentBtn"><i class="fa-solid fa-check"></i> Salvar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="app-modal" id="apReminderModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3>Configurar Lembretes</h3>
+            <button class="btn btn-secondary" id="closeApReminderModal"><i class="fa-solid fa-times"></i> Fechar</button>
+          </div>
+          <div class="form-group">
+            <label>Envio de lembretes</label>
+            <div class="form-row" style="gap: 16px;">
+              <label><input type="checkbox" id="apReminder7" checked /> 7 dias antes</label>
+              <label><input type="checkbox" id="apReminder3" checked /> 3 dias antes</label>
+              <label><input type="checkbox" id="apReminder1" checked /> 1 dia antes</label>
+              <label><input type="checkbox" id="apReminderDue" checked /> No vencimento</label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-info" id="saveApReminderSettings"><i class="fa-solid fa-bell"></i> Salvar Lembretes</button>
           </div>
         </div>
       </div>

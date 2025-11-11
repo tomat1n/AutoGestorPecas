@@ -824,7 +824,31 @@ function setupDashboardNavigation() {
   if (despesasCard) {
     despesasCard.style.cursor = 'pointer';
     despesasCard.addEventListener('click', function() {
-      navigateToSection('accounts-payable');
+      // Navegar para Contas a Pagar e aplicar filtros do mês corrente
+      navigateToSection('pagar');
+      setTimeout(() => {
+        const now = new Date();
+        const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        const startEl = document.getElementById('apFilterStart');
+        const endEl = document.getElementById('apFilterEnd');
+        const statusEl = document.getElementById('apFilterStatus');
+        const searchEl = document.getElementById('apSearch');
+        if (startEl) startEl.value = start;
+        if (endEl) endEl.value = end;
+        if (statusEl) statusEl.value = 'pending';
+        if (searchEl) searchEl.value = '';
+        // Disparar re-renderização de tabela após aplicar filtros
+        ['apFilterStart','apFilterEnd','apFilterStatus'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.dispatchEvent(new Event('change'));
+        });
+        // Focar seção de lista
+        const listHeader = document.querySelector('#payablesSection .ap-left h3');
+        if (listHeader) {
+          try { listHeader.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch {}
+        }
+      }, 300);
     });
   }
   
