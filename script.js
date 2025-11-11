@@ -211,16 +211,17 @@ function setupBarcodeScannerModule() {
 // ==============================
 // Permissões: utilitários centrais
 // ==============================
-const PAGE_TO_MODULE = {
-  dashboard: 'dashboard',
-  pdv: 'vendas',
-  os: 'vendas', // mapeado para vendas (serviços não possuem módulo próprio)
-  servicos: 'vendas', // mapeado para vendas (serviços fazem parte do módulo de vendas)
-  estoque: 'estoque',
-  receber: 'financeiro',
-  pagar: 'financeiro',
-  relatorios: 'relatorios',
-  clientes: 'clientes',
+  const PAGE_TO_MODULE = {
+    dashboard: 'dashboard',
+    pdv: 'vendas',
+    os: 'vendas', // mapeado para vendas (serviços não possuem módulo próprio)
+    servicos: 'vendas', // mapeado para vendas (serviços fazem parte do módulo de vendas)
+    orcamentos: 'vendas',
+    estoque: 'estoque',
+    receber: 'financeiro',
+    pagar: 'financeiro',
+    relatorios: 'relatorios',
+    clientes: 'clientes',
   fornecedores: 'fornecedores',
   nf: 'financeiro',
   config: 'configuracoes',
@@ -520,6 +521,7 @@ async function navigateTo(page) {
 
   const pdvSection = document.getElementById('pdvSection');
   const osSection = document.getElementById('osSection');
+  const budgetsSection = document.getElementById('budgetsSection');
   const inventorySection = document.getElementById('inventorySection');
   const receivablesSection = document.getElementById('receivablesSection');
   const payablesSection = document.getElementById('payablesSection');
@@ -531,7 +533,7 @@ async function navigateTo(page) {
   const checklistSection = document.getElementById('checklistSection');
   const servicosSection = document.getElementById('servicesSection');
 
-  const sections = [pdvSection, osSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection, servicosSection];
+  const sections = [pdvSection, osSection, budgetsSection, inventorySection, receivablesSection, payablesSection, reportsSection, clientsSection, suppliersSection, nfSection, checklistSection, settingsSection, servicosSection];
   sections.forEach(sec => { if (sec) sec.classList.add('hidden'); });
 
   const quickSection = document.querySelector('.quick-section');
@@ -551,6 +553,10 @@ async function navigateTo(page) {
     case 'os':
       if (osSection) osSection.classList.remove('hidden');
       try { initOSOnce?.(); } catch {}
+      break;
+    case 'orcamentos':
+      if (budgetsSection) budgetsSection.classList.remove('hidden');
+      try { initBudgetsOnce?.(); } catch {}
       break;
     case 'estoque':
       if (inventorySection) inventorySection.classList.remove('hidden');

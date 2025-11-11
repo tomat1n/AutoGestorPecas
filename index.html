@@ -209,11 +209,12 @@
         </div>
       </div>
     </div>
-    <div class="menu">
+  <div class="menu">
       <a href="#" class="menu-item active" data-page="dashboard"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></a>
       <a href="#" class="menu-item" data-page="pdv"><i class="fa-solid fa-cash-register"></i><span>PDV</span></a>
-      <a href="#" class="menu-item" data-page="os"><i class="fa-solid fa-screwdriver-wrench"></i><span>Ordem de Serviço</span></a>
-      <a href="#" class="menu-item" data-page="servicos"><i class="fa-solid fa-wrench"></i><span>Serviços</span></a>
+    <a href="#" class="menu-item" data-page="os"><i class="fa-solid fa-screwdriver-wrench"></i><span>Ordem de Serviço</span></a>
+    <a href="#" class="menu-item" data-page="orcamentos"><i class="fa-solid fa-file-signature"></i><span>Orçamentos</span></a>
+    <a href="#" class="menu-item" data-page="servicos"><i class="fa-solid fa-wrench"></i><span>Serviços</span></a>
       <a href="#" class="menu-item" data-page="estoque"><i class="fa-solid fa-boxes-stacked"></i><span>Estoque</span></a>
       <a href="#" class="menu-item" data-page="nf"><i class="fa-solid fa-file-invoice"></i><span>Notas Fiscais</span></a>
       <a href="#" class="menu-item" data-page="clientes"><i class="fa-solid fa-users"></i><span>Clientes</span></a>
@@ -777,6 +778,226 @@
             <tbody>
             </tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Orçamentos -->
+    <section class="budgets-section hidden" id="budgetsSection">
+      <div class="bd-header">
+        <h2>Orçamentos</h2>
+        <div class="bd-header-actions">
+          <button class="btn btn-primary" id="bdListBtn" title="Lista de Orçamentos"><i class="fa-solid fa-list"></i> Lista</button>
+          <button class="btn btn-success" id="bdNewBtn" title="Novo Orçamento"><i class="fa-solid fa-plus"></i> Novo</button>
+          <button class="btn btn-info" id="bdExportBtn" title="Exportar para CSV"><i class="fa-solid fa-file-export"></i> Exportar</button>
+          <button class="btn btn-success" id="bdWhatsBtn" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i> WhatsApp</button>
+        </div>
+      </div>
+
+      <div class="finance-cards bd-summary">
+        <div class="card card-blue">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-blue"><i class="fa-solid fa-clock"></i></div>
+              <div class="text">
+                <div class="title">Pendentes</div>
+                <div class="value" id="bdSumPending">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-green">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-green"><i class="fa-solid fa-check-circle"></i></div>
+              <div class="text">
+                <div class="title">Aprovados</div>
+                <div class="value" id="bdSumApproved">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-red">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-red"><i class="fa-solid fa-times-circle"></i></div>
+              <div class="text">
+                <div class="title">Recusados</div>
+                <div class="value" id="bdSumRejected">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+        <div class="card card-yellow">
+          <div class="card-body">
+            <div class="left">
+              <div class="icon-badge badge-yellow"><i class="fa-solid fa-hourglass-half"></i></div>
+              <div class="text">
+                <div class="title">Expirados</div>
+                <div class="value" id="bdSumExpired">0</div>
+              </div>
+            </div>
+            <div class="right"><div class="trend">•</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bd-mode bd-mode-form" id="bdModeForm">
+        <div class="os-grid">
+          <!-- Esquerda: Dados e Itens -->
+          <div class="os-left">
+            <div class="os-card">
+              <h3>Dados do Cliente</h3>
+              <div class="os-form-grid">
+                <div class="os-form-group">
+                  <label for="bdClientName">Nome</label>
+                  <input type="text" id="bdClientName" placeholder="Nome do cliente" />
+                </div>
+                <div class="os-form-group">
+                  <label for="bdClientPhone">Telefone</label>
+                  <input type="text" id="bdClientPhone" placeholder="(00) 00000-0000" />
+                </div>
+                <div class="os-form-group">
+                  <label for="bdClientEmail">E-mail</label>
+                  <input type="email" id="bdClientEmail" placeholder="email@exemplo.com" />
+                </div>
+              </div>
+            </div>
+
+            <div class="os-card">
+              <h3>Dados do Veículo</h3>
+              <div class="os-form-grid">
+                <div class="os-form-group">
+                  <label for="bdVehicleType">Tipo</label>
+                  <select id="bdVehicleType">
+                    <option value="carro" selected>Carro</option>
+                    <option value="moto">Moto</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+                <div class="os-form-group">
+                  <label for="bdVehiclePlate">Placa</label>
+                  <input type="text" id="bdVehiclePlate" placeholder="ABC-1D23" />
+                </div>
+                <div class="os-form-group">
+                  <label for="bdVehicleModel">Modelo</label>
+                  <input type="text" id="bdVehicleModel" placeholder="Modelo do veículo" />
+                </div>
+                <div class="os-form-group">
+                  <label for="bdVehicleYear">Ano</label>
+                  <input type="number" id="bdVehicleYear" placeholder="2020" />
+                </div>
+            </div>
+          </div>
+
+          <div class="os-card">
+            <h3>Checklist Vinculado</h3>
+            <div class="os-form-grid">
+              <div class="os-form-group">
+                <label for="bdChecklistSelect">Checklist</label>
+                <select id="bdChecklistSelect">
+                  <option value="">Selecione um checklist</option>
+                </select>
+              </div>
+              <div class="os-form-group">
+                <label for="bdChecklistInclude">Enviar junto</label>
+                <select id="bdChecklistInclude">
+                  <option value="true" selected>Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary" id="bdChecklistRefreshBtn"><i class="fa-solid fa-rotate"></i> Atualizar lista</button>
+              <button class="btn btn-info" id="bdChecklistOpenBtn"><i class="fa-solid fa-clipboard-check"></i> Abrir Checklist</button>
+            </div>
+            <div id="bdChecklistPreview">
+              <div class="preview-section">
+                <div class="preview-title">Resumo</div>
+                <div id="bdChecklistSummary" style="color:#495057">Nenhum checklist selecionado.</div>
+              </div>
+              <div class="preview-section">
+                <div class="preview-title">Fotos</div>
+                <div class="photo-grid" id="bdChecklistPhotos"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="os-card">
+            <h3>Itens do Orçamento</h3>
+            <div id="bdItemsList" class="os-items"></div>
+            <div class="totals">
+              <div>Serviços: <span id="bdSubServices">0,00</span></div>
+                <div>Peças: <span id="bdSubParts">0,00</span></div>
+                <div><strong>Total:</strong> <span id="bdGrandTotal">0,00</span></div>
+              </div>
+              <div class="actions">
+                <label for="bdValidityDays">Validade (dias)</label>
+                <select id="bdValidityDays">
+                  <option value="3">3</option>
+                  <option value="7" selected>7</option>
+                  <option value="15">15</option>
+                  <option value="30">30</option>
+                </select>
+                <button class="btn btn-success" id="saveBudgetBtn"><i class="fa-solid fa-check"></i> Salvar Orçamento</button>
+                <button class="btn btn-secondary" id="printBudgetBtn"><i class="fa-solid fa-print"></i> Imprimir A4</button>
+                <button class="btn btn-info" id="pdfBudgetBtn"><i class="fa-solid fa-file-pdf"></i> Exportar PDF</button>
+                <button class="btn btn-success" id="whatsBudgetBtn"><i class="fa-brands fa-whatsapp"></i> Enviar WhatsApp</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Direita: Seleção de Itens -->
+          <div class="os-right">
+            <div class="os-card">
+              <h3>Adicionar Serviços</h3>
+              <div class="search-box">
+                <input type="text" id="bdServiceSearch" class="product-search" placeholder="Buscar serviço por nome ou categoria..." />
+                <i class="fa-solid fa-search search-icon"></i>
+              </div>
+              <div class="os-results" id="bdServiceResults"></div>
+            </div>
+
+            <div class="os-card">
+              <h3>Adicionar Peças</h3>
+              <div class="search-box">
+                <input type="text" id="bdPartSearch" class="product-search" placeholder="Buscar peça por nome ou código..." />
+                <i class="fa-solid fa-search search-icon"></i>
+              </div>
+              <div class="os-results" id="bdPartResults"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bd-mode bd-mode-list" id="bdModeList" style="display:none">
+        <div class="os-card">
+          <h3>Lista de Orçamentos</h3>
+          <div class="list-filters">
+            <select id="bdFilterStatus">
+              <option value="all" selected>Todos</option>
+              <option value="pending">Pendente</option>
+              <option value="approved">Aprovado</option>
+              <option value="rejected">Recusado</option>
+              <option value="expired">Expirado</option>
+            </select>
+            <select id="bdFilterType">
+              <option value="all" selected>Todos os Veículos</option>
+              <option value="carro">Carro</option>
+              <option value="moto">Moto</option>
+            </select>
+            <select id="bdFilterPeriod">
+              <option value="30d" selected>Últimos 30 dias</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="90d">Últimos 90 dias</option>
+              <option value="all">Todo período</option>
+            </select>
+            <input type="text" id="bdSearchTerm" placeholder="Buscar por cliente, veículo ou nº" />
+          </div>
+          <div id="bdListContainer"></div>
         </div>
       </div>
     </section>
@@ -2754,5 +2975,6 @@
     <script src="./settings.js"></script>
     <!-- User Management JS -->
     <script src="js/user-management.js"></script>
-  </body>
+  <script src="js/budgets.js"></script>
+</body>
 </html>
